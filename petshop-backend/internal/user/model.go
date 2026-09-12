@@ -12,7 +12,7 @@ type User struct {
 	Phone      string    `gorm:"unique" json:"phone"`
 	LineUserID *string   `gorm:"uniqueIndex" json:"line_user_id"`
 	PictureURL string    `json:"picture_url"`
-	Role       string    `json:"role"`
+	Role       string    `gorm:"not null;default:'user'" json:"role"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 

@@ -14,7 +14,7 @@ type Pet struct {
 	PetNeutered  bool      `gorm:"not null" json:"pet_neutered"`
 	PetDisease   string    `json:"pet_disease"`
 	PetHealth    string    `json:"pet_health"`
-	Description  string    `gorm:"not null" json:"description"`
+	Description  string    `json:"description"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 

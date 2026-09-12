@@ -12,6 +12,7 @@ import (
 
 	"petshop-backend/internal/middleware"
 	"petshop-backend/internal/pet"
+	"petshop-backend/internal/product"
 	"petshop-backend/internal/user"
 
 	"gorm.io/driver/postgres"
@@ -70,6 +71,13 @@ func main() {
 	pets.Get("/", pet.List)
 	pets.Put("/:id", pet.Update)
 	pets.Delete("/:id", pet.Delete)
+
+	// Product API
+	app.Post("/products", product.Create)
+	app.Get("/products/:id", product.Read)
+	app.Get("/products", product.List)
+	app.Put("/products/:id", product.Update)
+	app.Delete("/products/:id", product.Delete)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))

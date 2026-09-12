@@ -18,9 +18,9 @@ export default function EditProfile() {
   const avatarInputRef = useRef(null)
   const [profile, setProfile] = useState(readProfile)
   const [form, setForm] = useState(() => ({
-    name: profile.name || 'กระเทียม เจียว',
+    name: profile.name || '',
     phone: profile.phone || '',
-    email: profile.email || 'krathiam@email.com',
+    email: profile.email || '',
     gender: profile.gender || '',
     birthDate: profile.birthDate || '',
   }))
