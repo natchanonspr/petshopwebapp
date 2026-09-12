@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+import { API_BASE, authHeaders, unwrap } from './http'
 
 export async function loginWithLine({ lineUserId, displayName, pictureUrl }) {
   const res = await fetch(`${API_BASE}/auth/line`, {
