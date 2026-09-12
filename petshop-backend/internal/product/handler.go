@@ -33,7 +33,7 @@ func Read(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"detail": product,
+		"data": product,
 	})
 }
 
