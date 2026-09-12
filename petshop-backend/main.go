@@ -10,6 +10,7 @@ import (
 
 	"fmt"
 
+	"petshop-backend/internal/address"
 	"petshop-backend/internal/cart"
 	"petshop-backend/internal/category"
 	"petshop-backend/internal/middleware"
@@ -47,9 +48,10 @@ func main() {
 	product.SetDB(db)
 	category.SetDB(db)
 	cart.SetDB(db)
+	address.SetDB(db)
 
 	// สร้าง/อัปเดตตารางอัตโนมัติตาม struct
-	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}, &category.Category{}, &product.Product{}, &cart.Cart{}); err != nil {
+	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}, &category.Category{}, &product.Product{}, &cart.Cart{}, &address.Address{}); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
 	// กัน category_id ชี้ไปหมวดที่ไม่มีจริง + กันลบ category ที่ยังมี product ใช้อยู่
@@ -110,6 +112,13 @@ func main() {
 	carts.Post("/items", cart.AddItem)
 	carts.Put("/items/:itemId", cart.UpdateItem)
 	carts.Delete("/items/:itemId", cart.RemoveItem)
+
+	// Address API
+	addresses := app.Group("/addresses", middleware.JWTProtected(jwtSecret))
+	addresses.Get("/", address.List)
+	addresses.Post("/", address.Create)
+	addresses.Put("/:id", address.Update)
+	addresses.Delete("/:id", address.Delete)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))
