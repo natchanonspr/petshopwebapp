@@ -9,6 +9,12 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 
+<<<<<<< HEAD
+=======
+	"fmt"
+
+	"petshop-backend/internal/address"
+>>>>>>> 4519ec4dcc86e93b0a7bfdd9a6c7e29609fe8df8
 	"petshop-backend/internal/cart"
 	"petshop-backend/internal/category"
 	"petshop-backend/internal/middleware"
@@ -44,8 +50,14 @@ func main() {
 	product.SetDB(db)
 	category.SetDB(db)
 	cart.SetDB(db)
+	address.SetDB(db)
 
+<<<<<<< HEAD
 	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}, &category.Category{}, &product.Product{}, &cart.Cart{}); err != nil {
+=======
+	// สร้าง/อัปเดตตารางอัตโนมัติตาม struct
+	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}, &category.Category{}, &product.Product{}, &cart.Cart{}, &address.Address{}); err != nil {
+>>>>>>> 4519ec4dcc86e93b0a7bfdd9a6c7e29609fe8df8
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
 
@@ -110,6 +122,13 @@ func main() {
 	carts.Post("/items", cart.AddItem)
 	carts.Put("/items/:itemId", cart.UpdateItem)
 	carts.Delete("/items/:itemId", cart.RemoveItem)
+
+	// Address API
+	addresses := app.Group("/addresses", middleware.JWTProtected(jwtSecret))
+	addresses.Get("/", address.List)
+	addresses.Post("/", address.Create)
+	addresses.Put("/:id", address.Update)
+	addresses.Delete("/:id", address.Delete)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))
