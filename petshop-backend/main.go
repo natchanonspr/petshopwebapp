@@ -52,11 +52,19 @@ func main() {
 	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}, &category.Category{}, &product.Product{}, &cart.Cart{}); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
+	// กัน category_id ชี้ไปหมวดที่ไม่มีจริง + กันลบ category ที่ยังมี product ใช้อยู่
+	if err := db.Exec(`
+	ALTER TABLE products
+	ADD CONSTRAINT fk_products_category
+	FOREIGN KEY (category_id) REFERENCES categories(category_id)
+	ON DELETE RESTRICT`).Error; err != nil {
+		log.Println("Add FK constraint warning:", err)
+	}
 
 	// เชื่อม fiber
 	app := fiber.New()
 
-	// อนุญาต frontend (Vite dev server) เรียก API ข้าม origin
+	// อนุญาต frontend เรียก API ข้าม origin
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:5175, https://garnet-tradition-persuader.ngrok-free.dev",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",

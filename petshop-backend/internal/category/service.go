@@ -2,6 +2,7 @@ package category
 
 import (
 	"errors"
+	"strings"
 )
 
 var ErrEmptyName = errors.New("ชื่อหมวดหมู่ห้ามว่าง")
@@ -40,11 +41,15 @@ func UpdateCategoryService(categoryID int64, req *CategoryRequest) (*Category, e
 	return category, nil
 }
 
-func DeleteCategoryService(cateogryID int64) error {
-	_, err := GetCategory(cateogryID)
-	if err != nil {
+func DeleteCategoryService(id int64) error {
+	if _, err := GetCategory(id); err != nil {
 		return err
 	}
-
-	return DeleteCategory(cateogryID)
+	if err := DeleteCategory(id); err != nil {
+		if strings.Contains(err.Error(), "foreign key") {
+			return ErrCategoryInUse
+		}
+		return err
+	}
+	return nil
 }
