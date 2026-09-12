@@ -90,7 +90,6 @@ export default function Login() {
   const handleLineLogin = async () => {
     const liffId = import.meta.env.VITE_LIFF_ID
     if (!liffId || !lineReady) {
-      setError('LIFF ยังไม่พร้อม กรุณาตรวจสอบ LIFF ID และ Endpoint URL')
       return
     }
 
@@ -122,6 +121,8 @@ export default function Login() {
     setError('ระบบเข้าสู่ระบบด้วยเบอร์โทรจะเชื่อมต่อ Backend ต่อไป')
   }
 
+
+
   if (loading) {
     return <BoxLoader />
   }
@@ -140,7 +141,7 @@ export default function Login() {
 
         <section className="relative z-10 -mt-7 flex flex-1 flex-col rounded-t-[30px] bg-white px-5 pb-6 pt-7 sm:px-7">
           <div className="mb-6 text-center">
-            <h2 className="text-xl font-extrabold text-gray-900">เข้าสู่ระบบ</h2>
+            <h2 className="text-xl font-extrabold te xt-gray-900">เข้าสู่ระบบ</h2>
             <p className="mt-1 text-xs text-gray-400">เข้าสู่บัญชี Petshop ของคุณ</p>
           </div>
 
@@ -183,6 +184,11 @@ export default function Login() {
             ยังไม่มีบัญชี?
             <button type="button" className="ml-1 font-bold text-orange-500">สมัครสมาชิก</button>
           </p>
+         <button
+            type="button"
+            onClick={() => navigate('/home/admin/login')}
+             className="mt-2 text-xs font-semibold text-gray-400 hover:text-orange-500">เข้าสู่ระบบ Admin
+          </button>
         </section>
       </div>
     </main>

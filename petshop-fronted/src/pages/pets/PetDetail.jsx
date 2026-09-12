@@ -425,69 +425,68 @@ export default function PetDetail() {
         </form>
       ) : (
         <>
+          <section className="relative mb-5 overflow-hidden rounded-[28px] bg-orange-50 px-4 pb-4 pt-5">
+            <div className="pointer-events-none absolute -right-8 -top-10 size-32 rounded-full bg-orange-200/40" />
+            <div className="pointer-events-none absolute -bottom-14 -left-8 size-28 rounded-full bg-orange-200/30" />
+
+            <div className="relative flex flex-col items-center">
+              <div className="grid size-32 place-items-center overflow-hidden rounded-full border-[5px] border-white bg-white shadow-[0_6px_20px_rgba(15,23,42,0.10)]">
+                {pet?.image ? (
+                  <img src={pet.image} alt={pet.pet_name} className="h-full w-full object-cover" />
+                ) : (
+                  <i className={`fa-solid ${pet?.pet_species === 'สุนัข' ? 'fa-dog' : 'fa-cat'} text-6xl text-orange-300`} />
+                )}
+              </div>
+
+              <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-gray-900">
+                {pet?.pet_name || '-'}
+                <span className={`ml-1.5 ${isFemale ? 'text-pink-500' : 'text-green-500'}`}>
+                  {isFemale ? '♀' : '♂'}
+                </span>
+              </h2>
+              <p className="mt-0.5 text-sm font-medium text-gray-500">
+                {pet?.pet_breed || pet?.pet_species || 'ไม่ระบุสายพันธุ์'}
+              </p>
+
+              <div className="mt-4 grid w-full grid-cols-3 gap-2.5">
+                <div className="rounded-2xl bg-white px-2 py-3 text-center shadow-sm">
+                  <strong className="block text-sm font-extrabold text-gray-900">
+                    {pet?.pet_birthdate ? `${new Date().getFullYear() - new Date(pet.pet_birthdate).getFullYear()} ปี` : '-'}
+                  </strong>
+                  <span className="mt-0.5 block text-[10px] font-medium text-gray-400">อายุ</span>
+                </div>
+                <div className="rounded-2xl bg-white px-2 py-3 text-center shadow-sm">
+                  <strong className="block text-sm font-extrabold text-gray-900">
+                    {pet?.pet_weight ? `${pet.pet_weight} กก.` : '-'}
+                  </strong>
+                  <span className="mt-0.5 block text-[10px] font-medium text-gray-400">น้ำหนัก</span>
+                </div>
+                <div className="rounded-2xl bg-white px-2 py-3 text-center shadow-sm">
+                  <strong className={`block text-sm font-extrabold ${isFemale ? 'text-pink-500' : 'text-green-500'}`}>
+                    {isFemale ? 'ตัวเมีย' : 'ตัวผู้'}
+                  </strong>
+                  <span className="mt-0.5 block text-[10px] font-medium text-gray-400">เพศ</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <Section icon="fa-paw" title="ข้อมูลทั่วไป">
-            <InfoRow
-              icon="fa-signature"
-              label="ชื่อ"
-              value={pet?.pet_name || "-"}
-            />
-
-            <InfoRow
-              icon="fa-paw"
-              label="ประเภท"
-              value={pet?.pet_species || "-"}
-            />
-
-            <InfoRow
-              icon="fa-dna"
-              label="สายพันธุ์"
-              value={pet?.pet_breed || "-"}
-            />
-
-            <InfoRow
-              icon="fa-weight-scale"
-              label="น้ำหนัก"
-              value={pet?.pet_weight ? `${pet.pet_weight} กก.` : "-"}
-            />
-
-            <InfoRow
-              icon="fa-venus-mars"
-              label="เพศ"
-              value={pet?.pet_gender || "-"}
-            />
+            <InfoRow icon="fa-signature" label="ชื่อ" value={pet?.pet_name || '-'} />
+            <InfoRow icon="fa-paw" label="ประเภท" value={pet?.pet_species || '-'} />
+            <InfoRow icon="fa-dna" label="สายพันธุ์" value={pet?.pet_breed || '-'} />
+            <InfoRow icon="fa-calendar" label="วันเกิด" value={pet?.pet_birthdate ? String(pet.pet_birthdate).slice(0, 10) : '-'} />
           </Section>
 
-          <Section icon="fa-heart" title="สุขภาพ">
-            <InfoRow
-              icon="fa-calendar"
-              label="วันเกิด"
-              value={pet?.pet_birthdate
-                ? String(pet.pet_birthdate).slice(0, 10)
-                : "-"}
-            />
-
-            <InfoRow
-              icon="fa-scissors"
-              label="การทำหมัน"
-              value={pet?.pet_neutered ? "ทำแล้ว" : "ยังไม่ได้ทำ"}
-            />
-
-            <InfoRow
-              icon="fa-notes-medical"
-              label="โรคประจำตัว"
-              value={pet?.pet_disease || "-"}
-            />
-
-            <InfoRow
-              icon="fa-heart-pulse"
-              label="ปัญหาสุขภาพ"
-              value={pet?.pet_health || "-"}
-            />
+          <Section icon="fa-heart" title="ข้อมูลสุขภาพ">
+            <InfoRow icon="fa-scissors" label="การทำหมัน" value={pet?.pet_neutered ? 'ทำแล้ว' : 'ยังไม่ได้ทำ'} />
+            <InfoRow icon="fa-notes-medical" label="โรคประจำตัว" value={pet?.pet_disease || '-'} />
+            <InfoRow icon="fa-heart-pulse" label="ปัญหาสุขภาพ" value={pet?.pet_health || '-'} />
           </Section>
 
           <Section icon="fa-note-sticky" title="หมายเหตุ">
-            <div className="px-4 py-4 text-sm text-gray-700">
-              {pet?.description || "ไม่มีข้อมูล"}
+            <div className="px-4 py-4 text-sm leading-6 text-gray-700">
+              {pet?.description || 'ไม่มีข้อมูล'}
             </div>
           </Section>
         </>
