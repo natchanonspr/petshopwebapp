@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import liff from '@line/liff'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { loginWithLine } from '../../api/auth.js'
+import BoxLoader from '../../components/ui/box-loader.jsx'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -13,39 +14,46 @@ export default function Login() {
   const [error, setError] = useState('')
 
   const saveLineUser = async () => {
-    const profile = await liff.getProfile()
+    setLoading(true)
+    try {
+      const profile = await liff.getProfile()
 
-    const token = await loginWithLine({
-      lineUserId: profile.userId,
-      displayName: profile.displayName,
-      pictureUrl: profile.pictureUrl || '',
-    })
-    localStorage.setItem('petshop_token', token)
+      const token = await loginWithLine({
+        lineUserId: profile.userId,
+        displayName: profile.displayName,
+        pictureUrl: profile.pictureUrl || '',
+      })
+      localStorage.setItem('petshop_token', token)
 
-    const existing = JSON.parse(localStorage.getItem('petshop_user') || '{}')
-    const user = {
-      ...existing,
-      lineUserId: profile.userId,
-      name: profile.displayName,
-      displayName: profile.displayName,
-      pictureUrl: profile.pictureUrl || '',
-      loggedIn: true,
-      loginProvider: 'line-liff',
+      const existing = JSON.parse(localStorage.getItem('petshop_user') || '{}')
+      const user = {
+        ...existing,
+        lineUserId: profile.userId,
+        name: profile.displayName,
+        displayName: profile.displayName,
+        pictureUrl: profile.pictureUrl || '',
+        loggedIn: true,
+        loginProvider: 'line-liff',
+      }
+
+      localStorage.setItem('petshop_user', JSON.stringify(user))
+      localStorage.setItem('petshop_user_auth', 'true')
+
+      const existingProfile = JSON.parse(localStorage.getItem('petshop_profile') || '{}')
+      const profileData = {
+        ...existingProfile,
+        name: profile.displayName,
+        avatar: existingProfile.avatar || profile.pictureUrl || '',
+      }
+      localStorage.setItem('petshop_profile', JSON.stringify(profileData))
+      window.dispatchEvent(new Event('petshop-profile-updated'))
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+      navigate(location.state?.from || '/home', { replace: true })
+    } catch (err) {
+      console.error('LINE login failed:', err)
+      setLoading(false)
+      setError(err?.message || 'เข้าสู่ระบบ LINE ไม่สำเร็จ')
     }
-
-    localStorage.setItem('petshop_user', JSON.stringify(user))
-    localStorage.setItem('petshop_user_auth', 'true')
-
-    const existingProfile = JSON.parse(localStorage.getItem('petshop_profile') || '{}')
-    const profileData = {
-      ...existingProfile,
-      name: profile.displayName,
-      avatar: existingProfile.avatar || profile.pictureUrl || '',
-    }
-    localStorage.setItem('petshop_profile', JSON.stringify(profileData))
-    window.dispatchEvent(new Event('petshop-profile-updated'))
-
-    navigate(location.state?.from || '/home', { replace: true })
   }
 
   useEffect(() => {
@@ -90,6 +98,8 @@ export default function Login() {
       setLoading(true)
       setError('')
       if (!liff.isLoggedIn()) {
+        setLoading(true)
+        await new Promise((resolve) => setTimeout(resolve, 300))
         liff.login({ redirectUri: window.location.href })
         return
       }
@@ -110,6 +120,10 @@ export default function Login() {
     }
 
     setError('ระบบเข้าสู่ระบบด้วยเบอร์โทรจะเชื่อมต่อ Backend ต่อไป')
+  }
+
+  if (loading) {
+    return <BoxLoader />
   }
 
   return (
@@ -135,13 +149,7 @@ export default function Login() {
               <span className="mb-2 block text-xs font-bold text-gray-600">เบอร์โทร</span>
               <div className="flex h-12 items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 transition focus-within:border-orange-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-orange-50">
                 <i className="fa-solid fa-phone mr-3 text-sm text-gray-400" />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="กรอกเบอร์โทร"
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-gray-300"
-                />
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="กรอกเบอร์โทร" className="w-full bg-transparent text-sm outline-none placeholder:text-gray-300" />
               </div>
             </label>
 
@@ -149,27 +157,13 @@ export default function Login() {
               <span className="mb-2 block text-xs font-bold text-gray-600">รหัสผ่าน</span>
               <div className="flex h-12 items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 transition focus-within:border-orange-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-orange-50">
                 <i className="fa-solid fa-lock mr-3 text-sm text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="กรอกรหัสผ่าน"
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-gray-300"
-                />
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="กรอกรหัสผ่าน" className="w-full bg-transparent text-sm outline-none placeholder:text-gray-300" />
               </div>
             </label>
 
-            <button type="button" className="w-full text-right text-xs font-semibold text-orange-500">
-              ลืมรหัสผ่าน?
-            </button>
+            <button type="button" className="w-full text-right text-xs font-semibold text-orange-500">ลืมรหัสผ่าน?</button>
 
-            <button
-              type="button"
-              onClick={handlePhoneLogin}
-              className="h-12 w-full rounded-2xl bg-orange-500 text-sm font-extrabold text-white shadow-sm transition hover:bg-orange-600 active:scale-[.98]"
-            >
-              เข้าสู่ระบบ
-            </button>
+            <button type="button" onClick={handlePhoneLogin} className="h-12 w-full rounded-2xl bg-orange-500 text-sm font-extrabold text-white shadow-sm transition hover:bg-orange-600 active:scale-[.98]">เข้าสู่ระบบ</button>
           </div>
 
           <div className="my-6 flex items-center gap-3">
@@ -178,12 +172,7 @@ export default function Login() {
             <div className="h-px flex-1 bg-gray-100" />
           </div>
 
-          <button
-            type="button"
-            onClick={handleLineLogin}
-            disabled={loading || !lineReady}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-green-500 bg-white text-sm font-bold text-green-600 transition hover:bg-green-50 active:scale-[.98] disabled:opacity-60"
-          >
+          <button type="button" onClick={handleLineLogin} disabled={loading || !lineReady} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-green-500 bg-white text-sm font-bold text-green-600 transition hover:bg-green-50 active:scale-[.98] disabled:opacity-60">
             <i className={`fa-brands ${loading ? 'fa-spinner fa-spin' : 'fa-line'} text-lg`} />
             เข้าสู่ระบบด้วย LINE
           </button>
@@ -192,9 +181,7 @@ export default function Login() {
 
           <p className="mt-auto pt-6 text-center text-xs text-gray-400">
             ยังไม่มีบัญชี?
-            <button type="button" className="ml-1 font-bold text-orange-500">
-              สมัครสมาชิก
-            </button>
+            <button type="button" className="ml-1 font-bold text-orange-500">สมัครสมาชิก</button>
           </p>
         </section>
       </div>
