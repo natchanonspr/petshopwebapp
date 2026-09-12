@@ -10,6 +10,7 @@ import (
 
 	"fmt"
 
+	"petshop-backend/internal/category"
 	"petshop-backend/internal/middleware"
 	"petshop-backend/internal/pet"
 	"petshop-backend/internal/product"
@@ -42,9 +43,11 @@ func main() {
 	//ส่ง db เข้า package
 	user.SetDB(db)
 	pet.SetDB(db)
+	product.SetDB(db)
+	category.SetDB(db)
 
 	// สร้าง/อัปเดตตารางอัตโนมัติตาม struct
-	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}); err != nil {
+	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}, &category.Category{}, &product.Product{}); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
 
@@ -81,6 +84,15 @@ func main() {
 	adminProducts.Post("/", product.Create)
 	adminProducts.Put("/:id", product.Update)
 	adminProducts.Delete("/:id", product.Delete)
+
+	// Category API
+	app.Get("/categories", category.List)
+	app.Get("/categories/:id", category.Read)
+
+	adminCategories := app.Group("/categories", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
+	adminCategories.Post("/", category.Create)
+	adminCategories.Put("/:id", category.Update)
+	adminCategories.Delete("/:id", category.Delete)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))
