@@ -1,0 +1,54 @@
+# PetShop — สิ่งที่เหลือก่อนส่งโปรเจกต์
+
+## งานหลักที่ยังต้องทำ
+- [ ] เชื่อมต่อฐานข้อมูล PostgreSQL
+  - [ ] ออกแบบตาราง/โครงสร้างข้อมูล
+  - [ ] เชื่อม Backend กับ PostgreSQL
+  - [ ] ย้ายข้อมูล Mock Data ที่จำเป็นไปใช้ข้อมูลจริง
+  - [ ] ทดสอบ CRUD และความถูกต้องของข้อมูล
+
+- [ ] ระบบ AI
+  - [ ] เชื่อมต่อ AI API / AI Service จริง
+  - [ ] ระบบแนะนำสินค้าให้ทำงานจากข้อมูลจริง
+  - [ ] ระบบวิเคราะห์/ประมวลผลตามฟังก์ชัน AI ที่กำหนด
+  - [ ] เชื่อม AI กับข้อมูลสินค้า/ผู้ใช้จาก PostgreSQL
+  - [ ] ทดสอบกรณีข้อมูลไม่ครบหรือ AI ตอบผิดพลาด
+
+## งาน Backend / Integration
+- [ ] สร้าง Backend API สำหรับ User / Product / Cart / Order / Coupon / Notification
+- [ ] เชื่อม Frontend กับ API แทน Mock Data
+- [ ] จัดการ Authentication / Authorization
+- [ ] เชื่อมระบบ Admin กับข้อมูลจริง
+- [ ] ตรวจสอบ Validation และ Error Handling
+
+## งานระบบที่ควรตรวจต่อ
+- [ ] ระบบแจ้งเตือนให้ทำงานกับ Backend จริง
+- [ ] WebSocket / Realtime Notification ให้ทำงานในสภาพแวดล้อมจริง
+- [ ] ตรวจสอบการบันทึก Order และสถานะ Order
+- [ ] ตรวจสอบ Coupon / Promotion กับฐานข้อมูลจริง
+- [ ] ตรวจสอบข้อมูล Profile / Pets / Favorites
+
+## Final QA
+- [ ] ทดสอบ User ทุกหน้าบน Desktop
+- [ ] ทดสอบ User ทุกหน้าบน Mobile
+- [ ] ทดสอบ Admin ทุกหน้า
+- [ ] ทดสอบ Responsive
+- [ ] ทดสอบ Search และคำค้นผิด/คำใกล้เคียง
+- [ ] ทดสอบ Product Detail → Cart → Checkout → Order
+- [ ] ทดสอบ Notifications
+- [ ] ทดสอบ Print / PDF / Download เอกสาร Order
+- [ ] npm run build ต้องผ่าน
+- [ ] ตรวจ Console Error / Warning ที่สำคัญ
+
+## Git / ส่งต่อให้เพื่อน
+- [x] Git repository ถูกสร้างในโปรเจกต์ use
+- [x] branch หลักเป็น main
+- [x] Initial commit สำเร็จ
+- [x] .gitignore ตั้งค่าแล้ว
+- [ ] Push โปรเจกต์ขึ้น GitHub
+- [ ] ให้เพื่อน Clone และ npm install
+- [ ] ตกลงวิธีทำงาน Git (pull → แก้ → commit → push)
+
+## หมายเหตุ
+ตอนนี้โปรเจกต์เป็น Frontend Prototype และยังใช้ Mock Data เป็นหลัก
+งานสำคัญที่สุดที่เหลือคือ **AI จริง** และ **PostgreSQL + Backend**
