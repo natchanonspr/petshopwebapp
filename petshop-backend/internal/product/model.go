@@ -10,7 +10,7 @@ type Product struct {
 	ProductStock  int64     `gorm:"not null" json:"product_stock"`
 	ProductImage  string    `json:"product_image"`
 	Description   string    `json:"description"`
-	ProductStatus bool      `gorm:"not null;default:'true'" json:"product_status"`
+	ProductStatus bool      `gorm:"not null;default:true" json:"product_status"`
 	CreatedAt     time.Time `json:"created_at"`
 }
 
