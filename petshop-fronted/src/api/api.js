@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+export const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 export function authHeaders() {
   const token = localStorage.getItem('petshop_token')
@@ -12,7 +12,6 @@ export async function unwrap(res, errorMessage = 'Request failed') {
   try {
     body = JSON.parse(text)
   } catch {
-    // response ไม่ใช่ JSON
   }
 
   if (!res.ok) {
