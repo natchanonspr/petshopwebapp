@@ -1,4 +1,4 @@
-import { API_BASE, authHeaders, unwrap } from './http'
+import { API_BASE, authHeaders, unwrap } from './api'
 
 export async function loginWithLine({ lineUserId, displayName, pictureUrl }) {
   const res = await fetch(`${API_BASE}/auth/line`, {

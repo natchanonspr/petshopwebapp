@@ -1,11 +1,24 @@
-import { API_BASE, authHeaders, unwrap } from './http'
+import { API_BASE, authHeaders, unwrap } from './api'
+
+function mapProduct(p) {
+  return {
+    id: p.product_id,
+    name: p.product_name,
+    price: p.product_price,
+    image: p.product_image,
+    stock: p.product_stock,
+    status: p.product_status,
+    categoryId: p.category_id, // TODO: ยังไม่มี endpoint category → ยังไม่มีชื่อหมวดให้โชว์
+    icon: 'fa-box', // fallback ตายตัว ไม่มาจาก backend
+  }
+}
 
 export async function getProducts() {
   const res = await fetch(`${API_BASE}/products/`, {
     headers: { ...authHeaders() },
   })
   const data = await unwrap(res, 'โหลดข้อมูลสินค้าไม่สำเร็จ')
-  return Array.isArray(data) ? data : []
+  return Array.isArray(data) ? data.map(mapProduct) : []
 }
 
 export async function getProduct(id) {
@@ -15,7 +28,8 @@ export async function getProduct(id) {
   const res = await fetch(`${API_BASE}/products/${id}`, {
     headers: { ...authHeaders() },
   })
-  return unwrap(res, 'โหลดข้อมูลสินค้าไม่สำเร็จ')
+  const data = await unwrap(res, 'โหลดข้อมูลสินค้าไม่สำเร็จ')
+  return data ? mapProduct(data) : null
 }
 
 export async function createProduct(payload) {
@@ -37,9 +51,11 @@ export async function updateProduct(id, payload) {
 }
 
 export async function deleteProduct(id) {
-  const res = await fetch(`${API_BASE}/products/${id}`, {
-    method: 'DELETE',
-    headers: { ...authHeaders() },
-  })
-  return unwrap(res, 'ลบสินค้าไม่สำเร็จ')
+  return unwrap(
+    await fetch(`${API_BASE}/products/${id}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders() },
+    }),
+    'ลบสินค้าไม่สำเร็จ',
+  )
 }

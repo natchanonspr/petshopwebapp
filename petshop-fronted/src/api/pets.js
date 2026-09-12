@@ -1,4 +1,4 @@
-import { API_BASE, authHeaders, unwrap } from './http'
+import { API_BASE, authHeaders, unwrap } from './api'
 
 export async function getPets() {
   const res = await fetch(`${API_BASE}/pets/`, {
