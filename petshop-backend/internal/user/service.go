@@ -54,11 +54,6 @@ func LoginWithLine(req *LineLoginRequest) (string, error) {
 			return "", err
 		}
 	} else {
-		existing.Username = req.DisplayUserName
-		existing.UserPictureURL = req.UserPictureURL
-		if err := db.Save(existing).Error; err != nil {
-			return "", err
-		}
 		u = existing
 	}
 
