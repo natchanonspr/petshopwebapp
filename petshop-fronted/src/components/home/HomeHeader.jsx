@@ -3,50 +3,22 @@ import { useEffect, useState } from 'react'
 import NotificationBadge from '../profile/NotificationBadge.jsx'
 import CartBadge from '../cart/CartBadge.jsx'
 import { getProductSearchSuggestions } from '../../lib/fuzzySearch.js'
-import { getProducts } from '../../api/products.js'
 
-export default function HomeHeader() {
+export default function HomeHeader({ products = [] }) {
   const navigate = useNavigate()
-
-  const [products, setProducts] = useState([])
   const [search, setSearch] = useState('')
+
   const [profile, setProfile] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('petshop_profile') || '{}')
+      const saved = JSON.parse(
+        localStorage.getItem('petshop_profile') || '{}'
+      )
       return saved && typeof saved === 'object' ? saved : {}
     } catch {
       return {}
     }
   })
 
-  // โหลดสินค้าจาก Backend
-  useEffect(() => {
-    let active = true
-
-    const loadProducts = async () => {
-      try {
-        const data = await getProducts()
-
-        if (active) {
-          setProducts(Array.isArray(data) ? data : [])
-        }
-      } catch (error) {
-        console.error('load products error:', error)
-
-        if (active) {
-          setProducts([])
-        }
-      }
-    }
-
-    loadProducts()
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  // refresh profile
   useEffect(() => {
     const refreshProfile = () => {
       try {
