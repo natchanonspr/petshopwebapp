@@ -60,3 +60,37 @@ func Login(c *fiber.Ctx) error {
 		"token":   token,
 	})
 }
+
+// Profile
+func GetProfile(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(int64)
+
+	user, err := GetProfileService(userID)
+	if err != nil {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": user,
+	})
+}
+
+func UpdateProfile(c *fiber.Ctx) error {
+	req := new(UpdateProfileRequest)
+
+	if err := c.BodyParser(req); err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	userID := c.Locals("user_id").(int64)
+
+	user, err := UpdateProfileService(userID, req)
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Update Profile Successful",
+		"data":    user,
+	})
+}

@@ -96,6 +96,10 @@ func main() {
 	app.Post("/login", user.Login)
 	app.Post("/auth/line", user.LineLogin)
 
+	profile := app.Group("/profile", middleware.JWTProtected(jwtSecret))
+	profile.Get("/", user.GetProfile)
+	profile.Put("/", user.UpdateProfile)
+
 	// PET API
 	pets := app.Group("/pets", middleware.JWTProtected(jwtSecret))
 	pets.Post("/", pet.Create)

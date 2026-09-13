@@ -80,7 +80,7 @@ func LoginUser(req *UserLogin) (string, error) {
 	//หา user ผ่านเบอร์โทร
 	selectedUser := new(User)
 
-	result := db.Where("phone = ?", req.UserPhone).First(selectedUser)
+	result := db.Where("user_phone = ?", req.UserPhone).First(selectedUser)
 	if result.Error != nil {
 		return "", result.Error
 	}
@@ -96,4 +96,38 @@ func LoginUser(req *UserLogin) (string, error) {
 	}
 
 	return signToken(selectedUser.UserID, selectedUser.UserRole)
+}
+
+// ส่วน Profile
+type UpdateProfileRequest struct {
+	Username       string `json:"username"`
+	UserEmail      string `json:"email"`
+	UserPhone      string `json:"phone"`
+	UserPictureURL string `json:"picture_url"`
+}
+
+func GetProfileService(userID int64) (*User, error) {
+	return GetUserByID(userID)
+}
+
+func UpdateProfileService(
+	userID int64,
+	req *UpdateProfileRequest,
+) (*User, error) {
+
+	user, err := GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Username = req.Username
+	user.UserEmail = req.UserEmail
+	user.UserPhone = req.UserPhone
+	user.UserPictureURL = req.UserPictureURL
+
+	if err := UpdateUser(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
