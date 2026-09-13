@@ -8,15 +8,13 @@ function mapProduct(p) {
     image: p.product_image,
     stock: p.product_stock,
     status: p.product_status,
-    categoryId: p.category_id, // TODO: ยังไม่มี endpoint category → ยังไม่มีชื่อหมวดให้โชว์
+    category: p.category_name,
     icon: 'fa-box', // fallback ตายตัว ไม่มาจาก backend
   }
 }
 
 export async function getProducts() {
-  const res = await apiFetch(`${API_BASE}/products/`, {
-    headers: { ...authHeaders() },
-  })
+  const res = await apiFetch(`${API_BASE}/products/`)
   const data = await unwrap(res, 'โหลดข้อมูลสินค้าไม่สำเร็จ')
   return Array.isArray(data) ? data.map(mapProduct) : []
 }
