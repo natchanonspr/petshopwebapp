@@ -3,46 +3,50 @@ import { useEffect, useState } from 'react'
 import NotificationBadge from '../profile/NotificationBadge.jsx'
 import CartBadge from '../cart/CartBadge.jsx'
 import { getProductSearchSuggestions } from '../../lib/fuzzySearch.js'
+import { getProfile } from '../../api/user.js'
 
 export default function HomeHeader({ products = [] }) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
 
-  const [profile, setProfile] = useState(() => {
+  const [profile, setProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+
+  // -----------------------------
+  // โหลด Profile จาก Backend
+  // -----------------------------
+  const loadProfile = async () => {
     try {
-      const saved = JSON.parse(
-        localStorage.getItem('petshop_profile') || '{}'
-      )
-      return saved && typeof saved === 'object' ? saved : {}
-    } catch {
-      return {}
+      setProfileLoading(true)
+
+      const data = await getProfile()
+
+      setProfile(data || {})
+    } catch (error) {
+      console.error('load home profile error:', error)
+      setProfile({})
+    } finally {
+      setProfileLoading(false)
     }
-  })
+  }
 
   useEffect(() => {
-    const refreshProfile = () => {
-      try {
-        const saved = JSON.parse(
-          localStorage.getItem('petshop_profile') || '{}'
-        )
+    loadProfile()
 
-        setProfile(
-          saved && typeof saved === 'object' ? saved : {}
-        )
-      } catch {
-        setProfile({})
-      }
+    const refreshProfile = () => {
+      loadProfile()
     }
 
-    window.addEventListener('petshop-profile-updated', refreshProfile)
-    window.addEventListener('storage', refreshProfile)
+    window.addEventListener(
+      'petshop-profile-updated',
+      refreshProfile
+    )
 
     return () => {
       window.removeEventListener(
         'petshop-profile-updated',
         refreshProfile
       )
-      window.removeEventListener('storage', refreshProfile)
     }
   }, [])
 
@@ -66,17 +70,23 @@ export default function HomeHeader({ products = [] }) {
 
   return (
     <header className="z-10 shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-4 pt-3 shadow-md">
+
       <div className="mb-4 flex items-center justify-between">
+
         <div className="flex items-center gap-3">
+
+          {/* Profile Avatar */}
           <Link
             to="/profile"
             aria-label="ไปหน้าบัญชี"
             title="บัญชีของฉัน"
             className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-gray-200 text-lg text-gray-400 transition active:scale-90"
           >
-            {profile.avatar ? (
+            {profileLoading ? (
+              <i className="fa-solid fa-spinner fa-spin text-sm" />
+            ) : profile?.picture_url ? (
               <img
-                src={profile.avatar}
+                src={profile.picture_url}
                 alt="รูปโปรไฟล์"
                 className="size-full object-cover"
               />
@@ -86,17 +96,24 @@ export default function HomeHeader({ products = [] }) {
           </Link>
 
           <div>
+
             <p className="m-0 text-sm font-medium leading-none text-gray-500">
               สวัสดี
             </p>
 
             <h1 className="m-0 mt-1 text-xl font-bold leading-tight text-gray-900">
-              {profile.name || 'กระเทียม เจียว'}
+              {profileLoading
+                ? 'กำลังโหลด...'
+                : profile?.username || 'ผู้ใช้งาน'}
             </h1>
+
           </div>
+
         </div>
 
         <div className="flex gap-2.5">
+
+          {/* Notification */}
           <Link
             to="/notifications"
             aria-label="การแจ้งเตือน"
@@ -107,6 +124,7 @@ export default function HomeHeader({ products = [] }) {
             </NotificationBadge>
           </Link>
 
+          {/* Cart */}
           <Link
             to="/cart"
             aria-label="ตะกร้าสินค้า"
@@ -116,22 +134,30 @@ export default function HomeHeader({ products = [] }) {
               <i className="fa-solid fa-cart-shopping" />
             </CartBadge>
           </Link>
+
         </div>
       </div>
 
-      <form onSubmit={handleSearch} className="relative block">
+      {/* Search */}
+      <form
+        onSubmit={handleSearch}
+        className="relative block"
+      >
         <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
 
         <input
           type="text"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
           placeholder="ค้นหาสินค้า, แบรนด์, หรืออื่นๆ..."
           aria-label="ค้นหาสินค้า"
           autoComplete="off"
           className="block h-[46px] w-full rounded-2xl border-0 bg-gray-100 pl-10 pr-10 text-sm text-gray-700 outline-none placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-orange-200"
         />
 
+        {/* Clear search */}
         {search && (
           <button
             type="button"
@@ -143,48 +169,61 @@ export default function HomeHeader({ products = [] }) {
           </button>
         )}
 
-        {search.trim() && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-[54px] z-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl shadow-gray-900/10">
-            <p className="px-4 pb-1 pt-3 text-xs font-semibold text-gray-400">
-              สินค้าที่ใกล้เคียง
-            </p>
+        {/* Suggestions */}
+        {search.trim() &&
+          suggestions.length > 0 && (
+            <div className="absolute left-0 right-0 top-[54px] z-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl shadow-gray-900/10">
 
-            {suggestions.map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  setSearch(product.name)
-                  navigate(
-                    `/products?search=${encodeURIComponent(product.name)}`
-                  )
-                }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-orange-50 active:bg-gray-100"
-              >
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-orange-50 text-orange-500">
-                  <i
-                    className={`fa-solid ${product.icon || 'fa-paw'
+              <p className="px-4 pb-1 pt-3 text-xs font-semibold text-gray-400">
+                สินค้าที่ใกล้เคียง
+              </p>
+
+              {suggestions.map((product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onMouseDown={(event) =>
+                    event.preventDefault()
+                  }
+                  onClick={() => {
+                    setSearch(product.name)
+
+                    navigate(
+                      `/products?search=${encodeURIComponent(
+                        product.name
+                      )}`
+                    )
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-orange-50 active:bg-gray-100"
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-orange-50 text-orange-500">
+                    <i
+                      className={`fa-solid ${
+                        product.icon || 'fa-paw'
                       }`}
-                  />
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-gray-800">
-                    {product.name}
+                    />
                   </span>
 
-                  <span className="block text-xs text-gray-400">
-                    {product.category || 'สินค้า'}
-                  </span>
-                </span>
+                  <span className="min-w-0 flex-1">
 
-                <i className="fa-solid fa-chevron-right text-xs text-gray-300" />
-              </button>
-            ))}
-          </div>
-        )}
+                    <span className="block truncate text-sm font-semibold text-gray-800">
+                      {product.name}
+                    </span>
+
+                    <span className="block text-xs text-gray-400">
+                      {product.category || 'สินค้า'}
+                    </span>
+
+                  </span>
+
+                  <i className="fa-solid fa-chevron-right text-xs text-gray-300" />
+                </button>
+              ))}
+
+            </div>
+          )}
       </form>
+
     </header>
   )
 }
