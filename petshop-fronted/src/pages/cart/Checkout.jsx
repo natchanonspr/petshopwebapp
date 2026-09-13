@@ -6,7 +6,6 @@ import { getAddresses } from '../../api/address.js'
 import { createOrder } from '../../api/orders.js'
 
 import { getCoupon } from '../../admin/coupons.js'
-
 import { calculateOrderPricing } from '../../lib/orderPricing.js'
 
 const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
@@ -30,16 +29,47 @@ const readDiscount = () => {
     return saved && typeof saved === 'object'
       ? saved
       : {
-        code: '',
-        amount: 0,
-        freeShipping: false,
-      }
+          code: '',
+          amount: 0,
+          freeShipping: false,
+        }
   } catch {
     return {
       code: '',
       amount: 0,
       freeShipping: false,
     }
+  }
+}
+
+const getAddressId = (item) => {
+  return item?.address_id ?? item?.id ?? null
+}
+
+const mapAddressToDisplay = (savedAddress) => {
+  return {
+    name:
+      savedAddress?.recipient_name ||
+      savedAddress?.name ||
+      '',
+    phone:
+      savedAddress?.phone ||
+      savedAddress?.recipient_phone ||
+      '',
+    detail: [
+      savedAddress?.address_line ||
+        savedAddress?.address ||
+        savedAddress?.detail,
+      savedAddress?.subdistrict &&
+        `ต.${savedAddress.subdistrict}`,
+      savedAddress?.district &&
+        `อ.${savedAddress.district}`,
+      savedAddress?.province &&
+        `จ.${savedAddress.province}`,
+      savedAddress?.postal_code,
+    ]
+      .filter(Boolean)
+      .join(' '),
   }
 }
 
@@ -59,7 +89,8 @@ export default function Checkout() {
   )
   const [promoError, setPromoError] = useState('')
 
-  const [selectedAddressId, setSelectedAddressId] = useState(null)
+  const [selectedAddressId, setSelectedAddressId] =
+    useState(null)
 
   const [address, setAddress] = useState({
     name: '',
@@ -96,39 +127,35 @@ export default function Checkout() {
         setItems(cart)
         setSavedAddresses(addresses)
 
+        // เลือก Default Address ก่อน ถ้าไม่มีให้เลือกตัวแรก
         const defaultAddress =
-          addresses.find((item) => item.is_default) ||
+          addresses.find((item) => item?.is_default) ||
           addresses[0]
 
-        console.log('Addresses:', addresses)
-        console.log('Default Address:', defaultAddress)
-        console.log('Address ID:', defaultAddress?.address_id)
-
         if (defaultAddress) {
-          setSelectedAddressId(defaultAddress.address_id)
+          const addressId = getAddressId(defaultAddress)
+          const mappedAddress =
+            mapAddressToDisplay(defaultAddress)
 
+          setSelectedAddressId(addressId)
+          setAddress(mappedAddress)
+        } else {
+          setSelectedAddressId(null)
           setAddress({
-            name: defaultAddress.recipient_name || '',
-            phone: defaultAddress.phone || '',
-            detail: [
-              defaultAddress.address_line,
-              defaultAddress.subdistrict &&
-              `ต.${defaultAddress.subdistrict}`,
-              defaultAddress.district &&
-              `อ.${defaultAddress.district}`,
-              defaultAddress.province &&
-              `จ.${defaultAddress.province}`,
-              defaultAddress.postal_code,
-            ]
-              .filter(Boolean)
-              .join(' '),
+            name: '',
+            phone: '',
+            detail: '',
           })
         }
       } catch (error) {
-        console.error('Load checkout data error:', error)
+        console.error(
+          'Load checkout data error:',
+          error,
+        )
+
         setErrorMessage(
-          error.message ||
-          'ไม่สามารถโหลดข้อมูล Checkout ได้',
+          error?.message ||
+            'ไม่สามารถโหลดข้อมูล Checkout ได้',
         )
       } finally {
         setLoading(false)
@@ -144,26 +171,26 @@ export default function Checkout() {
   // =========================
   const normalizedItems = useMemo(() => {
     return items.map((item) => {
-      const product = item.product || {}
+      const product = item?.product || {}
 
       return {
         ...item,
 
         qty: Math.max(
           1,
-          Number(item.cart_quantity) || 1,
+          Number(item?.cart_quantity) || 1,
         ),
 
         name:
-          product.product_name ||
-          `สินค้า #${item.product_id}`,
+          product?.product_name ||
+          `สินค้า #${item?.product_id}`,
 
         price: Math.max(
           0,
-          parsePrice(product.product_price),
+          parsePrice(product?.product_price),
         ),
 
-        image: product.product_image || '',
+        image: product?.product_image || '',
       }
     })
   }, [items])
@@ -177,7 +204,7 @@ export default function Checkout() {
   }, [normalizedItems])
 
   // =========================
-  // Coupon = Mock
+  // Coupon
   // =========================
   const activePromoResult = discountInfo.code
     ? getCoupon(discountInfo.code, subtotal)
@@ -189,12 +216,12 @@ export default function Checkout() {
 
   const discount = promoEligible
     ? Math.min(
-      Math.max(
-        Number(discountInfo.amount) || 0,
-        0,
-      ),
-      subtotal,
-    )
+        Math.max(
+          Number(discountInfo.amount) || 0,
+          0,
+        ),
+        subtotal,
+      )
     : 0
 
   const afterDiscount =
@@ -203,7 +230,7 @@ export default function Checkout() {
   const delivery =
     (promoEligible &&
       discountInfo.freeShipping) ||
-      afterDiscount >= 1000
+    afterDiscount >= 1000
       ? 0
       : 40
 
@@ -225,6 +252,11 @@ export default function Checkout() {
   const handleApplyPromo = () => {
     const code = promoCode.trim().toUpperCase()
 
+    if (!code) {
+      setPromoError('กรุณากรอกโค้ดส่วนลด')
+      return
+    }
+
     const result = getCoupon(
       code,
       subtotal,
@@ -238,7 +270,7 @@ export default function Checkout() {
     const nextDiscount = {
       code: result.code,
       amount: result.amount,
-      min: Number(result.coupon.min || 0),
+      min: Number(result.coupon?.min || 0),
       freeShipping: result.freeShipping,
     }
 
@@ -271,37 +303,18 @@ export default function Checkout() {
   // =========================
   // เลือก Address
   // =========================
-  const handleSelectAddress = (
-    savedAddress,
-  ) => {
-    setSelectedAddressId(
-      savedAddress.address_id,
-    )
+  const handleSelectAddress = (savedAddress) => {
+    const addressId = getAddressId(savedAddress)
+    const mappedAddress =
+      mapAddressToDisplay(savedAddress)
 
-    setAddress({
-      name:
-        savedAddress.recipient_name || '',
-      phone:
-        savedAddress.phone || '',
-      detail: [
-        savedAddress.address_line,
-        savedAddress.subdistrict &&
-        `ต.${savedAddress.subdistrict}`,
-        savedAddress.district &&
-        `อ.${savedAddress.district}`,
-        savedAddress.province &&
-        `จ.${savedAddress.province}`,
-        savedAddress.postal_code,
-      ]
-        .filter(Boolean)
-        .join(' '),
-    })
-
+    setSelectedAddressId(addressId)
+    setAddress(mappedAddress)
     setErrorMessage('')
   }
 
   // =========================
-  // สร้าง Order จริง
+  // สร้าง Order
   // =========================
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -314,7 +327,7 @@ export default function Checkout() {
     }
 
     if (!selectedAddressId) {
-      navigate('/profile/addresses')
+      setErrorMessage('กรุณาเลือกที่อยู่จัดส่ง')
       return
     }
 
@@ -341,10 +354,9 @@ export default function Checkout() {
       setSubmitting(true)
       setErrorMessage('')
 
-      // Backend รับแค่ address_id ตอนนี้
+      // Backend ตอนนี้รับ address_id
       const order = await createOrder({
         addressId: selectedAddressId,
-        paymentMethod: paymentMethod,
       })
 
       console.log(
@@ -362,7 +374,9 @@ export default function Checkout() {
 
       navigate(
         `/orders/success?id=${encodeURIComponent(
-          order?.order_id || order?.id || '',
+          order?.order_id ||
+            order?.id ||
+            '',
         )}`,
       )
     } catch (error) {
@@ -372,8 +386,8 @@ export default function Checkout() {
       )
 
       setErrorMessage(
-        error.message ||
-        'ไม่สามารถสร้างคำสั่งซื้อได้',
+        error?.message ||
+          'ไม่สามารถสร้างคำสั่งซื้อได้',
       )
     } finally {
       setSubmitting(false)
@@ -524,76 +538,82 @@ export default function Checkout() {
 
               <div className="space-y-2">
                 {savedAddresses.map(
-                  (savedAddress) => (
-                    <button
-                      key={
-                        savedAddress.address_id
-                      }
-                      type="button"
-                      onClick={() =>
-                        handleSelectAddress(
-                          savedAddress,
-                        )
-                      }
-                      className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left ${selectedAddressId ===
-                          savedAddress.address_id
-                          ? 'border-orange-500 bg-orange-50'
-                          : 'border-gray-100 bg-white'
+                  (savedAddress) => {
+                    const addressId =
+                      getAddressId(savedAddress)
+
+                    return (
+                      <button
+                        key={addressId}
+                        type="button"
+                        onClick={() =>
+                          handleSelectAddress(
+                            savedAddress,
+                          )
+                        }
+                        className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left ${
+                          selectedAddressId ===
+                          addressId
+                            ? 'border-orange-500 bg-orange-50'
+                            : 'border-gray-100 bg-white'
                         }`}
-                    >
-                      <span
-                        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${selectedAddressId ===
-                            savedAddress.address_id
-                            ? 'border-orange-500'
-                            : 'border-gray-300'
-                          }`}
                       >
-                        {selectedAddressId ===
-                          savedAddress.address_id && (
+                        <span
+                          className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${
+                            selectedAddressId ===
+                            addressId
+                              ? 'border-orange-500'
+                              : 'border-gray-300'
+                          }`}
+                        >
+                          {selectedAddressId ===
+                            addressId && (
                             <span className="size-2.5 rounded-full bg-orange-500" />
                           )}
-                      </span>
+                        </span>
 
-                      <span className="min-w-0 flex-1">
-                        <strong className="block text-sm">
-                          {
-                            savedAddress.recipient_name
-                          }
+                        <span className="min-w-0 flex-1">
+                          <strong className="block text-sm">
+                            {savedAddress?.recipient_name ||
+                              savedAddress?.name ||
+                              'ไม่ระบุชื่อ'}
 
-                          {savedAddress.is_default && (
-                            <span className="ml-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-600">
-                              หลัก
-                            </span>
-                          )}
-                        </strong>
+                            {savedAddress?.is_default && (
+                              <span className="ml-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-600">
+                                หลัก
+                              </span>
+                            )}
+                          </strong>
 
-                        <small className="mt-1 block text-xs leading-5 text-gray-500">
-                          {savedAddress.phone}
-                          {' · '}
-                          {
-                            savedAddress.address_line
-                          }
-                          {' '}
-                          {savedAddress.subdistrict &&
-                            `ต.${savedAddress.subdistrict} `}
-                          {savedAddress.district &&
-                            `อ.${savedAddress.district} `}
-                          {savedAddress.province &&
-                            `จ.${savedAddress.province} `}
-                          {
-                            savedAddress.postal_code
-                          }
-                        </small>
-                      </span>
-                    </button>
-                  ),
+                          <small className="mt-1 block text-xs leading-5 text-gray-500">
+                            {savedAddress?.phone ||
+                              savedAddress?.recipient_phone ||
+                              ''}
+                            {' · '}
+                            {savedAddress?.address_line ||
+                              savedAddress?.address ||
+                              ''}
+                            {' '}
+                            {savedAddress?.subdistrict &&
+                              `ต.${savedAddress.subdistrict} `}
+                            {savedAddress?.district &&
+                              `อ.${savedAddress.district} `}
+                            {savedAddress?.province &&
+                              `จ.${savedAddress.province} `}
+                            {savedAddress?.postal_code ||
+                              ''}
+                          </small>
+                        </span>
+                      </button>
+                    )
+                  },
                 )}
               </div>
             </div>
           )}
         </section>
 
-        {/* PAYMENT - MOCK */}
+        {/* PAYMENT */}
         <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm">
           <h2 className="font-bold">
             วิธีการชำระเงิน
@@ -604,7 +624,7 @@ export default function Checkout() {
           </div>
         </section>
 
-        {/* COUPON - MOCK */}
+        {/* COUPON */}
         <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-full bg-orange-50 text-orange-500">
@@ -623,7 +643,7 @@ export default function Checkout() {
           </div>
 
           {discountInfo.code &&
-            promoEligible ? (
+          promoEligible ? (
             <div className="mt-4 flex items-center justify-between rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
               <div>
                 <p className="text-sm font-bold text-green-700">
@@ -738,7 +758,10 @@ export default function Checkout() {
         <button
           type="submit"
           form="checkout-form"
-          disabled={submitting || !selectedAddressId}
+          disabled={
+            submitting ||
+            !selectedAddressId
+          }
           className="w-full rounded-full bg-orange-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           {submitting
