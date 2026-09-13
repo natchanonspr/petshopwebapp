@@ -16,7 +16,7 @@ func CreateOrder(order *Order) error {
 // รายเอียดคำสั่งซื้อทั้งหมด
 func GetAllOrders(userID int64) ([]Order, error) {
 	var orders []Order
-	err := db.Where("user_id = ?", userID).Order("created_at desc").Find(&orders).Error
+	err := db.Preload("Items").Where("user_id = ?", userID).Order("created_at desc").Find(&orders).Error
 	return orders, err
 }
 

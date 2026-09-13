@@ -35,51 +35,74 @@ const statusMap = {
 function normalizeOrder(order) {
   const items = Array.isArray(order.items)
     ? order.items
-    : []
+    : Array.isArray(order.order_items)
+      ? order.order_items
+      : []
 
-  const quantity = items.reduce(
-    (sum, item) =>
-      sum + Math.max(
-        0,
-        Number(item.order_quantity) || 0,
-      ),
-    0,
-  )
+  const quantity = items.reduce((sum, item) => {
+    const qty =
+      item.order_quantity ??
+      item.quantity ??
+      item.qty ??
+      0
 
-  const firstItem = items[0]
+    return (
+      sum +
+      Math.max(0, Number(qty) || 0)
+    )
+  }, 0)
+
+  const firstItem = items[0] || {}
+  const firstProduct =
+    firstItem.product || {}
 
   const rawStatus = String(
-    order.order_status || '',
+    order.order_status || order.status || '',
   ).toLowerCase()
 
   const status = statusMap[rawStatus] || {
-    label: rawStatus || 'ไม่ทราบสถานะ',
-    className: 'bg-gray-100 text-gray-500',
+    label:
+      rawStatus || 'ไม่ทราบสถานะ',
+    className:
+      'bg-gray-100 text-gray-500',
   }
 
   const date = order.created_at
-    ? new Date(order.created_at).toLocaleDateString(
-        'th-TH',
-        {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-        },
-      )
+    ? new Date(
+      order.created_at,
+    ).toLocaleDateString('th-TH', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
     : '-'
 
   return {
     ...order,
-    id: order.order_id,
+
+    id:
+      order.order_id ??
+      order.id,
+
     rawStatus,
+
     statusLabel: status.label,
     statusClass: status.className,
+
     date,
+
     quantity,
+
     name:
-      firstItem?.product_name ||
+      firstProduct.product_name ||
+      firstItem.product_name ||
       'ไม่มีรายการสินค้า',
-    image: firstItem?.product_image || '',
+
+    image:
+      firstProduct.product_image ||
+      firstItem.product_image ||
+      '',
+
     itemCount: items.length,
   }
 }
@@ -117,7 +140,7 @@ export default function Orders() {
           setOrders([])
           setErrorMessage(
             error.message ||
-              'ไม่สามารถโหลดคำสั่งซื้อได้',
+            'ไม่สามารถโหลดคำสั่งซื้อได้',
           )
         }
       } finally {
@@ -144,8 +167,12 @@ export default function Orders() {
 
       const productNames = Array.isArray(order.items)
         ? order.items
-            .map((item) => item.product_name || '')
-            .join(' ')
+          .map((item) =>
+            item.product?.product_name ||
+            item.product_name ||
+            '',
+          )
+          .join(' ')
         : ''
 
       const searchText = [
@@ -201,7 +228,7 @@ export default function Orders() {
 
       setErrorMessage(
         error.message ||
-          'ไม่สามารถซื้อรายการเดิมซ้ำได้',
+        'ไม่สามารถซื้อรายการเดิมซ้ำได้',
       )
     } finally {
       setReorderingId(null)
@@ -299,11 +326,10 @@ export default function Orders() {
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`shrink-0 rounded-full border-0 px-5 py-2 text-sm font-medium whitespace-nowrap transition active:scale-95 ${
-                activeTab === tab
-                  ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
-                  : 'bg-gray-100 text-gray-500'
-              }`}
+              className={`shrink-0 rounded-full border-0 px-5 py-2 text-sm font-medium whitespace-nowrap transition active:scale-95 ${activeTab === tab
+                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                : 'bg-gray-100 text-gray-500'
+                }`}
             >
               {tab}
             </button>
@@ -388,9 +414,8 @@ export default function Orders() {
                   ) : null}
 
                   <div
-                    className={`size-full place-items-center text-xl text-gray-400 ${
-                      order.image ? 'hidden' : 'grid'
-                    }`}
+                    className={`size-full place-items-center text-xl text-gray-400 ${order.image ? 'hidden' : 'grid'
+                      }`}
                   >
                     <i className="fa-solid fa-box" />
                   </div>
@@ -441,21 +466,21 @@ export default function Orders() {
 
                   {order.rawStatus ===
                     'completed' && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleReorder(order)
-                      }
-                      disabled={
-                        reorderingId === order.id
-                      }
-                      className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {reorderingId === order.id
-                        ? 'กำลังเพิ่ม...'
-                        : 'ซื้อซ้ำ'}
-                    </button>
-                  )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleReorder(order)
+                        }
+                        disabled={
+                          reorderingId === order.id
+                        }
+                        className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {reorderingId === order.id
+                          ? 'กำลังเพิ่ม...'
+                          : 'ซื้อซ้ำ'}
+                      </button>
+                    )}
                 </div>
               </div>
             </article>

@@ -266,7 +266,7 @@ export default function App() {
                 >
                     <Route index element={<AdminDashboard />} />
                     <Route path="orders" element={<AdminOrders />} />
-                    <Route path="orders/:orderId" element={<AdminOrderDetail />} />
+                    <Route path="orders/:id" element={<AdminOrderDetail />} />
                     <Route path="products" element={<AdminProducts />} />
                     <Route path="customers" element={<AdminCustomers />} />
                     <Route path="customers/:userId" element={<AdminCustomerDetail />} />
