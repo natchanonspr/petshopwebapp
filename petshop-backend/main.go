@@ -37,7 +37,9 @@ func main() {
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbhost, dbport, dbuser, dbname, dbpassword)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
 	if err != nil {
 		panic("Failed to Connect to Database")
 	}
@@ -57,9 +59,9 @@ func main() {
 		&order.Order{},
 		&order.OrderItem{},
 		&category.Category{},
-		&cart.Cart{},
 		&product.Product{},
 		&address.Address{},
+		&cart.Cart{},
 	); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}

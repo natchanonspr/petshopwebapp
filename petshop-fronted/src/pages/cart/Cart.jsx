@@ -412,7 +412,7 @@ export default function Cart() {
                         type="button"
                         onClick={() => updateQuantity(item, 1)}
                         disabled={
-                          item.stock > 0 &&
+                          item.stock > 0 ||
                           item.qty >= item.stock
                         }
                         className="grid size-7 place-items-center rounded-full bg-black text-sm text-white transition hover:bg-gray-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"

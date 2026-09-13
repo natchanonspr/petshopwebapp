@@ -66,7 +66,7 @@ export default function Login() {
 
       setError(
         err?.message ||
-          'เข้าสู่ระบบ LINE ไม่สำเร็จ'
+        'เข้าสู่ระบบ LINE ไม่สำเร็จ'
       )
     } finally {
       setLoading(false)
@@ -121,7 +121,7 @@ export default function Login() {
 
         setError(
           err?.message ||
-            'เชื่อมต่อ LINE ไม่สำเร็จ'
+          'เชื่อมต่อ LINE ไม่สำเร็จ'
         )
       }
     }
@@ -175,7 +175,7 @@ export default function Login() {
 
       setError(
         err?.message ||
-          'เข้าสู่ระบบ LINE ไม่สำเร็จ'
+        'เข้าสู่ระบบ LINE ไม่สำเร็จ'
       )
     }
   }

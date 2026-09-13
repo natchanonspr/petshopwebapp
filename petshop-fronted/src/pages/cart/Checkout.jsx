@@ -340,6 +340,7 @@ export default function Checkout() {
       // Backend รับแค่ address_id ตอนนี้
       const order = await createOrder({
         addressId: selectedAddressId,
+        paymentMethod: paymentMethod,
       })
 
       console.log(

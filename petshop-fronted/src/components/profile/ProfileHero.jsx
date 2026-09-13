@@ -82,7 +82,7 @@ export default function ProfileHero() {
       <h1 className="mt-3 text-[24px] font-bold tracking-tight text-slate-800">
         {loading
           ? 'กำลังโหลด...'
-          : profile?.username || 'ยังไม่มีชื่อ'}
+          : profile?.username || profile?.display_name || 'ยังไม่มีชื่อ'}
       </h1>
 
     </section>

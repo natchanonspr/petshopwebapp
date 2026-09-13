@@ -289,9 +289,11 @@ function Addresses() {
   const handleSave = (event) => {
     event.preventDefault()
 
+    console.log('FORM DATA:', form)
+
     if (
       !form.recipient.trim() ||
-      !/^0\d{8,9}$/.test(form.phone.trim()) ||
+      !/^\d{10}$/.test(form.phone.trim()) ||
       !form.detail.trim() ||
       !form.provinceId ||
       !form.districtId ||

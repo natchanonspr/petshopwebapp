@@ -1,7 +1,7 @@
 import { API_BASE, apiFetch, authHeaders, unwrap } from './api'
 
 // สร้าง Order / Checkout
-export async function createOrder({ addressId }) {
+export async function createOrder({ addressId, paymentMethod }) {
   const res = await apiFetch(`${API_BASE}/orders/`, {
     method: 'POST',
     headers: {
@@ -10,6 +10,7 @@ export async function createOrder({ addressId }) {
     },
     body: JSON.stringify({
       address_id: addressId,
+      payment_method: paymentMethod,
     }),
   })
 
