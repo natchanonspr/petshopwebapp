@@ -148,6 +148,11 @@ func main() {
 	orderGroup.Get("/", order.List)
 	orderGroup.Get("/:id", order.Read)
 	orderGroup.Patch("/:id/cancel", order.Cancel)
+	// Admin Order API
+	adminOrders := app.Group("/admin/orders", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
+	adminOrders.Get("/", order.AdminList)
+	adminOrders.Get("/:id", order.AdminRead)
+	adminOrders.Patch("/:id/status", order.AdminUpdateStatus)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))

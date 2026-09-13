@@ -151,7 +151,7 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 	return createdOrder, nil
 }
 
-// ดูคำสั่งซื้อทั้งหมดของ user
+// ดูคำสั่งซื้อทั้งหมด
 func GetAllOrdersService(userID int64) ([]Order, error) {
 	return GetAllOrders(userID)
 }
@@ -178,6 +178,49 @@ func CancelOrderService(orderID, userID int64) error {
 	}
 
 	order.OrderStatus = "cancelled"
+
+	return UpdateOrder(order)
+}
+
+// Admin : ดูคำสั่งซื้อทั้งหมด
+func GetAllOrdersAdminService() ([]Order, error) {
+	return GetAllOrdersAdmin()
+}
+
+// Admin : ดูรายละเอียดคำสั่งซือ
+func GetOrderAdminService(orderID int64) (*Order, error) {
+	return GetOrderAdmin(orderID)
+}
+
+func UpdateOrderStatusService(orderID int64, status string) error {
+
+	// สถานะ
+	validStatus := map[string]bool{
+		"pending":    true,
+		"confirmed":  true,
+		"shipped":    true,
+		"deliveried": true,
+		"cancelled":  true,
+	}
+
+	if !validStatus[status] {
+		return errors.New("สถานะคำสั่งซื้อไม่ถูกต้อง")
+	}
+
+	order, err := GetOrderAdmin(orderID)
+	if err != nil {
+		return err
+	}
+
+	if order.OrderStatus == "cancelled" {
+		return errors.New("คำสั่งซื้อนี้ถูกยกเลิก")
+	}
+
+	if order.OrderStatus == "deliveried" {
+		return errors.New("คำสั่งซื้อนี้จัดส่งเรียบร้อยแล้ว")
+	}
+
+	order.OrderStatus = status
 
 	return UpdateOrder(order)
 }

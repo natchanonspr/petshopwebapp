@@ -1,6 +1,8 @@
 package order
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+)
 
 func Create(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(int64)
@@ -67,4 +69,59 @@ func Cancel(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "Cancel Order Successful",
 	})
+}
+
+// Admin: ดูคำสั่งซื้อทั้งหมด
+func AdminList(c *fiber.Ctx) error {
+	orders, err := GetAllOrdersAdminService()
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": orders,
+	})
+}
+
+// Admin : ดูรายละเอียดคำสั่งซื้อ
+func AdminRead(c *fiber.Ctx) error {
+	orderID, err := c.ParamsInt("id")
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	order, err := GetOrderAdminService(int64(orderID))
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": order,
+	})
+}
+
+// Admin : เปลี่ยนสถานะคำสั่งซื้อ
+
+func AdminUpdateStatus(c *fiber.Ctx) error {
+	orderID, err := c.ParamsInt("id")
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	req := struct {
+		Status string `json:"status"`
+	}{}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	if err := UpdateOrderStatusService(int64(orderID), req.Status); err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Update Order Status Successful",
+	})
+
 }

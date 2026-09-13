@@ -60,3 +60,63 @@ export async function cancelOrder(id) {
 
   return unwrap(res, 'ยกเลิกคำสั่งซื้อไม่สำเร็จ')
 }
+
+// Admin: ดึง Order ทั้งหมด
+export async function getAdminOrders() {
+  const res = await apiFetch(`${API_BASE}/admin/orders/`, {
+    method: 'GET',
+    headers: {
+      ...authHeaders(),
+    },
+  })
+
+  return unwrap(res, 'โหลดรายการคำสั่งซื้อไม่สำเร็จ')
+}
+
+// Admin: ดึงรายละเอียด Order
+export async function getAdminOrder(id) {
+  if (!id || id === 'undefined' || id === 'null') {
+    throw new Error('รหัสคำสั่งซื้อไม่ถูกต้อง')
+  }
+
+  const res = await apiFetch(`${API_BASE}/admin/orders/${id}`, {
+    method: 'GET',
+    headers: {
+      ...authHeaders(),
+    },
+  })
+
+  return unwrap(res, 'โหลดรายละเอียดคำสั่งซื้อไม่สำเร็จ')
+}
+
+// Admin: เปลี่ยนสถานะ Order
+export async function updateAdminOrderStatus(id, status) {
+  if (!id || id === 'undefined' || id === 'null') {
+    throw new Error('รหัสคำสั่งซื้อไม่ถูกต้อง')
+  }
+
+  const validStatuses = [
+    'pending',
+    'confirmed',
+    'shipped',
+    'deliveried',
+    'cancelled',
+  ]
+
+  if (!validStatuses.includes(status)) {
+    throw new Error('สถานะคำสั่งซื้อไม่ถูกต้อง')
+  }
+
+  const res = await apiFetch(`${API_BASE}/admin/orders/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      status,
+    }),
+  })
+
+  return unwrap(res, 'เปลี่ยนสถานะคำสั่งซื้อไม่สำเร็จ')
+}
