@@ -12,7 +12,7 @@ import (
 
 func RegisterUser(req *UserRegister) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword(
-		[]byte(req.Password),
+		[]byte(req.UserPassword),
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
@@ -20,49 +20,49 @@ func RegisterUser(req *UserRegister) error {
 	}
 
 	u := &User{
-		Username: req.Username,
-		Email:    req.Email,
-		Phone:    req.Phone,
-		Password: string(hashedPassword),
-		Role:     "user",
+		Username:     req.Username,
+		UserEmail:    req.UserEmail,
+		UserPhone:    req.UserPhone,
+		UserPassword: string(hashedPassword),
+		UserRole:     "user",
 	}
 
 	return CreateUser(u)
 }
 
 func LoginWithLine(req *LineLoginRequest) (string, error) {
-	if req.LineUserID == "" {
+	if req.UserLineID == "" {
 		return "", errors.New("missing line_user_id")
 	}
 
 	existing := new(User)
-	result := db.Where("line_user_id = ?", req.LineUserID).First(existing)
+	result := db.Where("line_user_id = ?", req.UserLineID).First(existing)
 
 	var u *User
 	if result.Error != nil {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return "", result.Error
 		}
-		lineID := req.LineUserID
+		lineID := req.UserLineID
 		u = &User{
-			Username:   req.DisplayName,
-			LineUserID: &lineID,
-			PictureURL: req.PictureURL,
-			Role:       "user",
+			Username:       req.DisplayUserName,
+			UserLineID:     &lineID,
+			UserPictureURL: req.UserPictureURL,
+			UserRole:       "user",
 		}
 		if err := CreateUser(u); err != nil {
 			return "", err
 		}
 	} else {
-		existing.Username = req.DisplayName
-		existing.PictureURL = req.PictureURL
+		existing.Username = req.DisplayUserName
+		existing.UserPictureURL = req.UserPictureURL
 		if err := db.Save(existing).Error; err != nil {
 			return "", err
 		}
 		u = existing
 	}
 
-	return signToken(u.UserID, u.Role)
+	return signToken(u.UserID, u.UserRole)
 }
 
 func signToken(userID int64, role string) (string, error) {
@@ -80,7 +80,7 @@ func LoginUser(req *UserLogin) (string, error) {
 	//หา user ผ่านเบอร์โทร
 	selectedUser := new(User)
 
-	result := db.Where("phone = ?", req.Phone).First(selectedUser)
+	result := db.Where("phone = ?", req.UserPhone).First(selectedUser)
 	if result.Error != nil {
 		return "", result.Error
 	}
@@ -88,12 +88,12 @@ func LoginUser(req *UserLogin) (string, error) {
 	//ตรวจสอบ password
 	err :=
 		bcrypt.CompareHashAndPassword(
-			[]byte(selectedUser.Password),
-			[]byte(req.Password),
+			[]byte(selectedUser.UserPassword),
+			[]byte(req.UserPassword),
 		)
 	if err != nil {
 		return "", err
 	}
 
-	return signToken(selectedUser.UserID, selectedUser.Role)
+	return signToken(selectedUser.UserID, selectedUser.UserRole)
 }
