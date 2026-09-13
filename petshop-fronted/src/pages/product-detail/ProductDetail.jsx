@@ -1,97 +1,100 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import CartBadge from '../../components/cart/CartBadge.jsx'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import ProductDetailHeader from '../../components/product-detail/ProductDetailHeader.jsx'
 import ProductInfoCard from '../../components/product-detail/ProductInfoCard.jsx'
 import ProductDescription from '../../components/product-detail/ProductDescription.jsx'
 import ProductReviews from '../../components/product-detail/ProductReviews.jsx'
 import FavoriteButton from '../../components/products/FavoriteButton.jsx'
-import { getProductsWithAdminOverrides } from '../../data/products.js'
+import { getProduct } from '../../api/products.js'
+import { addToCart } from '../../api/cart.js'
 import { logActivity } from '../../admin/activity.js'
-
-const getProductDetails = (product) => {
-  const variants = Array.isArray(product.variants) ? product.variants : []
-  const fallbackDescription = `สินค้าคุณภาพสำหรับน้อง ๆ ของคุณ เหมาะสำหรับหมวด${product.category}`
-  return {
-    ...product,
-    displayName: product.displayName || product.name,
-    displayCategory: product.subtitle || product.category,
-    sold: Number(product.sold ?? product.reviews ?? 0),
-    variants,
-    defaultSize: product.defaultSize || variants[0]?.label || '',
-    description: product.description || fallbackDescription,
-    highlights: Array.isArray(product.highlights) && product.highlights.length
-      ? product.highlights
-      : ['วัตถุดิบคุณภาพ', 'ช่วยดูแลสุขภาพ', 'เหมาะสำหรับสัตว์เลี้ยง'],
-  }
-}
 
 export default function ProductDetail() {
   const { productId } = useParams()
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
-  const [products, setProducts] = useState(() => getProductsWithAdminOverrides())
+  const [addError, setAddError] = useState('')
+  const [isAdding, setIsAdding] = useState(false)
 
   useEffect(() => {
-    const refresh = () => setProducts(getProductsWithAdminOverrides())
-    window.addEventListener('petshop-admin-data-updated', refresh)
-    window.addEventListener('storage', refresh)
+    let active = true
+    setLoading(true)
+    setLoadError('')
+
+    getProduct(productId)
+      .then((data) => {
+        if (!active) return
+        if (!data) {
+          setLoadError('ไม่พบสินค้านี้')
+          return
+        }
+        setProduct(data)
+        setQuantity(1)
+        setAdded(false)
+        logActivity('view_product', `ดูสินค้า ${data.name}`, {
+          productId: data.id,
+          productName: data.name,
+        })
+      })
+      .catch((err) => {
+        if (active) setLoadError(err?.message || 'โหลดข้อมูลสินค้าไม่สำเร็จ')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
     return () => {
-      window.removeEventListener('petshop-admin-data-updated', refresh)
-      window.removeEventListener('storage', refresh)
+      active = false
     }
-  }, [])
+  }, [productId])
 
-  const sourceProduct = products.find((item) => String(item.id) === productId) ?? products[0]
-  const product = useMemo(() => getProductDetails(sourceProduct), [sourceProduct])
-  const [selectedVariantLabel, setSelectedVariantLabel] = useState(product.defaultSize || '')
-  const selectedVariant = product.variants.find((item) => item.label === selectedVariantLabel) || product.variants[product.variants.length - 1]
-  const selectedPrice = selectedVariant?.price ?? product.price
+  const handleAddToCart = async () => {
+    if (!product || isAdding) return
 
-  useEffect(() => {
-    setQuantity(1)
-    setAdded(false)
-    setSelectedVariantLabel(product.defaultSize || '')
-    if (product?.id) logActivity('view_product', `ดูสินค้า ${product.name}`, { productId: product.id, productName: product.name })
-  }, [product.id, product.defaultSize, product.name])
-
-  const saveToCart = () => {
-    let savedCart = []
     try {
-      const parsed = JSON.parse(localStorage.getItem('petshop_cart') || '[]')
-      savedCart = Array.isArray(parsed) ? parsed : []
-    } catch {
-      savedCart = []
-    }
+      setIsAdding(true)
+      setAddError('')
 
-    const variantLabel = selectedVariant?.label || ''
-    const existing = savedCart.find((item) => item.id === product.id && (item.variantLabel || '') === variantLabel)
-    const cartProduct = {
-      ...product,
-      price: selectedPrice,
-      variantLabel,
-      detail: variantLabel ? `ขนาด ${variantLabel}` : product.category,
-    }
-    const nextCart = existing
-      ? savedCart.map((item) => item.id === product.id && (item.variantLabel || '') === variantLabel
-          ? { ...item, ...cartProduct, qty: (item.qty || 0) + quantity }
-          : item)
-      : [...savedCart, { ...cartProduct, qty: quantity }]
+      await addToCart({ productId: product.id, cartQuantity: quantity })
 
-    localStorage.setItem('petshop_cart', JSON.stringify(nextCart))
-    window.dispatchEvent(new Event('petshop-cart-updated'))
-    logActivity('cart', `เพิ่ม ${product.name}${variantLabel ? ` (${variantLabel})` : ''} ลงตะกร้า`, {
-      productId: product.id,
-      productName: product.name,
-      variant: variantLabel,
-      qty: quantity,
-    })
+      setAdded(true)
+      logActivity('cart', `เพิ่ม ${product.name} ลงตะกร้า`, {
+        productId: product.id,
+        productName: product.name,
+        qty: quantity,
+      })
+      window.setTimeout(() => setAdded(false), 1800)
+    } catch (err) {
+      setAddError(err?.message || 'เพิ่มลงตะกร้าไม่สำเร็จ')
+    } finally {
+      setIsAdding(false)
+    }
   }
 
-  const handleAddToCart = () => {
-    saveToCart()
-    setAdded(true)
-    window.setTimeout(() => setAdded(false), 1800)
+  if (loading) {
+    return (
+      <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
+        <ProductDetailHeader />
+        <div className="grid flex-1 place-items-center text-sm text-gray-400">
+          <i className="fa-solid fa-spinner fa-spin mr-2" />
+          กำลังโหลดข้อมูลสินค้า...
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError || !product) {
+    return (
+      <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
+        <ProductDetailHeader />
+        <div className="grid flex-1 place-items-center px-6 text-center text-sm text-gray-400">
+          {loadError || 'ไม่พบสินค้านี้'}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -110,23 +113,18 @@ export default function ProductDetail() {
               </div>
             )}
           </div>
-          <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 shadow-sm backdrop-blur-sm">
-            <span className="size-1.5 rounded-full bg-orange-500" />
-            <span className="size-1.5 rounded-full bg-gray-300" />
-            <span className="size-1.5 rounded-full bg-gray-300" />
-            <span className="size-1.5 rounded-full bg-gray-300" />
-          </div>
         </section>
 
         <div className="space-y-5">
+          {/*
+            TODO: backend ยังไม่มี concept "variants" (ขนาด/ตัวเลือกคนละราคา)
+            ทั้งในตาราง products และ cart_items เลย จึงตัดฟีเจอร์เลือกขนาดออกไปก่อน
+          */}
           <ProductInfoCard
-            product={{ ...product, price: selectedPrice }}
-            variants={product.variants}
-            selectedVariant={selectedVariant}
-            onVariantChange={(variant) => {
-              setSelectedVariantLabel(variant.label)
-              setAdded(false)
-            }}
+            product={product}
+            variants={[]}
+            selectedVariant={null}
+            onVariantChange={() => {}}
             quantity={quantity}
             onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
             onIncrease={() => setQuantity((value) => value + 1)}
@@ -137,15 +135,17 @@ export default function ProductDetail() {
       </main>
 
       <div className="shrink-0 border-t border-gray-100 bg-white px-5 pb-[calc(12px+env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.10)]">
+        {addError && <p className="m-0 mb-2 text-center text-xs text-red-500">{addError}</p>}
         <div className="flex items-center gap-2">
           <FavoriteButton product={product} className="size-12 shrink-0 border border-gray-200 bg-white text-lg" />
           <button
             type="button"
             onClick={handleAddToCart}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-orange-500 text-sm font-bold text-white shadow-sm shadow-orange-500/20 active:scale-[0.99]"
+            disabled={isAdding}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-orange-500 text-sm font-bold text-white shadow-sm shadow-orange-500/20 active:scale-[0.99] disabled:opacity-60"
           >
-            <i className={`fa-solid ${added ? 'fa-check' : 'fa-cart-plus'}`} />
-            {added ? 'เพิ่มลงตะกร้าแล้ว' : 'ใส่ตะกร้า'}
+            <i className={`fa-solid ${isAdding ? 'fa-spinner fa-spin' : added ? 'fa-check' : 'fa-cart-plus'}`} />
+            {isAdding ? 'กำลังเพิ่ม...' : added ? 'เพิ่มลงตะกร้าแล้ว' : 'ใส่ตะกร้า'}
           </button>
         </div>
       </div>
