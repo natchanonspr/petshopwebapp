@@ -9,6 +9,16 @@ export function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+export async function apiFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...ngrokHeaders(),
+      ...(options.headers || {}),
+    },
+  })
+}
+
 export async function unwrap(res, errorMessage = 'Request failed') {
   const text = await res.text()
 

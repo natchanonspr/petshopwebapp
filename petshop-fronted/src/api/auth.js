@@ -1,9 +1,9 @@
-import { API_BASE, authHeaders, ngrokHeaders, unwrap } from './api'
+import { API_BASE, authHeaders, apiFetch, unwrap } from './api'
 
 export async function loginWithLine({ lineUserId, displayName, pictureUrl }) {
-  const res = await fetch(`${API_BASE}/auth/line`, {
+  const res = await apiFetch(`${API_BASE}/auth/line`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...ngrokHeaders(),},
+    headers: { 'Content-Type': 'application/json'},
     body: JSON.stringify({
       line_user_id: lineUserId,
       display_name: displayName,

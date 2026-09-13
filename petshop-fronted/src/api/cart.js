@@ -1,8 +1,8 @@
-import { API_BASE, authHeaders, unwrap } from './api'
+import { API_BASE, authHeaders, apiFetch, unwrap } from './api'
 
 // ดึง Cart ทั้งหมดของ User ที่ Login อยู่
 export async function getCart() {
-  const res = await fetch(`${API_BASE}/cart`, {
+  const res = await apiFetch(`${API_BASE}/cart`, {
     method: 'GET',
     headers: authHeaders(),
   })
@@ -12,7 +12,7 @@ export async function getCart() {
 
 // เพิ่มสินค้าเข้าตะกร้า
 export async function addToCart({ productId, cartQuantity }) {
-  const res = await fetch(`${API_BASE}/cart`, {
+  const res = await apiFetch(`${API_BASE}/cart`, {
     method: 'POST',
     headers: {
       ...authHeaders(),
@@ -29,7 +29,7 @@ export async function addToCart({ productId, cartQuantity }) {
 
 // แก้จำนวนสินค้าในตะกร้า
 export async function updateCartItem(itemId, { cartQuantity }) {
-  const res = await fetch(`${API_BASE}/cart/${itemId}`, {
+  const res = await apiFetch(`${API_BASE}/cart/${itemId}`, {
     method: 'PUT',
     headers: {
       ...authHeaders(),
@@ -45,7 +45,7 @@ export async function updateCartItem(itemId, { cartQuantity }) {
 
 // ลบสินค้าออกจากตะกร้า
 export async function removeCartItem(itemId) {
-  const res = await fetch(`${API_BASE}/cart/${itemId}`, {
+  const res = await apiFetch(`${API_BASE}/cart/${itemId}`, {
     method: 'DELETE',
     headers: authHeaders(),
   })

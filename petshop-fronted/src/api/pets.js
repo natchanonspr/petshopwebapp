@@ -1,7 +1,7 @@
-import { API_BASE, authHeaders, unwrap } from './api'
+import { API_BASE, apiFetch, authHeaders, unwrap } from './api'
 
 export async function getPets() {
-  const res = await fetch(`${API_BASE}/pets/`, {
+  const res = await apiFetch(`${API_BASE}/pets/`, {
     headers: { ...authHeaders() },
   })
 
@@ -14,7 +14,7 @@ export async function getPet(id) {
     throw new Error('รหัสสัตว์เลี้ยงไม่ถูกต้อง')
   }
 
-  const res = await fetch(`${API_BASE}/pets/${id}`, {
+  const res = await apiFetch(`${API_BASE}/pets/${id}`, {
     headers: { ...authHeaders() },
   })
 
@@ -22,7 +22,7 @@ export async function getPet(id) {
 }
 
 export async function createPet(petData) {
-  const res = await fetch(`${API_BASE}/pets/`, {
+  const res = await apiFetch(`${API_BASE}/pets/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(petData),
@@ -32,7 +32,7 @@ export async function createPet(petData) {
 }
 
 export async function updatePet(id, petData) {
-  const res = await fetch(`${API_BASE}/pets/${id}`, {
+  const res = await apiFetch(`${API_BASE}/pets/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(petData),
@@ -42,7 +42,7 @@ export async function updatePet(id, petData) {
 }
 
 export async function deletePet(id) {
-  const res = await fetch(`${API_BASE}/pets/${id}`, {
+  const res = await apiFetch(`${API_BASE}/pets/${id}`, {
     method: 'DELETE',
     headers: { ...authHeaders() },
   })
