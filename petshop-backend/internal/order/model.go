@@ -11,6 +11,9 @@ type Order struct {
 	PaymentMethod string    `json:"payment_method"`
 	PaymentStatus string    `gorm:"not null;default:'unpaid'" json:"payment_status"`
 	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+
+	Items []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
 }
 
 type OrderItem struct {
@@ -19,4 +22,9 @@ type OrderItem struct {
 	ProductID     int64   `gorm:"not null" json:"product_id"`
 	OrderQuantity int64   `gorm:"not null" json:"order_quantity"`
 	OrderPrice    float64 `gorm:"type:numeric(10,2);not null" json:"order_price"`
+}
+
+type CreateOrderRequest struct {
+	AddressID     int64  `json:"address_id"`
+	PaymentMethod string `json:"payment_method"`
 }

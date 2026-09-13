@@ -10,6 +10,7 @@ import (
 	"petshop-backend/internal/cart"
 	"petshop-backend/internal/category"
 	"petshop-backend/internal/middleware"
+	"petshop-backend/internal/order"
 	"petshop-backend/internal/pet"
 	"petshop-backend/internal/product"
 	"petshop-backend/internal/user"
@@ -47,9 +48,19 @@ func main() {
 	category.SetDB(db)
 	cart.SetDB(db)
 	address.SetDB(db)
+	order.SetDB(db)
 
 	// สร้าง/อัปเดตตารางอัตโนมัติตาม struct
-	if err := db.AutoMigrate(&user.User{}, &pet.Pet{}, &category.Category{}, &product.Product{}, &cart.Cart{}, &address.Address{}); err != nil {
+	if err := db.AutoMigrate(
+		&user.User{},
+		&pet.Pet{},
+		&category.Category{},
+		&product.Product{},
+		&cart.Cart{},
+		&address.Address{},
+		&order.Order{},
+		&order.OrderItem{},
+	); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
 
@@ -124,6 +135,13 @@ func main() {
 	addresses.Post("/", address.Create)
 	addresses.Put("/:id", address.Update)
 	addresses.Delete("/:id", address.Delete)
+
+	// Order API
+	orderGroup := app.Group("/orders", middleware.JWTProtected(jwtSecret))
+	orderGroup.Post("/", order.Create)
+	orderGroup.Get("/", order.List)
+	orderGroup.Get("/:id", order.Read)
+	orderGroup.Patch("/:id/cancel", order.Cancel)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))
