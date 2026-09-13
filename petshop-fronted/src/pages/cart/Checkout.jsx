@@ -30,10 +30,10 @@ const readDiscount = () => {
     return saved && typeof saved === 'object'
       ? saved
       : {
-          code: '',
-          amount: 0,
-          freeShipping: false,
-        }
+        code: '',
+        amount: 0,
+        freeShipping: false,
+      }
   } catch {
     return {
       code: '',
@@ -100,6 +100,10 @@ export default function Checkout() {
           addresses.find((item) => item.is_default) ||
           addresses[0]
 
+        console.log('Addresses:', addresses)
+        console.log('Default Address:', defaultAddress)
+        console.log('Address ID:', defaultAddress?.address_id)
+
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress.address_id)
 
@@ -109,11 +113,11 @@ export default function Checkout() {
             detail: [
               defaultAddress.address_line,
               defaultAddress.subdistrict &&
-                `ต.${defaultAddress.subdistrict}`,
+              `ต.${defaultAddress.subdistrict}`,
               defaultAddress.district &&
-                `อ.${defaultAddress.district}`,
+              `อ.${defaultAddress.district}`,
               defaultAddress.province &&
-                `จ.${defaultAddress.province}`,
+              `จ.${defaultAddress.province}`,
               defaultAddress.postal_code,
             ]
               .filter(Boolean)
@@ -124,7 +128,7 @@ export default function Checkout() {
         console.error('Load checkout data error:', error)
         setErrorMessage(
           error.message ||
-            'ไม่สามารถโหลดข้อมูล Checkout ได้',
+          'ไม่สามารถโหลดข้อมูล Checkout ได้',
         )
       } finally {
         setLoading(false)
@@ -185,12 +189,12 @@ export default function Checkout() {
 
   const discount = promoEligible
     ? Math.min(
-        Math.max(
-          Number(discountInfo.amount) || 0,
-          0,
-        ),
-        subtotal,
-      )
+      Math.max(
+        Number(discountInfo.amount) || 0,
+        0,
+      ),
+      subtotal,
+    )
     : 0
 
   const afterDiscount =
@@ -199,7 +203,7 @@ export default function Checkout() {
   const delivery =
     (promoEligible &&
       discountInfo.freeShipping) ||
-    afterDiscount >= 1000
+      afterDiscount >= 1000
       ? 0
       : 40
 
@@ -282,11 +286,11 @@ export default function Checkout() {
       detail: [
         savedAddress.address_line,
         savedAddress.subdistrict &&
-          `ต.${savedAddress.subdistrict}`,
+        `ต.${savedAddress.subdistrict}`,
         savedAddress.district &&
-          `อ.${savedAddress.district}`,
+        `อ.${savedAddress.district}`,
         savedAddress.province &&
-          `จ.${savedAddress.province}`,
+        `จ.${savedAddress.province}`,
         savedAddress.postal_code,
       ]
         .filter(Boolean)
@@ -369,7 +373,7 @@ export default function Checkout() {
 
       setErrorMessage(
         error.message ||
-          'ไม่สามารถสร้างคำสั่งซื้อได้',
+        'ไม่สามารถสร้างคำสั่งซื้อได้',
       )
     } finally {
       setSubmitting(false)
@@ -531,25 +535,23 @@ export default function Checkout() {
                           savedAddress,
                         )
                       }
-                      className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left ${
-                        selectedAddressId ===
-                        savedAddress.address_id
+                      className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left ${selectedAddressId ===
+                          savedAddress.address_id
                           ? 'border-orange-500 bg-orange-50'
                           : 'border-gray-100 bg-white'
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${
-                          selectedAddressId ===
-                          savedAddress.address_id
+                        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${selectedAddressId ===
+                            savedAddress.address_id
                             ? 'border-orange-500'
                             : 'border-gray-300'
-                        }`}
+                          }`}
                       >
                         {selectedAddressId ===
                           savedAddress.address_id && (
-                          <span className="size-2.5 rounded-full bg-orange-500" />
-                        )}
+                            <span className="size-2.5 rounded-full bg-orange-500" />
+                          )}
                       </span>
 
                       <span className="min-w-0 flex-1">
@@ -621,7 +623,7 @@ export default function Checkout() {
           </div>
 
           {discountInfo.code &&
-          promoEligible ? (
+            promoEligible ? (
             <div className="mt-4 flex items-center justify-between rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
               <div>
                 <p className="text-sm font-bold text-green-700">

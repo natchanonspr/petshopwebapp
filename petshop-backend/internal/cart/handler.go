@@ -1,6 +1,10 @@
 package cart
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"fmt"
+
+	"github.com/gofiber/fiber/v2"
+)
 
 func ReadCart(c *fiber.Ctx) error {
 	userID, _ := c.Locals("user_id").(int64)
@@ -19,13 +23,26 @@ func AddItem(c *fiber.Ctx) error {
 	userID, _ := c.Locals("user_id").(int64)
 
 	req := new(AddItemRequest)
+
 	if err := c.BodyParser(req); err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		fmt.Println("BodyParser ERROR:", err)
+
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
+
+	fmt.Println("AddItem userID:", userID)
+	fmt.Println("AddItem productID:", req.ProductID)
+	fmt.Println("AddItem quantity:", req.CartQuantity)
 
 	item, err := AddItemService(userID, req)
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		fmt.Println("AddItemService ERROR:", err)
+
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return c.JSON(fiber.Map{

@@ -11,9 +11,9 @@ func SetDB(database *gorm.DB) {
 }
 
 func GetCart(userID int64) ([]Cart, error) {
-	var cart []Cart
-	err := db.Preload("Product").Where("user_id = ?", userID).Order("created_at asc").Find(&cart).Error
-	return cart, err
+	var carts []Cart
+	err := db.Preload("Product").Where("user_id = ?", userID).Order("created_at asc").Find(&carts).Error
+	return carts, err
 }
 
 func GetCartByProduct(userID, productID int64) (*Cart, error) {

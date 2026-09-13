@@ -12,7 +12,7 @@ type Cart struct {
 	CartQuantity int64     `gorm:"not null" json:"cart_quantity"`
 	CreatedAt    time.Time `json:"created_at"`
 
-	Product product.Product `gorm:"foreignKey:ProductID" json:"product"`
+	Product product.Product `gorm:"foreignKey:ProductID;references:ProductID" json:"product"`
 }
 
 type AddItemRequest struct {

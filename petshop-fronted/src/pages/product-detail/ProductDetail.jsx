@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import ProductDetailHeader from '../../components/product-detail/ProductDetailHeader.jsx'
-import ProductInfoCard from '../../components/product-detail/ProductInfoCard.jsx'
 import ProductDescription from '../../components/product-detail/ProductDescription.jsx'
-import ProductReviews from '../../components/product-detail/ProductReviews.jsx'
 import FavoriteButton from '../../components/products/FavoriteButton.jsx'
 import { getProduct } from '../../api/products.js'
 import { addToCart } from '../../api/cart.js'
@@ -116,21 +114,16 @@ export default function ProductDetail() {
         </section>
 
         <div className="space-y-5">
-          {/*
-            TODO: backend ยังไม่มี concept "variants" (ขนาด/ตัวเลือกคนละราคา)
-            ทั้งในตาราง products และ cart_items เลย จึงตัดฟีเจอร์เลือกขนาดออกไปก่อน
-          */}
           <ProductInfoCard
             product={product}
             variants={[]}
             selectedVariant={null}
-            onVariantChange={() => {}}
+            onVariantChange={() => { }}
             quantity={quantity}
             onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
             onIncrease={() => setQuantity((value) => value + 1)}
           />
           <ProductDescription product={product} />
-          <ProductReviews product={product} />
         </div>
       </main>
 
