@@ -75,7 +75,7 @@ func main() {
 		AllowOrigins: strings.Join([]string{
 			"http://localhost:5175",
 			"https://garnet-tradition-persuader.ngrok-free.dev",
-			"https://petshopwebapp.vercel.app",
+			"https://petshopwebapp-coz5.vercel.app",
 		}, ","),
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",

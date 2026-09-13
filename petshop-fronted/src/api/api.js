@@ -1,5 +1,9 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || ''
 
+export function ngrokHeaders() {
+  return { 'ngrok-skip-browser-warning': 'true' }
+}
+
 export function authHeaders() {
   const token = localStorage.getItem('petshop_token')
   return token ? { Authorization: `Bearer ${token}` } : {}

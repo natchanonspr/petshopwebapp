@@ -98,8 +98,7 @@ export default function Login() {
       setError('')
       if (!liff.isLoggedIn()) {
         setLoading(true)
-        await new Promise((resolve) => setTimeout(resolve, 300))
-        liff.login({ redirectUri: window.location.href })
+        liff.login({ redirectUri: `${window.location.origin}/login`, })
         return
       }
       await saveLineUser()
@@ -184,10 +183,10 @@ export default function Login() {
             ยังไม่มีบัญชี?
             <button type="button" className="ml-1 font-bold text-orange-500">สมัครสมาชิก</button>
           </p>
-         <button
+          <button
             type="button"
             onClick={() => navigate('/home/admin/login')}
-             className="mt-2 text-xs font-semibold text-gray-400 hover:text-orange-500">เข้าสู่ระบบ Admin
+            className="mt-2 text-xs font-semibold text-gray-400 hover:text-orange-500">เข้าสู่ระบบ Admin
           </button>
         </section>
       </div>
