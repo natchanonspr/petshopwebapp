@@ -10,14 +10,14 @@ type User struct {
 	UserPassword   string    `json:"-"`
 	UserEmail      string    `gorm:"unique" json:"email"`
 	UserPhone      string    `gorm:"unique" json:"phone"`
-	UserLineID     *string   `gorm:"uniqueIndex" json:"line_user_id"`
+	UserLineID     *string   `gorm:"uniqueIndex" json:"user_line_id"`
 	UserPictureURL string    `json:"picture_url"`
 	UserRole       string    `gorm:"not null;default:'user'" json:"role"`
 	CreatedAt      time.Time `json:"created_at"`
 }
 
 type LineLoginRequest struct {
-	UserLineID      string `json:"line_user_id"`
+	UserLineID      string `json:"user_line_id"`
 	DisplayUserName string `json:"display_name"`
 	UserPictureURL  string `json:"picture_url"`
 }

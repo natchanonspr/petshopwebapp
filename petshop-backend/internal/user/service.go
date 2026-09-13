@@ -32,11 +32,11 @@ func RegisterUser(req *UserRegister) error {
 
 func LoginWithLine(req *LineLoginRequest) (string, error) {
 	if req.UserLineID == "" {
-		return "", errors.New("missing line_user_id")
+		return "", errors.New("missing user_line_id")
 	}
 
 	existing := new(User)
-	result := db.Where("line_user_id = ?", req.UserLineID).First(existing)
+	result := db.Where("user_line_id = ?", req.UserLineID).First(existing)
 
 	var u *User
 	if result.Error != nil {
