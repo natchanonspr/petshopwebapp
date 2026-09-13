@@ -5,7 +5,7 @@ export async function loginWithLine({ lineUserId, displayName, pictureUrl }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json'},
     body: JSON.stringify({
-      line_user_id: lineUserId,
+      user_line_id: lineUserId,
       display_name: displayName,
       picture_url: pictureUrl,
     }),
