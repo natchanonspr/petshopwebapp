@@ -1,6 +1,8 @@
 package user
 
 import (
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -29,7 +31,10 @@ func LineLogin(c *fiber.Ctx) error {
 
 	token, err := LoginWithLine(req)
 	if err != nil {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		log.Printf("LINE login error: %v", err)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return c.JSON(fiber.Map{

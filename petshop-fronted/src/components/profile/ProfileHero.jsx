@@ -84,7 +84,7 @@ export default function ProfileHero() {
       <button
         type="button"
         onClick={() => avatarInputRef.current?.click()}
-        className="group relative mx-auto block size-[92px] overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-yellow-200 to-orange-300 text-5xl shadow-md transition active:scale-95"
+        className="group relative mx-auto block size-[132px] overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-yellow-200 to-orange-300 text-6xl shadow-lg transition active:scale-95"
         aria-label="เปลี่ยนรูปโปรไฟล์"
       >
         {profile.avatar ? <img src={profile.avatar} alt="รูปโปรไฟล์" className="size-full object-cover" /> : '👩🏻'}
@@ -94,7 +94,7 @@ export default function ProfileHero() {
       </button>
       {avatarError && <p className="mx-auto mt-2 max-w-[280px] text-xs font-bold text-red-500">{avatarError}</p>}
       <h1 className="mt-3 text-[24px] font-bold tracking-tight text-slate-800">{profile.name || 'กระเทียม เจียว'}</h1>
-      <p className="mt-1 text-sm text-slate-400">{profile.email || 'krathiam@email.com'}</p>
+      
     </section>
   )
 }

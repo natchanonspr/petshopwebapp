@@ -197,42 +197,54 @@ export default function Recommendation() {
 
   return (
     <div className="mx-auto flex h-[100dvh] w-full min-w-0 max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
-      <header className="z-10 shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-4 pt-3 shadow-md">
+      <header className="z-10 shrink-0 border-b border-gray-100 bg-white px-5 pb-3 pt-3">
         <div className="flex items-center justify-between gap-3">
-          <Link to="/home" aria-label="กลับหน้าหลัก" className="grid size-12 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95">
-            <i className="fa-solid fa-arrow-left" />
+          <Link to="/home" aria-label="กลับหน้าหลัก" className="grid size-10 shrink-0 place-items-center rounded-full bg-gray-50 text-gray-600 transition active:scale-95">
+            <i className="fa-solid fa-chevron-left text-sm" />
           </Link>
           <div className="min-w-0 text-center">
-            <h1 className="m-0 text-xl font-bold text-gray-900">AI แนะนำอาหาร</h1>
-            <p className="m-0 mt-0.5 text-xs text-gray-400">วิเคราะห์ข้อมูลน้องเพื่อช่วยเลือกอาหาร</p>
+            <h1 className="m-0 text-lg font-extrabold text-gray-900">ผู้ช่วย AI</h1>
+            <p className="m-0 mt-0.5 text-[10px] text-gray-400">คำแนะนำสำหรับสัตว์เลี้ยงของคุณ</p>
           </div>
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-orange-50 text-orange-500">
-            <i className="fa-solid fa-wand-magic-sparkles" />
+            <i className="fa-solid fa-sparkles text-sm" />
           </span>
         </div>
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <section className="mb-4 rounded-[24px] bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-5 text-white shadow-lg shadow-orange-500/15">
-          <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/20"><i className="fa-solid fa-robot" /></span>
-            <div>
-              <h2 className="m-0 text-base font-bold">คุยกับ AI ผู้ช่วยดูแลน้อง</h2>
-              <p className="m-0 mt-1 text-xs leading-5 text-white/90">เลือกน้อง แล้วกรอกอายุและน้ำหนัก เพื่อรับคำแนะนำเบื้องต้น</p>
+        <section className="relative mb-4 overflow-hidden rounded-[28px] bg-orange-500 p-5 text-white shadow-lg shadow-orange-500/15">
+          <div className="absolute -right-10 -top-10 size-32 rounded-full bg-white/10" />
+          <div className="absolute -bottom-14 -left-8 size-28 rounded-full bg-white/10" />
+          <div className="relative flex items-center gap-4">
+            <div className="grid size-16 shrink-0 place-items-center rounded-[22px] bg-white/15 text-3xl backdrop-blur">
+              <i className="fa-solid fa-paw" />
             </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">Petshop AI</span>
+              <h2 className="mt-0.5 text-lg font-extrabold leading-tight">ช่วยเลือกสิ่งที่เหมาะกับน้อง</h2>
+              <p className="mt-1 text-xs leading-5 text-white/85">ใช้ข้อมูลของน้องเพื่อสร้างคำแนะนำเฉพาะตัว</p>
+            </div>
+          </div>
+          <div className="relative mt-4 flex items-center gap-2 text-[10px] font-semibold text-white/90">
+            <span className="rounded-full bg-white/15 px-3 py-1.5"><i className="fa-solid fa-shield-heart mr-1" />ข้อมูลปลอดภัย</span>
+            <span className="rounded-full bg-white/15 px-3 py-1.5"><i className="fa-solid fa-bolt mr-1" />วิเคราะห์รวดเร็ว</span>
           </div>
         </section>
 
         <form onSubmit={handleAnalyze} className="space-y-4">
           <section className="rounded-[24px] border border-gray-100 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="m-0 text-base font-bold text-gray-900">1. เลือกสัตว์เลี้ยง</h2>
-              <Link to="/pets" className="text-xs font-bold text-orange-500">จัดการข้อมูล</Link>
+              <div>
+                <span className="text-[10px] font-bold text-orange-500">STEP 01</span>
+                <h2 className="m-0 mt-0.5 text-base font-extrabold text-gray-900">เลือกน้องที่ต้องการวิเคราะห์</h2>
+              </div>
+              <Link to="/pets" className="rounded-full bg-orange-50 px-3 py-1.5 text-[10px] font-bold text-orange-500">จัดการข้อมูล</Link>
             </div>
             {pets.length ? (
               <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {pets.map((pet) => (
-                  <button key={pet.id} type="button" onClick={() => setSelectedId(pet.id)} className={`flex w-[118px] shrink-0 flex-col items-center rounded-2xl border p-3 transition active:scale-95 ${String(selectedId) === String(pet.id) ? 'border-orange-400 bg-orange-50' : 'border-gray-100 bg-white'}`}>
+                  <button key={pet.id} type="button" onClick={() => setSelectedId(pet.id)} className={`relative flex w-[126px] shrink-0 flex-col items-center rounded-[20px] border p-3 transition active:scale-95 ${String(selectedId) === String(pet.id) ? 'border-orange-400 bg-orange-50 shadow-sm shadow-orange-100' : 'border-gray-100 bg-white'}`}>
                     <span className="grid size-14 place-items-center overflow-hidden rounded-full bg-orange-50 text-2xl text-orange-300">
                       {pet.image ? <img src={pet.image} alt={pet.name} className="h-full w-full object-cover" /> : <i className={`fa-solid ${pet.icon || (pet.type === 'สุนัข' ? 'fa-dog' : 'fa-cat')}`} />}
                     </span>
@@ -247,21 +259,35 @@ export default function Recommendation() {
           </section>
 
           <section className="rounded-[24px] border border-gray-100 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-base font-bold text-gray-900">2. ข้อมูลน้อง</h2>
+            <div className="mb-3">
+              <span className="text-[10px] font-bold text-orange-500">STEP 02</span>
+              <h2 className="m-0 mt-0.5 text-base font-extrabold text-gray-900">ข้อมูลพื้นฐานของน้อง</h2>
+              <p className="m-0 mt-1 text-[10px] text-gray-400">ข้อมูลนี้ช่วยให้คำแนะนำตรงกับน้องมากขึ้น</p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="block"><span className="mb-1.5 block text-xs font-bold">อายุ (ปี)</span><input type="number" min="0" step="0.1" value={age} onChange={(e) => setAge(e.target.value)} placeholder="เช่น 2" className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-orange-400 focus:bg-white" /></label>
               <label className="block"><span className="mb-1.5 block text-xs font-bold">น้ำหนัก (กก.)</span><input type="number" min="0.1" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="เช่น 4" className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-orange-400 focus:bg-white" /></label>
             </div>
             {error && <p className="m-0 mt-2 text-xs font-medium text-red-500">{error}</p>}
-            <button type="submit" className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 text-sm font-bold text-white shadow-sm shadow-orange-500/20 active:scale-[0.99]">
-              <i className="fa-solid fa-wand-magic-sparkles" /> วิเคราะห์และแนะนำอาหาร
+            <button type="submit" className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 text-sm font-extrabold text-white shadow-md shadow-orange-500/20 transition active:scale-[0.99]">
+              <i className="fa-solid fa-sparkles" /> วิเคราะห์ให้น้อง
             </button>
           </section>
         </form>
 
         {result && (
-          <section className="mt-4 rounded-[24px] border border-orange-100 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-full bg-green-50 text-green-500"><i className="fa-solid fa-check" /></span><div><h2 className="m-0 text-base font-bold">ผลการวิเคราะห์สำหรับ {selectedPet.name}</h2><p className="m-0 text-[10px] text-gray-400">{result.title} · {result.provider}</p></div></div>
+          <section className="mt-4 overflow-hidden rounded-[26px] border border-orange-100 bg-white shadow-sm">
+            <div className="bg-gradient-to-r from-green-50 to-orange-50 p-4">
+              <div className="flex items-center gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white text-green-500 shadow-sm"><i className="fa-solid fa-check" /></span>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold text-green-600">ANALYSIS COMPLETE</span>
+                  <h2 className="m-0 mt-0.5 truncate text-base font-extrabold text-gray-900">คำแนะนำสำหรับ {selectedPet.name}</h2>
+                  <p className="m-0 text-[10px] text-gray-400">{result.title} · {result.provider}</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
             <p className="mt-3 text-xs leading-5 text-gray-600">{result.description}</p>
             {result.rules?.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{result.rules.map((rule) => <span key={rule} className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold text-violet-600"><i className="fa-solid fa-check mr-1" />{rule}</span>)}</div>}
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -269,7 +295,13 @@ export default function Recommendation() {
               <div className="rounded-2xl bg-gray-50 p-3 text-center"><strong className="block text-lg text-gray-800">~{result.meal}</strong><span className="text-[10px] text-gray-500">พลังงาน/มื้อ × 2</span></div>
             </div>
             {result.products.length > 0 && <div className="mt-4"><div className="mb-2 flex items-center justify-between"><h3 className="m-0 text-sm font-bold">สินค้าที่น่าสนใจ</h3><Link to="/products" className="text-xs font-bold text-orange-500">ดูทั้งหมด</Link></div><div className="space-y-2">{result.products.map((product) => <Link key={product.id} to={`/products/${product.id}`} className="flex items-center gap-3 rounded-2xl border border-gray-100 p-3 active:bg-gray-50"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gray-100 text-lg text-gray-400"><i className={`fa-solid ${product.icon}`} /></span><span className="min-w-0 flex-1"><strong className="block truncate text-xs">{product.name}</strong><span className="text-[10px] text-gray-400">คะแนน {product.rating} · {product.reviews} รีวิว</span></span><strong className="text-sm text-orange-500">฿{product.price.toLocaleString()}</strong></Link>)}</div></div>}
-            <p className="mt-4 rounded-2xl bg-gray-50 p-3 text-[10px] leading-5 text-gray-400">หมายเหตุ: ผลลัพธ์นี้เป็นคำแนะนำเบื้องต้นจากข้อมูลอายุ น้ำหนัก และประเภทสัตว์เลี้ยง ไม่ใช่การวินิจฉัยทางการแพทย์ หากน้องมีโรคประจำตัวหรือมีข้อจำกัดด้านอาหาร ควรปรึกษาสัตวแพทย์</p>
+            <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-3">
+              <div className="flex gap-2">
+                <i className="fa-solid fa-circle-info mt-0.5 text-[11px] text-orange-400" />
+                <p className="m-0 text-[10px] leading-5 text-gray-400">คำแนะนำนี้เป็นข้อมูลเบื้องต้นจากอายุ น้ำหนัก และประเภทสัตว์เลี้ยง ไม่ใช่การวินิจฉัยทางการแพทย์ หากน้องมีโรคประจำตัวควรปรึกษาสัตวแพทย์</p>
+              </div>
+            </div>
+            </div>
           </section>
         )}
       </main>
