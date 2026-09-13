@@ -12,13 +12,13 @@ func SetDB(database *gorm.DB) {
 
 func GetCart(userID int64) ([]Cart, error) {
 	var cart []Cart
-	err := db.Where("user_id = ?", userID).Order("created_at asc").Find(&cart).Error
+	err := db.Preload("Product").Where("user_id = ?", userID).Order("created_at asc").Find(&cart).Error
 	return cart, err
 }
 
 func GetCartByProduct(userID, productID int64) (*Cart, error) {
 	var cart Cart
-	err := db.Where("user_id = ? AND product_id = ?", userID, productID).First(&cart).Error
+	err := db.Where("user_id = ?", userID).Order("created_at desc").First(&cart).Error
 	if err != nil {
 		return nil, err
 	}

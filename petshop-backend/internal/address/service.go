@@ -38,7 +38,7 @@ func UpdateAddressService(userID, addressID int64, req *AddressRequest) (*Addres
 		return nil, ErrNotOwner
 	}
 
-	if req.IsDefault && !address.IsDefault {
+	if req.IsDefault {
 		if err := ClearDefaultForUser(userID); err != nil {
 			return nil, err
 		}

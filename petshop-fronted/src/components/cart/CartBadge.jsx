@@ -1,48 +1,85 @@
 import { useEffect, useState } from 'react'
-
-const CART_KEY = 'petshop_cart'
-
-function getCartCount() {
-  try {
-    const cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
-    if (!Array.isArray(cart)) return 0
-    return cart.reduce((total, item) => total + Math.max(0, Number(item.qty) || 0), 0)
-  } catch {
-    return 0
-  }
-}
+import { getCart } from '../../api/cart.js'
 
 export default function CartBadge({ children }) {
-  const [count, setCount] = useState(getCartCount)
+  const [count, setCount] = useState(0)
   const [bouncing, setBouncing] = useState(false)
 
   useEffect(() => {
-    const refresh = () => {
-      setCount(getCartCount())
-      setBouncing(true)
-      window.setTimeout(() => setBouncing(false), 550)
+    let active = true
+    let timeoutId = null
+
+    const loadCartCount = async (shouldBounce = false) => {
+      try {
+        const cart = await getCart()
+
+        if (!active) return
+
+        const total = Array.isArray(cart)
+          ? cart.reduce(
+              (sum, item) =>
+                sum + Math.max(
+                  0,
+                  Number(item.cart_quantity) || 0
+                ),
+              0
+            )
+          : 0
+
+        setCount(total)
+
+        if (shouldBounce) {
+          setBouncing(true)
+
+          if (timeoutId) {
+            window.clearTimeout(timeoutId)
+          }
+
+          timeoutId = window.setTimeout(() => {
+            if (active) {
+              setBouncing(false)
+            }
+          }, 550)
+        }
+      } catch (error) {
+        console.error('load cart count error:', error)
+
+        if (active) {
+          setCount(0)
+        }
+      }
     }
 
-    const handleStorage = (event) => {
-      if (event.key === CART_KEY) refresh()
+    // โหลดจำนวน Cart ตอนเปิด component
+    loadCartCount()
+
+    // อัปเดตเมื่อมีการเปลี่ยน Cart
+    const refresh = () => {
+      loadCartCount(true)
     }
 
     window.addEventListener('petshop-cart-updated', refresh)
-    window.addEventListener('storage', handleStorage)
 
     return () => {
+      active = false
+
+      if (timeoutId) {
+        window.clearTimeout(timeoutId)
+      }
+
       window.removeEventListener('petshop-cart-updated', refresh)
-      window.removeEventListener('storage', handleStorage)
     }
   }, [])
 
   return (
     <span className="relative inline-grid place-items-center">
       {children}
+
       {count > 0 && (
         <span
-          key={`${count}-${bouncing}`}
-          className={`absolute -right-3.5 -top-3.5 z-30 grid min-w-[17px] h-[17px] place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm ring-2 ring-white ${bouncing ? 'animate-cart-badge-bounce' : ''}`}
+          className={`absolute -right-3.5 -top-3.5 z-30 grid h-[17px] min-w-[17px] place-items-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm ring-2 ring-white ${
+            bouncing ? 'animate-cart-badge-bounce' : ''
+          }`}
         >
           {count > 99 ? '99+' : count}
         </span>

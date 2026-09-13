@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCoupon } from '../../admin/coupons.js'
 import { logActivity } from '../../admin/activity.js'
-import { getCart, updateCartItem, removeCartItem,
+import {
+  getCart,
+  updateCartItem,
+  removeCartItem,
 } from '../../api/cart.js'
 
 const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
@@ -36,8 +39,6 @@ export default function Cart() {
 
       const data = await getCart()
 
-      // รองรับทั้งกรณี unwrap() คืน array โดยตรง
-      // และกรณีคืน { data: [...] }
       const items = Array.isArray(data)
         ? data
         : Array.isArray(data?.data)
@@ -47,7 +48,9 @@ export default function Cart() {
       setCartItems(items)
     } catch (error) {
       console.error('Load cart error:', error)
-      setErrorMessage(error.message || 'ไม่สามารถโหลดตะกร้าสินค้าได้')
+      setErrorMessage(
+        error.message || 'ไม่สามารถโหลดตะกร้าสินค้าได้',
+      )
       setCartItems([])
     } finally {
       setLoading(false)
@@ -85,9 +88,13 @@ export default function Cart() {
       } else {
         await loadCart()
       }
+
+      window.dispatchEvent(new Event('petshop-cart-updated'))
     } catch (error) {
       console.error('Update cart error:', error)
-      setErrorMessage(error.message || 'ไม่สามารถแก้ไขจำนวนสินค้าได้')
+      setErrorMessage(
+        error.message || 'ไม่สามารถแก้ไขจำนวนสินค้าได้',
+      )
     }
   }
 
@@ -111,54 +118,51 @@ export default function Cart() {
       } else {
         await loadCart()
       }
+
+      window.dispatchEvent(new Event('petshop-cart-updated'))
     } catch (error) {
       console.error('Remove cart item error:', error)
-      setErrorMessage(error.message || 'ไม่สามารถลบสินค้าได้')
+      setErrorMessage(
+        error.message || 'ไม่สามารถลบสินค้าได้',
+      )
     }
   }
 
   // =========================
   // เตรียมข้อมูลสำหรับแสดงผล
+  // Backend ส่ง Product มาด้วย
   // =========================
-  const normalizedItems = cartItems.map((item) => ({
-    ...item,
-    qty: Math.max(1, Number(item.cart_quantity) || 1),
+  const normalizedItems = cartItems.map((item) => {
+    const product = item.product || {}
 
-    // ตอนนี้ Backend Cart มี ProductID แต่ยังไม่ได้ส่ง
-    // product name / price / image มาด้วย
-    // จึงรองรับชื่อ field หลายรูปแบบไว้ก่อน
-    name:
-      item.product?.product_name ||
-      item.product?.name ||
-      item.product_name ||
-      item.name ||
-      `สินค้า #${item.product_id}`,
+    return {
+      ...item,
 
-    detail:
-      item.product?.description ||
-      item.description ||
-      '',
-
-    image:
-      item.product?.image_url ||
-      item.product?.image ||
-      item.image_url ||
-      item.image ||
-      '',
-
-    icon: item.icon || 'fa-box',
-
-    price: Math.max(
-      0,
-      parsePrice(
-        item.product?.product_price ??
-          item.product?.price ??
-          item.product_price ??
-          item.price ??
-          0,
+      qty: Math.max(
+        1,
+        Number(item.cart_quantity) || 1,
       ),
-    ),
-  }))
+
+      name:
+        product.product_name ||
+        `สินค้า #${item.product_id}`,
+
+      detail: product.description || '',
+
+      image: product.product_image || '',
+
+      icon: 'fa-box',
+
+      price: Math.max(
+        0,
+        parsePrice(product.product_price),
+      ),
+
+      stock: Number(product.product_stock) || 0,
+
+      status: Boolean(product.product_status),
+    }
+  })
 
   const itemCount = normalizedItems.reduce(
     (sum, item) => sum + item.qty,
@@ -170,12 +174,15 @@ export default function Cart() {
     0,
   )
 
-  const afterDiscount = Math.max(0, subtotal - discount)
+  const afterDiscount = Math.max(
+    0,
+    subtotal - discount,
+  )
 
   const delivery =
     subtotal === 0 ||
-    isFreeShipping ||
-    afterDiscount >= 1000
+      isFreeShipping ||
+      afterDiscount >= 1000
       ? 0
       : 40
 
@@ -183,6 +190,7 @@ export default function Cart() {
 
   // =========================
   // Coupon
+  // ยังเป็น Mock ตามที่กำหนด
   // =========================
   const handleApplyCode = () => {
     const code = promoCode.trim().toUpperCase()
@@ -238,6 +246,7 @@ export default function Cart() {
       <main className="mx-auto flex h-screen w-full max-w-[430px] items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="mx-auto mb-3 size-10 animate-spin rounded-full border-4 border-gray-200 border-t-orange-500" />
+
           <p className="text-sm text-gray-400">
             กำลังโหลดตะกร้าสินค้า...
           </p>
@@ -252,7 +261,6 @@ export default function Cart() {
       {/* ================= HEADER ================= */}
       <header className="z-10 shrink-0 space-y-5 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-5 pt-3 shadow-md">
         <div className="flex items-center justify-between">
-
           <Link
             to="/products"
             aria-label="กลับ"
@@ -292,10 +300,8 @@ export default function Cart() {
 
       {/* ================= CART LIST ================= */}
       <section className="flex-1 space-y-4 overflow-y-auto px-5 pb-36 pt-4">
-
         {normalizedItems.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-gray-200 bg-white px-5 py-12 text-center shadow-sm">
-
             <div className="mx-auto grid size-16 place-items-center rounded-full bg-orange-50 text-orange-500">
               <i className="fa-solid fa-cart-shopping text-2xl" />
             </div>
@@ -314,7 +320,6 @@ export default function Cart() {
             >
               ไปเลือกสินค้า
             </Link>
-
           </div>
         ) : (
           normalizedItems.map((item) => (
@@ -322,7 +327,6 @@ export default function Cart() {
               key={item.cart_item_id}
               className="rounded-[24px] border border-gray-100 bg-white p-4 shadow-sm"
             >
-
               <div className="flex gap-3">
 
                 {/* IMAGE */}
@@ -343,18 +347,17 @@ export default function Cart() {
                   ) : null}
 
                   <div
-                    className={`size-full place-items-center text-3xl text-gray-400 ${
-                      item.image ? 'hidden' : 'grid'
-                    }`}
+                    className={`size-full place-items-center text-3xl text-gray-400 ${item.image ? 'hidden' : 'grid'
+                      }`}
                   >
-                    <i className={`fa-solid ${item.icon}`} />
+                    <i
+                      className={`fa-solid ${item.icon}`}
+                    />
                   </div>
-
                 </div>
 
                 {/* CONTENT */}
                 <div className="min-w-0 flex-1">
-
                   <div className="flex items-start justify-between gap-2">
 
                     <div>
@@ -377,7 +380,6 @@ export default function Cart() {
                     >
                       <i className="fa-regular fa-trash-can text-sm" />
                     </button>
-
                   </div>
 
                   <div className="mt-3 flex items-center justify-between">
@@ -393,7 +395,6 @@ export default function Cart() {
                     </div>
 
                     <div className="flex items-center gap-3 rounded-full bg-gray-100 p-1">
-
                       <button
                         type="button"
                         onClick={() => updateQuantity(item, -1)}
@@ -410,22 +411,22 @@ export default function Cart() {
                       <button
                         type="button"
                         onClick={() => updateQuantity(item, 1)}
-                        className="grid size-7 place-items-center rounded-full bg-black text-sm text-white transition hover:bg-gray-800 active:scale-95"
+                        disabled={
+                          item.stock > 0 &&
+                          item.qty >= item.stock
+                        }
+                        className="grid size-7 place-items-center rounded-full bg-black text-sm text-white transition hover:bg-gray-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         +
                       </button>
-
                     </div>
 
                   </div>
-
                 </div>
               </div>
-
             </article>
           ))
         )}
-
       </section>
 
       {/* ================= OVERLAY ================= */}
@@ -438,13 +439,11 @@ export default function Cart() {
 
       {/* ================= SUMMARY ================= */}
       <div
-        className={`absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] rounded-t-[28px] border-t border-gray-100 bg-white px-5 pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out pb-[calc(16px+env(safe-area-inset-bottom))] ${
-          isOpenSummary
+        className={`absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] rounded-t-[28px] border-t border-gray-100 bg-white px-5 pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out pb-[calc(16px+env(safe-area-inset-bottom))] ${isOpenSummary
             ? 'translate-y-0'
             : 'translate-y-[calc(100%-124px-env(safe-area-inset-bottom))]'
-        }`}
+          }`}
       >
-
         <button
           type="button"
           onClick={() => setIsOpenSummary(!isOpenSummary)}
@@ -453,7 +452,6 @@ export default function Cart() {
         />
 
         <div className="rounded-[22px] bg-white px-2">
-
           <div
             className="flex cursor-pointer items-center justify-between pb-3"
             onClick={() => setIsOpenSummary(!isOpenSummary)}
@@ -463,25 +461,20 @@ export default function Cart() {
             </h2>
 
             <i
-              className={`fa-solid fa-chevron-up text-gray-400 transition-transform duration-300 ${
-                isOpenSummary ? 'rotate-180' : ''
-              }`}
+              className={`fa-solid fa-chevron-up text-gray-400 transition-transform duration-300 ${isOpenSummary ? 'rotate-180' : ''
+                }`}
             />
           </div>
 
           <div
-            className={`space-y-3 text-sm transition-all duration-300 ${
-              isOpenSummary
+            className={`space-y-3 text-sm transition-all duration-300 ${isOpenSummary
                 ? 'mb-3 max-h-[500px] opacity-100'
                 : 'max-h-0 overflow-hidden opacity-0'
-            }`}
+              }`}
           >
-
             {/* COUPON */}
             <div className="rounded-[22px] border border-dashed border-orange-400 bg-white p-4 shadow-sm">
-
               <div className="flex items-center gap-3">
-
                 <div className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-50 text-orange-500">
                   <i className="fa-solid fa-ticket" />
                 </div>
@@ -495,13 +488,10 @@ export default function Cart() {
                     กรอกโค้ดเพื่อรับส่วนลด
                   </p>
                 </div>
-
               </div>
 
               <div className="mt-3 flex gap-2">
-
                 <div className="relative flex-1">
-
                   <input
                     aria-label="โค้ดส่วนลด"
                     placeholder={
@@ -517,11 +507,10 @@ export default function Cart() {
                         setIsError(false)
                       }
                     }}
-                    className={`h-10 w-full rounded-full pl-4 pr-10 text-sm outline-none transition-all duration-200 ${
-                      isError
+                    className={`h-10 w-full rounded-full pl-4 pr-10 text-sm outline-none transition-all duration-200 ${isError
                         ? 'border-2 border-red-400 bg-red-50 font-medium text-red-600 placeholder:text-red-400'
                         : 'bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-200'
-                    }`}
+                      }`}
                   />
 
                   {(promoCode || discount > 0 || isError) && (
@@ -534,7 +523,6 @@ export default function Cart() {
                       <i className="fa-solid fa-xmark" />
                     </button>
                   )}
-
                 </div>
 
                 <button
@@ -544,7 +532,6 @@ export default function Cart() {
                 >
                   ใช้โค้ด
                 </button>
-
               </div>
 
               {isFreeShipping && (
@@ -553,7 +540,6 @@ export default function Cart() {
                   โค้ดนี้ได้รับสิทธิ์ส่งฟรี
                 </p>
               )}
-
             </div>
 
             {/* PRICE */}
@@ -609,26 +595,21 @@ export default function Cart() {
                 ฿{total.toLocaleString()}
               </strong>
             </div>
-
           </div>
         </div>
 
         {/* CHECKOUT */}
         <Link
           to={cartItems.length ? '/checkout' : '/products'}
-          className={`flex min-h-12 w-full items-center justify-center rounded-full text-sm font-bold !text-white shadow-lg transition-all duration-200 active:scale-[0.99] ${
-            cartItems.length
+          className={`flex min-h-12 w-full items-center justify-center rounded-full text-sm font-bold !text-white shadow-lg transition-all duration-200 active:scale-[0.99] ${cartItems.length
               ? 'bg-orange-500 !text-white shadow-orange-500/30 hover:-translate-y-0.5 hover:bg-orange-600'
               : 'pointer-events-none bg-gray-300'
-          }`}
+            }`}
           aria-disabled={!cartItems.length}
         >
           ไปชำระเงิน • ฿{total.toLocaleString()}
         </Link>
-
       </div>
-
     </main>
   )
 }
-

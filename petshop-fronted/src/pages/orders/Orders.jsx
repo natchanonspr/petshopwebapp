@@ -1,127 +1,496 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
 import CartBadge from '../../components/cart/CartBadge.jsx'
-import { ORDERS_UPDATED_EVENT, defaultOrders, getOrders } from '../../data/orders.js'
-import EmptyState from '../../components/EmptyState.jsx'
 import NotificationBadge from '../../components/profile/NotificationBadge.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
+import { getOrders } from '../../api/orders.js'
+import { addToCart } from '../../api/cart.js'
 
 const tabs = ['ทั้งหมด', 'รอดำเนินการ', 'กำลังจัดส่ง', 'สำเร็จ']
 
-const statusClass = {
-  pending: 'bg-orange-50 text-orange-600',
-  shipping: 'bg-orange-50 text-orange-600',
-  success: 'bg-gray-100 text-gray-500',
+const statusMap = {
+  pending: {
+    label: 'รอดำเนินการ',
+    className: 'bg-orange-50 text-orange-600',
+  },
+  shipping: {
+    label: 'กำลังจัดส่ง',
+    className: 'bg-orange-50 text-orange-600',
+  },
+  completed: {
+    label: 'สำเร็จ',
+    className: 'bg-gray-100 text-gray-500',
+  },
+  success: {
+    label: 'สำเร็จ',
+    className: 'bg-gray-100 text-gray-500',
+  },
+  cancelled: {
+    label: 'ยกเลิก',
+    className: 'bg-red-50 text-red-500',
+  },
+}
+
+function normalizeOrder(order) {
+  const items = Array.isArray(order.items)
+    ? order.items
+    : []
+
+  const quantity = items.reduce(
+    (sum, item) =>
+      sum + Math.max(
+        0,
+        Number(item.order_quantity) || 0,
+      ),
+    0,
+  )
+
+  const firstItem = items[0]
+
+  const rawStatus = String(
+    order.order_status || '',
+  ).toLowerCase()
+
+  const status = statusMap[rawStatus] || {
+    label: rawStatus || 'ไม่ทราบสถานะ',
+    className: 'bg-gray-100 text-gray-500',
+  }
+
+  const date = order.created_at
+    ? new Date(order.created_at).toLocaleDateString(
+        'th-TH',
+        {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        },
+      )
+    : '-'
+
+  return {
+    ...order,
+    id: order.order_id,
+    rawStatus,
+    statusLabel: status.label,
+    statusClass: status.className,
+    date,
+    quantity,
+    name:
+      firstItem?.product_name ||
+      'ไม่มีรายการสินค้า',
+    image: firstItem?.product_image || '',
+    itemCount: items.length,
+  }
 }
 
 export default function Orders() {
   const [activeTab, setActiveTab] = useState('ทั้งหมด')
   const [search, setSearch] = useState('')
-  const [orders, setOrders] = useState(defaultOrders)
-  const navigate = useNavigate()
+
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [reorderingId, setReorderingId] = useState(null)
 
   useEffect(() => {
-    const syncOrders = () => setOrders(getOrders())
-    syncOrders()
-    window.addEventListener(ORDERS_UPDATED_EVENT, syncOrders)
-    window.addEventListener('storage', syncOrders)
+    let active = true
+
+    const loadOrders = async () => {
+      try {
+        setLoading(true)
+        setErrorMessage('')
+
+        const data = await getOrders()
+
+        const normalized = (
+          Array.isArray(data) ? data : []
+        ).map(normalizeOrder)
+
+        if (active) {
+          setOrders(normalized)
+        }
+      } catch (error) {
+        console.error('Load orders error:', error)
+
+        if (active) {
+          setOrders([])
+          setErrorMessage(
+            error.message ||
+              'ไม่สามารถโหลดคำสั่งซื้อได้',
+          )
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadOrders()
+
     return () => {
-      window.removeEventListener(ORDERS_UPDATED_EVENT, syncOrders)
-      window.removeEventListener('storage', syncOrders)
+      active = false
     }
   }, [])
 
   const visibleOrders = useMemo(() => {
     const keyword = search.trim().toLowerCase()
+
     return orders.filter((order) => {
-      const matchesTab = activeTab === 'ทั้งหมด' || order.status === activeTab
-      const matchesSearch = !keyword || `${order.id} ${order.name} ${order.status} ${order.date}`.toLowerCase().includes(keyword)
+      const matchesTab =
+        activeTab === 'ทั้งหมด' ||
+        order.statusLabel === activeTab
+
+      const productNames = Array.isArray(order.items)
+        ? order.items
+            .map((item) => item.product_name || '')
+            .join(' ')
+        : ''
+
+      const searchText = [
+        order.id,
+        order.statusLabel,
+        order.rawStatus,
+        order.date,
+        order.name,
+        productNames,
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      const matchesSearch =
+        !keyword ||
+        searchText.includes(keyword)
+
       return matchesTab && matchesSearch
     })
   }, [activeTab, search, orders])
 
-  const handleReorder = (order) => {
-    const products = Array.isArray(order.products) && order.products.length ? order.products : []
-    if (!products.length) {
-      navigate(`/orders/${encodeURIComponent(order.id)}`)
+  const handleReorder = async (order) => {
+    const items = Array.isArray(order.items)
+      ? order.items
+      : []
+
+    if (!items.length) {
       return
     }
 
-    const cart = JSON.parse(window.localStorage.getItem('petshop_cart') || '[]')
-    const merged = [...cart]
-    products.forEach((product) => {
-      const index = merged.findIndex((item) => item.id === product.id)
-      const qty = Math.max(1, Number(product.qty) || 1)
-      if (index >= 0) merged[index] = { ...merged[index], qty: (Number(merged[index].qty) || 1) + qty }
-      else merged.push({ ...product, qty })
-    })
-    window.localStorage.setItem('petshop_cart', JSON.stringify(merged))
-    window.dispatchEvent(new Event('petshop-cart-updated'))
-    navigate('/cart')
+    try {
+      setReorderingId(order.id)
+
+      for (const item of items) {
+        const quantity = Math.max(
+          1,
+          Number(item.order_quantity) || 1,
+        )
+
+        await addToCart({
+          productId: item.product_id,
+          cartQuantity: quantity,
+        })
+      }
+
+      window.dispatchEvent(
+        new Event('petshop-cart-updated'),
+      )
+
+      window.location.href = '/cart'
+    } catch (error) {
+      console.error('Reorder error:', error)
+
+      setErrorMessage(
+        error.message ||
+          'ไม่สามารถซื้อรายการเดิมซ้ำได้',
+      )
+    } finally {
+      setReorderingId(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mx-auto mb-3 size-10 animate-spin rounded-full border-4 border-gray-200 border-t-orange-500" />
+
+          <p className="text-sm text-gray-400">
+            กำลังโหลดคำสั่งซื้อ...
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="mx-auto flex h-[100dvh] w-full min-w-0 max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
+
+      {/* ================= HEADER ================= */}
       <header className="z-10 min-w-0 shrink-0 overflow-hidden rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-3 pt-3 shadow-md">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/home" aria-label="กลับหน้าหลัก" className="grid size-12 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"><i className="fa-solid fa-arrow-left" /></Link>
-            <h1 className="m-0 text-xl font-bold leading-tight text-gray-900">ประวัติ</h1>
+            <Link
+              to="/home"
+              aria-label="กลับหน้าหลัก"
+              className="grid size-12 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"
+            >
+              <i className="fa-solid fa-arrow-left" />
+            </Link>
+
+            <h1 className="m-0 text-xl font-bold leading-tight text-gray-900">
+              ประวัติ
+            </h1>
           </div>
+
           <div className="flex items-center gap-2">
-            <Link to="/notifications" aria-label="การแจ้งเตือน" className="relative z-20 grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"><NotificationBadge><i className="fa-solid fa-bell" /></NotificationBadge></Link>
-            <Link to="/cart" aria-label="ตะกร้าสินค้า" className="relative z-20 grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"><CartBadge><i className="fa-solid fa-cart-shopping" /></CartBadge></Link>
+            <Link
+              to="/notifications"
+              aria-label="การแจ้งเตือน"
+              className="relative z-20 grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"
+            >
+              <NotificationBadge>
+                <i className="fa-solid fa-bell" />
+              </NotificationBadge>
+            </Link>
+
+            <Link
+              to="/cart"
+              aria-label="ตะกร้าสินค้า"
+              className="relative z-20 grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"
+            >
+              <CartBadge>
+                <i className="fa-solid fa-cart-shopping" />
+              </CartBadge>
+            </Link>
           </div>
         </div>
+
+        {/* SEARCH */}
         <label className="relative block">
           <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} type="text" placeholder="ค้นหาเลขออเดอร์ หรือสินค้า..." aria-label="ค้นหาประวัติการสั่งซื้อ" className="block h-[46px] w-full rounded-2xl border-0 bg-gray-100 pl-10 pr-10 text-sm text-gray-700 outline-none placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-orange-200" />
-          {search && <button type="button" onClick={() => setSearch('')} aria-label="ล้างการค้นหา" className="absolute right-3 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-gray-200 text-gray-500 transition hover:bg-gray-300 active:scale-95"><i className="fa-solid fa-xmark text-xs" /></button>}
+
+          <input
+            value={search}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
+            type="text"
+            placeholder="ค้นหาเลขออเดอร์ หรือสินค้า..."
+            aria-label="ค้นหาประวัติการสั่งซื้อ"
+            className="block h-[46px] w-full rounded-2xl border-0 bg-gray-100 pl-10 pr-10 text-sm text-gray-700 outline-none placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-orange-200"
+          />
+
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="ล้างการค้นหา"
+              className="absolute right-3 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-gray-200 text-gray-500 transition hover:bg-gray-300 active:scale-95"
+            >
+              <i className="fa-solid fa-xmark text-xs" />
+            </button>
+          )}
         </label>
+
+        {/* TABS */}
         <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {tabs.map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`shrink-0 rounded-full border-0 px-5 py-2 text-sm font-medium whitespace-nowrap transition active:scale-95 ${activeTab === tab ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20' : 'bg-gray-100 text-gray-500'}`}>{tab}</button>)}
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`shrink-0 rounded-full border-0 px-5 py-2 text-sm font-medium whitespace-nowrap transition active:scale-95 ${
+                activeTab === tab
+                  ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                  : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
       </header>
 
+      {/* ================= MAIN ================= */}
       <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 pb-3 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+        {errorMessage && (
+          <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            {errorMessage}
+          </div>
+        )}
+
         <div className="mb-4 flex items-end justify-between gap-3">
-          <div><h2 className="m-0 text-lg font-bold leading-tight text-gray-900">คำสั่งซื้อของฉัน</h2><span className="print-only mt-1 block text-xs text-gray-400">{activeTab === 'ทั้งหมด' ? 'ประวัติการสั่งซื้อทั้งหมด' : `ประวัติการสั่งซื้อ: ${activeTab}`}</span></div>
+          <div>
+            <h2 className="m-0 text-lg font-bold leading-tight text-gray-900">
+              คำสั่งซื้อของฉัน
+            </h2>
+
+            <span className="print-only mt-1 block text-xs text-gray-400">
+              {activeTab === 'ทั้งหมด'
+                ? 'ประวัติการสั่งซื้อทั้งหมด'
+                : `ประวัติการสั่งซื้อ: ${activeTab}`}
+            </span>
+          </div>
+
           <div className="flex shrink-0 items-center gap-2">
-            <span className="text-sm text-gray-400">{visibleOrders.length} รายการ</span>
+            <span className="text-sm text-gray-400">
+              {visibleOrders.length} รายการ
+            </span>
           </div>
         </div>
+
         <div className="space-y-4">
           {visibleOrders.map((order) => (
-            <article key={order.id} className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm">
+            <article
+              key={order.id}
+              className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm"
+            >
+              {/* HEADER */}
               <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
-                <div className="min-w-0"><p className="m-0 text-xs font-medium text-gray-500">Order ID: <span className="text-gray-700">{order.id}</span></p><p className="m-0 mt-1 text-[10px] text-gray-400">{order.date}</p></div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass[order.tone] || 'bg-gray-100 text-gray-500'}`}>{order.status}</span>
+                <div className="min-w-0">
+                  <p className="m-0 text-xs font-medium text-gray-500">
+                    Order ID:{' '}
+                    <span className="text-gray-700">
+                      {order.id}
+                    </span>
+                  </p>
+
+                  <p className="m-0 mt-1 text-[10px] text-gray-400">
+                    {order.date}
+                  </p>
+                </div>
+
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${order.statusClass}`}
+                >
+                  {order.statusLabel}
+                </span>
               </div>
+
+              {/* PRODUCT */}
               <div className="flex gap-3 py-4">
-                <div className="grid size-[62px] shrink-0 place-items-center rounded-2xl bg-gray-100 text-xl text-gray-400"><i className={`fa-solid ${order.icon || 'fa-box'}`} /></div>
-                <div className="min-w-0 flex-1"><h3 className="m-0 text-sm font-bold leading-5 text-gray-800">{order.name}</h3><p className="m-0 mt-1 text-xs text-gray-400">จำนวน: {order.qty} ชิ้น</p>{order.items && <p className="m-0 text-xs text-gray-400">{order.items}</p>}</div>
+                <div className="size-[62px] shrink-0 overflow-hidden rounded-2xl bg-gray-100">
+                  {order.image ? (
+                    <img
+                      src={order.image}
+                      alt={order.name}
+                      className="size-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.style.display =
+                          'none'
+
+                        event.currentTarget.nextElementSibling?.classList.remove(
+                          'hidden',
+                        )
+                      }}
+                    />
+                  ) : null}
+
+                  <div
+                    className={`size-full place-items-center text-xl text-gray-400 ${
+                      order.image ? 'hidden' : 'grid'
+                    }`}
+                  >
+                    <i className="fa-solid fa-box" />
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h3 className="m-0 line-clamp-2 text-sm font-bold leading-5 text-gray-800">
+                    {order.name}
+                  </h3>
+
+                  <p className="m-0 mt-1 text-xs text-gray-400">
+                    จำนวน: {order.quantity} ชิ้น
+                  </p>
+
+                  {order.itemCount > 1 && (
+                    <p className="m-0 mt-1 text-xs text-gray-400">
+                      และอีก {order.itemCount - 1}{' '}
+                      รายการ
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {/* FOOTER */}
               <div className="flex items-end justify-between border-t border-gray-100 pt-3">
-                <div><p className="m-0 text-[10px] text-gray-400">ยอดสุทธิ</p><p className="m-0 mt-0.5 text-lg font-bold text-orange-500">฿{Number(order.total).toLocaleString()}</p></div>
+                <div>
+                  <p className="m-0 text-[10px] text-gray-400">
+                    ยอดสุทธิ
+                  </p>
+
+                  <p className="m-0 mt-0.5 text-lg font-bold text-orange-500">
+                    ฿
+                    {Number(
+                      order.total_amount || 0,
+                    ).toLocaleString()}
+                  </p>
+                </div>
+
                 <div className="flex items-center gap-2">
-                  <Link to={`/orders/${encodeURIComponent(order.id)}`} className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 active:scale-95">ดูรายละเอียด</Link>
-                  {order.tone === 'success' && <button type="button" onClick={() => handleReorder(order)} className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-orange-600 active:scale-95">ซื้อซ้ำ</button>}
+                  <Link
+                    to={`/orders/${encodeURIComponent(
+                      order.id,
+                    )}`}
+                    className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 active:scale-95"
+                  >
+                    ดูรายละเอียด
+                  </Link>
+
+                  {order.rawStatus ===
+                    'completed' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleReorder(order)
+                      }
+                      disabled={
+                        reorderingId === order.id
+                      }
+                      className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {reorderingId === order.id
+                        ? 'กำลังเพิ่ม...'
+                        : 'ซื้อซ้ำ'}
+                    </button>
+                  )}
                 </div>
               </div>
             </article>
           ))}
+
           {visibleOrders.length === 0 && (
             <EmptyState
               icon="fa-receipt"
-              title={search ? `ไม่พบออเดอร์ “${search}”` : 'ยังไม่มีรายการในหมวดนี้'}
-              description={search ? 'ลองค้นหาด้วยเลขออเดอร์ ชื่อสินค้า หรือวันที่' : 'เมื่อสั่งซื้อสินค้า รายการของคุณจะแสดงที่นี่'}
-              actionLabel={search ? 'ล้างการค้นหา' : undefined}
-              onAction={search ? () => setSearch('') : undefined}
+              title={
+                search
+                  ? `ไม่พบออเดอร์ “${search}”`
+                  : 'ยังไม่มีรายการในหมวดนี้'
+              }
+              description={
+                search
+                  ? 'ลองค้นหาด้วยเลขออเดอร์ ชื่อสินค้า หรือวันที่'
+                  : 'เมื่อสั่งซื้อสินค้า รายการของคุณจะแสดงที่นี่'
+              }
+              actionLabel={
+                search
+                  ? 'ล้างการค้นหา'
+                  : undefined
+              }
+              onAction={
+                search
+                  ? () => setSearch('')
+                  : undefined
+              }
             />
           )}
         </div>
+
         <div className="h-5" />
       </main>
+
       <BottomNavigation />
     </div>
   )

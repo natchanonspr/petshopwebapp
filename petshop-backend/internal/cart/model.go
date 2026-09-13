@@ -1,6 +1,9 @@
 package cart
 
-import "time"
+import (
+	"petshop-backend/internal/product"
+	"time"
+)
 
 type Cart struct {
 	CartItemID   int64     `gorm:"primaryKey;autoIncrement" json:"cart_item_id"`
@@ -8,6 +11,8 @@ type Cart struct {
 	ProductID    int64     `gorm:"not null" json:"product_id"`
 	CartQuantity int64     `gorm:"not null" json:"cart_quantity"`
 	CreatedAt    time.Time `json:"created_at"`
+
+	Product product.Product `gorm:"foreignKey:ProductID;references:ProductID" json:"product"`
 }
 
 type AddItemRequest struct {

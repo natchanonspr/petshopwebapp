@@ -72,6 +72,8 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 
 		orderItems = append(orderItems, OrderItem{
 			ProductID:     product.ProductID,
+			ProductName:   product.ProductName,
+			ProductImage:  product.ProductImage,
 			OrderQuantity: cartItem.CartQuantity,
 			OrderPrice:    product.ProductPrice,
 		})
@@ -88,7 +90,7 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 			OrderAddress:  string(snapshot),
 			TotalAmount:   totalAmount,
 			OrderStatus:   "pending",
-			PaymentMethod: "pending",
+			PaymentMethod: req.PaymentMethod,
 			PaymentStatus: "unpaid",
 		}
 
