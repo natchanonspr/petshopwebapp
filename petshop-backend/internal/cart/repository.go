@@ -18,7 +18,7 @@ func GetCart(userID int64) ([]Cart, error) {
 
 func GetCartByProduct(userID, productID int64) (*Cart, error) {
 	var cart Cart
-	err := db.Where("user_id = ?", userID).Order("created_at desc").First(&cart).Error
+	err := db.Where("user_id = ? AND product_id = ?", userID, productID).First(&cart).Error
 	if err != nil {
 		return nil, err
 	}
@@ -48,5 +48,5 @@ func DeleteCart(cartID int64) error {
 
 // ล้างสินค้าทั้งหมดในตะกร้า
 func ClearCart(tx *gorm.DB, userID int64) error {
-	return tx.Where("userID = ?", userID).Delete(&Cart{}).Error
+	return tx.Where("user_id = ?", userID).Delete(&Cart{}).Error
 }
