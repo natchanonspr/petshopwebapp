@@ -17,10 +17,33 @@ export async function loginWithLine({
     }),
   })
 
-  const data = await unwrap(
-    res,
-    'เข้าสู่ระบบ LINE ไม่สำเร็จ'
-  )
+  const text = await res.text()
 
-  return data?.token || data
+  let body = null
+
+  try {
+    body = JSON.parse(text)
+  } catch {
+    body = null
+  }
+
+  if (!res.ok) {
+    console.error('LINE LOGIN API ERROR')
+    console.error('Status:', res.status)
+    console.error('Response:', body || text)
+
+    throw new Error(
+      body?.error ||
+      body?.message ||
+      'เข้าสู่ระบบ LINE ไม่สำเร็จ'
+    )
+  }
+
+  console.log('LINE LOGIN RESPONSE:', body)
+
+  if (!body?.token) {
+    throw new Error('ไม่พบ token จาก Backend')
+  }
+
+  return body.token
 }
