@@ -1,28 +1,52 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { getAdminOrders } from '../../api/orders.js'
 
-const tabs = ['ทั้งหมด', 'รอดำเนินการ', 'ยืนยันออเดอร์แล้ว', 'กำลังจัดส่ง', 'จัดส่งสำเร็จ', 'ยกเลิก']
-const tone = { 'รอดำเนินการ': 'bg-violet-50 text-violet-600', 'กำลังจัดส่ง': 'bg-blue-50 text-blue-600', 'จัดส่งสำเร็จ': 'bg-green-50 text-green-700', 'ยกเลิก': 'bg-red-50 text-red-500' }
+const tabs = [
+  'ทั้งหมด',
+  'รอดำเนินการ',
+  'ยืนยันออเดอร์แล้ว',
+  'กำลังจัดส่ง',
+  'จัดส่งสำเร็จ',
+  'ยกเลิก',
+]
+
+const tone = {
+  'รอดำเนินการ': 'bg-violet-50 text-violet-600',
+  'ยืนยันออเดอร์แล้ว': 'bg-indigo-50 text-indigo-600',
+  'กำลังจัดส่ง': 'bg-blue-50 text-blue-600',
+  'จัดส่งสำเร็จ': 'bg-green-50 text-green-700',
+  'ยกเลิก': 'bg-red-50 text-red-500',
+}
+
+const statusMap = {
+  pending: 'รอดำเนินการ',
+  confirmed: 'ยืนยันออเดอร์แล้ว',
+  shipped: 'กำลังจัดส่ง',
+  deliveried: 'จัดส่งสำเร็จ',
+  cancelled: 'ยกเลิก',
+}
+
+const paymentMap = {
+  unpaid: 'รอตรวจสอบ',
+  paid: 'ชำระแล้ว',
+  cancelled: 'ยกเลิก',
+}
 
 function normalizeOrder(order) {
-  const statusMap = {
-    pending: 'รอดำเนินการ',
-    confirmed: 'ยืนยันออเดอร์แล้ว',
-    shipped: 'กำลังจัดส่ง',
-    deliveried: 'จัดส่งสำเร็จ',
-    cancelled: 'ยกเลิก',
-  }
-
-  const paymentMap = {
-    unpaid: 'รอตรวจสอบ',
-    paid: 'ชำระแล้ว',
-    cancelled: 'ยกเลิก',
-  }
-
   const createdAt = order.created_at
     ? new Date(order.created_at)
     : null
+
+  const status =
+    statusMap[order.order_status] ||
+    order.order_status ||
+    'รอดำเนินการ'
+
+  const payment =
+    paymentMap[order.payment_status] ||
+    order.payment_status ||
+    'รอตรวจสอบ'
 
   return {
     ...order,
@@ -33,35 +57,30 @@ function normalizeOrder(order) {
 
     total: Number(order.total_amount || 0),
 
-    status:
-      statusMap[order.order_status] ||
-      order.order_status ||
-      'รอดำเนินการ',
+    status,
 
-    payment:
-      paymentMap[order.payment_status] ||
-      order.payment_status ||
-      'รอตรวจสอบ',
+    payment,
 
     shipping:
-      order.order_status === 'shipped' ||
-        order.order_status === 'completed'
+      order.order_status === 'deliveried'
         ? 'จัดส่งแล้ว'
-        : 'ยังไม่จัดส่ง',
+        : order.order_status === 'shipped'
+          ? 'กำลังจัดส่ง'
+          : 'ยังไม่จัดส่ง',
 
     date: createdAt
       ? createdAt.toLocaleDateString('th-TH', {
-        day: 'numeric',
-        month: 'short',
-        year: '2-digit',
-      })
+          day: 'numeric',
+          month: 'short',
+          year: '2-digit',
+        })
       : '—',
 
     time: createdAt
       ? createdAt.toLocaleTimeString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }) + ' น.'
+          hour: '2-digit',
+          minute: '2-digit',
+        }) + ' น.'
       : '—',
 
     phone: '—',
@@ -72,11 +91,17 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
   const [tab, setTab] = useState('ทั้งหมด')
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('ทั้งหมด')
   const [toast, setToast] = useState('')
+
   const navigate = useNavigate()
+
+  // =========================
+  // Load Orders
+  // =========================
   const loadOrders = async () => {
     try {
       setLoading(true)
@@ -91,58 +116,584 @@ export default function AdminOrders() {
       )
     } catch (err) {
       console.error('load admin orders error:', err)
-      setError(err.message || 'ไม่สามารถโหลดคำสั่งซื้อได้')
+
+      setError(
+        err.message ||
+          'ไม่สามารถโหลดคำสั่งซื้อได้'
+      )
     } finally {
       setLoading(false)
     }
   }
+
   useEffect(() => {
     loadOrders()
   }, [])
 
+  // =========================
+  // Filter
+  // =========================
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return orders.filter(o => (tab === 'ทั้งหมด' || o.status === tab) && (paymentFilter === 'ทั้งหมด' || o.payment === paymentFilter) && (!q || `${o.id} ${o.customer} ${o.phone || ''} ${o.shipping || ''}`.toLowerCase().includes(q)))
-  }, [orders, tab, search, paymentFilter])
 
-  const counts = Object.fromEntries(tabs.map(t => [t, t === 'ทั้งหมด' ? orders.length : orders.filter(o => o.status === t).length]))
+    return orders.filter((order) => {
+      const matchStatus =
+        tab === 'ทั้งหมด' ||
+        order.status === tab
+
+      const matchPayment =
+        paymentFilter === 'ทั้งหมด' ||
+        order.payment === paymentFilter
+
+      const searchableText = `
+        ${order.id}
+        ${order.customer}
+        ${order.phone || ''}
+        ${order.shipping || ''}
+        ${order.status || ''}
+      `.toLowerCase()
+
+      const matchSearch =
+        !q || searchableText.includes(q)
+
+      return (
+        matchStatus &&
+        matchPayment &&
+        matchSearch
+      )
+    })
+  }, [
+    orders,
+    tab,
+    search,
+    paymentFilter,
+  ])
+
+  // =========================
+  // Count each status
+  // =========================
+  const counts = Object.fromEntries(
+    tabs.map((item) => [
+      item,
+      item === 'ทั้งหมด'
+        ? orders.length
+        : orders.filter(
+            (order) =>
+              order.status === item
+          ).length,
+    ])
+  )
+
+  // =========================
+  // Total Amount
+  // =========================
+  const totalAmount = useMemo(() => {
+    return orders.reduce(
+      (sum, order) =>
+        sum + Number(order.total || 0),
+      0
+    )
+  }, [orders])
+
+  // =========================
+  // Export CSV
+  // =========================
   const exportData = () => {
-    const csv = ['Order ID,Customer,Total,Status,Payment,Shipping', ...orders.map(o => `"${o.id}","${o.customer}",${o.total},"${o.status}","${o.payment}","${o.shipping}"`)].join('\n')
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })); a.download = 'petshop-orders.csv'; a.click(); URL.revokeObjectURL(a.href); setToast('ส่งออกข้อมูลคำสั่งซื้อแล้ว'); setTimeout(() => setToast(''), 2200)
+    const csv = [
+      'Order ID,Customer,Total,Status,Payment,Shipping',
+      ...orders.map(
+        (order) =>
+          `"${order.id}","${order.customer}",${order.total},"${order.status}","${order.payment}","${order.shipping}"`
+      ),
+    ].join('\n')
+
+    const blob = new Blob(
+      [`\uFEFF${csv}`],
+      {
+        type: 'text/csv;charset=utf-8',
+      }
+    )
+
+    const url =
+      URL.createObjectURL(blob)
+
+    const a =
+      document.createElement('a')
+
+    a.href = url
+    a.download = 'petshop-orders.csv'
+
+    a.click()
+
+    URL.revokeObjectURL(url)
+
+    setToast(
+      'ส่งออกข้อมูลคำสั่งซื้อแล้ว'
+    )
+
+    setTimeout(
+      () => setToast(''),
+      2200
+    )
   }
 
-  return <div className="space-y-4 pb-20 md:pb-6">
-    <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="text-[10px] text-gray-400"><Link to="/home/admin">หน้าหลัก</Link><i className="fa-solid fa-chevron-right mx-2 text-[8px]" />คำสั่งซื้อ</div><h1 className="mt-1 text-[22px] font-extrabold">จัดการคำสั่งซื้อ </h1><p className="mt-0.5 text-[11px] text-gray-400">ตรวจสอบคำสั่งซื้อ การชำระเงิน และข้อมูลจัดส่ง</p></div><button onClick={exportData} className="rounded-xl bg-[#6d3df5] px-4 py-2.5 text-[11px] font-bold text-white shadow-sm shadow-violet-500/20"><i className="fa-solid fa-download mr-2" />ส่งออกข้อมูล</button></div>
+  return (
+    <div className="space-y-4 pb-20 md:pb-6">
 
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Stat label="คำสั่งซื้อทั้งหมด" value={orders.length} icon="fa-receipt" /><Stat label="รอดำเนินการ" value={counts['รอดำเนินการ']} icon="fa-clock" /><Stat label="กำลังจัดส่ง" value={counts['กำลังจัดส่ง']} icon="fa-truck" /><Stat label="ยอดขายรวม" value={`฿${orders.reduce((s, o) => s + o.total, 0).toLocaleString()}`} icon="fa-baht-sign" /></div>
+      {/* =========================
+          Header
+      ========================= */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
 
-    <section className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-[0_2px_10px_rgba(30,30,50,0.03)]"><div className="flex flex-col gap-2 md:flex-row"><label className="relative flex-1"><i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหาเลขคำสั่งซื้อ ชื่อลูกค้า เบอร์โทร หรือเลขพัสดุ..." className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-[11px] outline-none focus:border-violet-300 focus:bg-white" /></label><select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-[11px] text-gray-600"><option>ทั้งหมด</option><option>ชำระแล้ว</option><option>รอตรวจสอบ</option><option>ยกเลิก</option></select></div></section>
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
+            <span>หน้าหลัก</span>
 
-    <div className="flex min-w-0 gap-1 overflow-x-auto rounded-xl border border-[#ececf2] bg-white p-1.5 shadow-[0_2px_10px_rgba(30,30,50,0.03)] [scrollbar-width:none]"><div className="flex min-w-max gap-1">{tabs.map(t => <button key={t} onClick={() => setTab(t)} className={`rounded-lg px-3 py-2 text-[11px] font-bold ${tab === t ? 'bg-[#6d3df5] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>{t} <span className="ml-1 opacity-60">{counts[t]}</span></button>)}</div></div>
+            <i className="fa-solid fa-chevron-right text-[9px]" />
 
-    {loading && (
-      <div className="p-12 text-center text-xs text-gray-400">
-        <i className="fa-solid fa-spinner fa-spin mb-2 text-xl text-violet-400" />
-        <p>กำลังโหลดคำสั่งซื้อ...</p>
-      </div>
-    )}
+            <span>คำสั่งซื้อ</span>
+          </div>
 
-    {!loading && error && (
-      <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center text-xs font-bold text-red-500">
-        <i className="fa-solid fa-circle-exclamation mb-2 text-xl" />
-        <p>{error}</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            จัดการคำสั่งซื้อ
+          </h1>
+
+          <p className="mt-1 text-xs text-gray-400">
+            ตรวจสอบคำสั่งซื้อ การชำระเงิน และข้อมูลจัดส่ง
+          </p>
+        </div>
 
         <button
-          onClick={loadOrders}
-          className="mt-3 rounded-lg bg-violet-500 px-4 py-2 text-[11px] font-bold text-white hover:bg-violet-600"
+          type="button"
+          onClick={exportData}
+          className="inline-flex h-10 items-center justify-center gap-2 self-start rounded-xl bg-violet-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-violet-700 md:self-auto"
         >
-          <i className="fa-solid fa-rotate-right mr-2" />
-          ลองอีกครั้ง
+          <i className="fa-solid fa-download" />
+          ส่งออกข้อมูล
         </button>
       </div>
-    )}
-    <section className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-[0_2px_10px_rgba(30,30,50,0.03)]"><div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left text-[11px]"><thead className="bg-[#fafafa] text-[9px] font-bold text-gray-400"><tr><th className="px-4 py-3">เลขที่คำสั่งซื้อ</th><th>ลูกค้า</th><th>วันที่</th><th>ยอดชำระ</th><th>การชำระเงิน</th><th>จัดส่ง</th><th>สถานะ</th><th className="text-center">จัดการ</th></tr></thead><tbody>{filtered.map(o => <tr key={o.id} className="border-t border-gray-50 hover:bg-violet-50/30"><td className="px-4 py-3 font-extrabold text-[#6d3df5]">{o.id}</td><td><div className="font-bold text-gray-800">{o.customer}</div><div className="text-[9px] text-gray-400">{o.phone || '—'}</div></td><td><div className="font-semibold">{o.date}</div><div className="text-[9px] text-gray-400">{o.time}</div></td><td className="font-extrabold">฿{o.total.toLocaleString()}</td><td><span className={`rounded-full px-2 py-1 text-[9px] font-bold ${o.payment === 'ชำระแล้ว' ? 'bg-emerald-50 text-emerald-600' : o.payment === 'ยกเลิก' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'}`}>{o.payment}</span></td><td className="font-semibold text-gray-600">{o.shipping}</td><td><span className={`rounded-full px-2 py-1 text-[9px] font-bold ${tone[o.status] || 'bg-gray-50 text-gray-500'}`}>{o.status}</span></td><td><button onClick={() => navigate(`/home/admin/orders/${(o.order_id)}`)} className="mx-auto grid size-8 place-items-center rounded-lg border border-gray-200 text-gray-500 hover:border-violet-200 hover:text-violet-600" title="ดูรายละเอียด"><i className="fa-regular fa-eye text-[10px]" /></button></td></tr>)}</tbody></table></div>{!filtered.length && <div className="p-12 text-center text-xs text-gray-400"><i className="fa-solid fa-receipt mb-2 text-xl text-gray-200" /><p>ไม่พบคำสั่งซื้อ</p></div>}<div className="border-t border-gray-100 p-3 text-center text-[10px] text-gray-400">แสดง {filtered.length} จาก {orders.length} คำสั่งซื้อ</div></section>
-    {toast && <div className="fixed bottom-5 right-5 z-[120] rounded-xl bg-gray-900 px-4 py-3 text-xs font-bold text-white shadow-xl"><i className="fa-solid fa-circle-check mr-2 text-emerald-400" />{toast}</div>}
-  </div>
+
+      {/* =========================
+          Summary Cards
+      ========================= */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+
+        {/* Total */}
+        <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+              <i className="fa-solid fa-receipt" />
+            </div>
+
+            <div>
+              <p className="text-[11px] text-gray-400">
+                คำสั่งซื้อทั้งหมด
+              </p>
+
+              <p className="text-lg font-bold text-gray-900">
+                {orders.length}
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Pending */}
+        <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+              <i className="fa-solid fa-clock" />
+            </div>
+
+            <div>
+              <p className="text-[11px] text-gray-400">
+                รอดำเนินการ
+              </p>
+
+              <p className="text-lg font-bold text-gray-900">
+                {counts['รอดำเนินการ']}
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Shipping */}
+        <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <i className="fa-solid fa-truck" />
+            </div>
+
+            <div>
+              <p className="text-[11px] text-gray-400">
+                กำลังจัดส่ง
+              </p>
+
+              <p className="text-lg font-bold text-gray-900">
+                {counts['กำลังจัดส่ง']}
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Total Amount */}
+        <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+              <i className="fa-solid fa-baht-sign" />
+            </div>
+
+            <div>
+              <p className="text-[11px] text-gray-400">
+                ยอดขายรวม
+              </p>
+
+              <p className="text-lg font-bold text-gray-900">
+                ฿
+                {totalAmount.toLocaleString(
+                  'th-TH'
+                )}
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      {/* =========================
+          Search / Filter
+      ========================= */}
+      <div className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-sm">
+
+        <div className="flex flex-col gap-2 md:flex-row">
+
+          {/* Search */}
+          <div className="relative flex-1">
+
+            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400" />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="ค้นหาเลขคำสั่งซื้อ ชื่อลูกค้า เบอร์โทร หรือเลขพัสดุ..."
+              className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-xs text-gray-700 outline-none placeholder:text-gray-400 focus:border-violet-300"
+            />
+
+          </div>
+
+          {/* Payment Filter */}
+          <select
+            value={paymentFilter}
+            onChange={(e) =>
+              setPaymentFilter(
+                e.target.value
+              )
+            }
+            className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 outline-none focus:border-violet-300"
+          >
+            <option value="ทั้งหมด">
+              ทั้งหมด
+            </option>
+
+            <option value="รอตรวจสอบ">
+              รอตรวจสอบ
+            </option>
+
+            <option value="ชำระแล้ว">
+              ชำระแล้ว
+            </option>
+
+            <option value="ยกเลิก">
+              ยกเลิก
+            </option>
+          </select>
+
+        </div>
+
+      </div>
+
+      {/* =========================
+          Status Tabs
+      ========================= */}
+      <div className="overflow-x-auto rounded-xl border border-[#ececf2] bg-white shadow-sm">
+
+        <div className="flex min-w-max items-center gap-1 p-1.5">
+
+          {tabs.map((item) => {
+            const active =
+              tab === item
+
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() =>
+                  setTab(item)
+                }
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                  active
+                    ? 'bg-violet-600 text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`}
+              >
+                {item}
+
+                <span
+                  className={`ml-1 ${
+                    active
+                      ? 'text-white/80'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  {counts[item] || 0}
+                </span>
+              </button>
+            )
+          })}
+
+        </div>
+
+      </div>
+
+      {/* =========================
+          Loading
+      ========================= */}
+      {loading && (
+        <div className="rounded-xl border border-[#ececf2] bg-white p-12 text-center text-xs text-gray-400">
+          <i className="fa-solid fa-spinner fa-spin mr-2" />
+          กำลังโหลดคำสั่งซื้อ...
+        </div>
+      )}
+
+      {/* =========================
+          Error
+      ========================= */}
+      {!loading && error && (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-center text-xs font-bold text-red-500">
+          {error}
+
+          <button
+            type="button"
+            onClick={loadOrders}
+            className="ml-3 underline"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      )}
+
+      {/* =========================
+          Table
+      ========================= */}
+      {!loading && !error && (
+        <div className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
+
+          <div className="overflow-x-auto">
+
+            <table className="w-full min-w-[1050px] text-left">
+
+              <thead>
+                <tr className="border-b border-[#f0f0f3] bg-gray-50/60">
+
+                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
+                    เลขที่คำสั่งซื้อ
+                  </th>
+
+                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
+                    ลูกค้า
+                  </th>
+
+                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
+                    วันที่
+                  </th>
+
+                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
+                    ยอดชำระ
+                  </th>
+
+                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
+                    การชำระเงิน
+                  </th>
+
+                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
+                    จัดส่ง
+                  </th>
+
+                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
+                    สถานะ
+                  </th>
+
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold text-gray-400">
+                    จัดการ
+                  </th>
+
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="8"
+                      className="px-4 py-14 text-center"
+                    >
+                      <div className="text-gray-300">
+                        <i className="fa-solid fa-box-open text-3xl" />
+                      </div>
+
+                      <p className="mt-3 text-sm font-semibold text-gray-500">
+                        ไม่พบคำสั่งซื้อ
+                      </p>
+
+                      <p className="mt-1 text-xs text-gray-400">
+                        ลองเปลี่ยนตัวกรองหรือคำค้นหา
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((order) => (
+                    <tr
+                      key={order.order_id}
+                      className="border-b border-[#f0f0f3] last:border-b-0 hover:bg-gray-50/50"
+                    >
+
+                      {/* Order ID */}
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-bold text-violet-600">
+                          {order.id}
+                        </span>
+                      </td>
+
+                      {/* Customer */}
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="text-xs font-bold text-gray-800">
+                            {order.customer}
+                          </p>
+
+                          {order.phone !== '—' && (
+                            <p className="mt-0.5 text-[10px] text-gray-400">
+                              {order.phone}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-4 py-3">
+                        <p className="text-xs font-semibold text-gray-800">
+                          {order.date}
+                        </p>
+
+                        <p className="mt-0.5 text-[10px] text-gray-400">
+                          {order.time}
+                        </p>
+                      </td>
+
+                      {/* Total */}
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-bold text-gray-900">
+                          ฿
+                          {order.total.toLocaleString(
+                            'th-TH',
+                            {
+                              minimumFractionDigits: 0,
+                            }
+                          )}
+                        </span>
+                      </td>
+
+                      {/* Payment */}
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                            order.payment ===
+                            'ชำระแล้ว'
+                              ? 'bg-green-50 text-green-600'
+                              : order.payment ===
+                                'ยกเลิก'
+                                ? 'bg-red-50 text-red-500'
+                                : 'bg-orange-50 text-orange-600'
+                          }`}
+                        >
+                          {order.payment}
+                        </span>
+                      </td>
+
+                      {/* Shipping */}
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-gray-600">
+                          {order.shipping}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                            tone[order.status] ||
+                            'bg-gray-50 text-gray-500'
+                          }`}
+                        >
+                          {order.status}
+                        </span>
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/home/admin/orders/${order.order_id}`
+                            )
+                          }
+                          title="ดูรายละเอียด"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600"
+                        >
+                          <i className="fa-regular fa-eye text-xs" />
+                        </button>
+                      </td>
+
+                    </tr>
+                  ))
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-[#f0f0f3] px-4 py-3 text-center text-[10px] text-gray-400">
+            แสดง {filtered.length} จาก {orders.length} คำสั่งซื้อ
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================
+          Toast
+      ========================= */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-lg">
+          <i className="fa-solid fa-circle-check mr-2" />
+          {toast}
+        </div>
+      )}
+
+    </div>
+  )
 }
-function Stat({ label, value, icon }) { return <div className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-[0_2px_10px_rgba(30,30,50,0.03)]"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#f1edff] text-[#6d3df5]"><i className={`fa-solid ${icon} text-[11px]`} /></span><div><div className="text-[9px] text-gray-400">{label}</div><div className="text-lg font-extrabold">{value}</div></div></div></div> }
