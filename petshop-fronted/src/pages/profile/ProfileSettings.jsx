@@ -106,51 +106,51 @@ function Addresses() {
   useEffect(() => {
     let alive = true
 
-    ;(async () => {
-      try {
-        const cached = JSON.parse(
-          localStorage.getItem(THAILAND_GEOGRAPHY_CACHE) || 'null'
-        )
-
-        if (
-          cached?.provinces?.length &&
-          cached?.districts?.length &&
-          cached?.subdistricts?.length
-        ) {
-          if (alive) setGeography(cached)
-          return
-        }
-
-        const response = await fetch(THAILAND_GEOGRAPHY_URL)
-
-        if (!response.ok) {
-          throw new Error('geography request failed')
-        }
-
-        const normalized = normalizeGeography(await response.json())
-
-        if (normalized.provinces.length) {
-          localStorage.setItem(
-            THAILAND_GEOGRAPHY_CACHE,
-            JSON.stringify(normalized)
+      ; (async () => {
+        try {
+          const cached = JSON.parse(
+            localStorage.getItem(THAILAND_GEOGRAPHY_CACHE) || 'null'
           )
-        }
 
-        if (alive) {
-          setGeography(normalized)
-        }
-      } catch (err) {
-        console.error('load geography error:', err)
+          if (
+            cached?.provinces?.length &&
+            cached?.districts?.length &&
+            cached?.subdistricts?.length
+          ) {
+            if (alive) setGeography(cached)
+            return
+          }
 
-        if (alive) {
-          setGeography({
-            provinces: [],
-            districts: [],
-            subdistricts: [],
-          })
+          const response = await fetch(THAILAND_GEOGRAPHY_URL)
+
+          if (!response.ok) {
+            throw new Error('geography request failed')
+          }
+
+          const normalized = normalizeGeography(await response.json())
+
+          if (normalized.provinces.length) {
+            localStorage.setItem(
+              THAILAND_GEOGRAPHY_CACHE,
+              JSON.stringify(normalized)
+            )
+          }
+
+          if (alive) {
+            setGeography(normalized)
+          }
+        } catch (err) {
+          console.error('load geography error:', err)
+
+          if (alive) {
+            setGeography({
+              provinces: [],
+              districts: [],
+              subdistricts: [],
+            })
+          }
         }
-      }
-    })()
+      })()
 
     return () => {
       alive = false
@@ -169,19 +169,19 @@ function Addresses() {
 
       const normalized = Array.isArray(data)
         ? data.map((address) => ({
-            id: address.address_id,
-            recipient: address.recipient_name || '',
-            phone: address.phone || '',
-            detail: address.address_line || '',
-            subdistrictId: '',
-            districtId: '',
-            provinceId: '',
-            subdistrict: address.subdistrict || '',
-            district: address.district || '',
-            province: address.province || '',
-            postalCode: address.postal_code || '',
-            default: Boolean(address.is_default),
-          }))
+          id: address.address_id,
+          recipient: address.recipient_name || '',
+          phone: address.phone || '',
+          detail: address.address_line || '',
+          subdistrictId: '',
+          districtId: '',
+          provinceId: '',
+          subdistrict: address.subdistrict || '',
+          district: address.district || '',
+          province: address.province || '',
+          postalCode: address.postal_code || '',
+          default: Boolean(address.is_default),
+        }))
         : []
 
       setAddresses(normalized)
@@ -318,23 +318,36 @@ function Addresses() {
       const postalCode =
         form.postalCode ||
         geography.subdistricts.find(
-          (item) => String(item.id) === String(form.subdistrictId)
+          (item) =>
+            String(item.id) ===
+            String(form.subdistrictId)
         )?.postalCode ||
         ''
 
       const payload = {
-        recipient_name: form.recipient.trim(),
+        recipientName: form.recipient.trim(),
         phone: form.phone.trim(),
-        address_line: form.detail.trim(),
-        subdistrict: subdistrictName(form.subdistrictId),
-        district: districtName(form.districtId),
-        province: provinceName(form.provinceId),
-        postal_code: postalCode,
-        is_default: Boolean(form.default),
+        addressLine: form.detail.trim(),
+        subdistrict: subdistrictName(
+          form.subdistrictId
+        ),
+        district: districtName(
+          form.districtId
+        ),
+        province: provinceName(
+          form.provinceId
+        ),
+        postalCode,
+        isDefault: Boolean(form.default),
       }
 
+      console.log('ADDRESS PAYLOAD:', payload)
+
       if (editingId) {
-        await updateAddress(editingId, payload)
+        await updateAddress(
+          editingId,
+          payload
+        )
       } else {
         await createAddress(payload)
       }
@@ -346,10 +359,20 @@ function Addresses() {
       setEditingId(null)
       setShowSuccess(true)
 
-      window.dispatchEvent(new Event('petshop-address-updated'))
+      window.dispatchEvent(
+        new Event('petshop-address-updated')
+      )
     } catch (err) {
-      console.error('save address error:', err)
-      setError(err.message || 'ไม่สามารถบันทึกที่อยู่ได้')
+      console.error(
+        'save address error:',
+        err
+      )
+
+      setError(
+        err.message ||
+        'ไม่สามารถบันทึกที่อยู่ได้'
+      )
+
       setShowConfirm(false)
     } finally {
       setSaving(false)
@@ -387,24 +410,36 @@ function Addresses() {
       setError('')
 
       const payload = {
-        recipient_name: address.recipient,
+        recipientName: address.recipient,
         phone: address.phone,
-        address_line: address.detail,
+        addressLine: address.detail,
         subdistrict: address.subdistrict,
         district: address.district,
         province: address.province,
-        postal_code: address.postalCode,
-        is_default: true,
+        postalCode: address.postalCode,
+        isDefault: true,
       }
 
-      await updateAddress(address.id, payload)
+      await updateAddress(
+        address.id,
+        payload
+      )
 
       await loadAddresses()
 
-      window.dispatchEvent(new Event('petshop-address-updated'))
+      window.dispatchEvent(
+        new Event('petshop-address-updated')
+      )
     } catch (err) {
-      console.error('set default address error:', err)
-      setError(err.message || 'ไม่สามารถตั้งที่อยู่หลักได้')
+      console.error(
+        'set default address error:',
+        err
+      )
+
+      setError(
+        err.message ||
+        'ไม่สามารถตั้งที่อยู่หลักได้'
+      )
     }
   }
 
@@ -486,11 +521,10 @@ function Addresses() {
           addresses.map((address) => (
             <article
               key={address.id}
-              className={`rounded-3xl border bg-white p-4 shadow-sm ${
-                address.default
-                  ? 'border-orange-200'
-                  : 'border-gray-100'
-              }`}
+              className={`rounded-3xl border bg-white p-4 shadow-sm ${address.default
+                ? 'border-orange-200'
+                : 'border-gray-100'
+                }`}
             >
               <div className="flex items-start gap-3">
 
@@ -677,20 +711,20 @@ function Addresses() {
 
 function PaymentForm({ value, onChange, onSave, onCancel, editing }) {
   const type = value.type
-  return <form onSubmit={onSave} className="rounded-3xl bg-white p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><div><h2 className="m-0 text-base font-extrabold text-gray-900">{editing ? 'แก้ไขวิธีชำระเงิน' : 'เพิ่มวิธีชำระเงิน'}</h2><p className="m-0 mt-1 text-xs text-gray-400">ข้อมูลจะถูกใช้ในหน้าชำระเงิน</p></div><span className="grid size-10 place-items-center rounded-full bg-orange-50 text-orange-500"><i className="fa-solid fa-wallet" /></span></div><div className="grid grid-cols-2 gap-2">{[['promptpay','พร้อมเพย์','fa-qrcode'],['card','บัตรเครดิต / เดบิต','fa-credit-card'],['bank','โอนผ่านธนาคาร','fa-building-columns'],['cod','เก็บเงินปลายทาง','fa-money-bill-wave']].map(([id,label,icon])=><button key={id} type="button" onClick={()=>onChange({...value,type:id})} className={`rounded-2xl border p-3 text-left ${type===id?'border-orange-500 bg-orange-50':'border-gray-100 bg-white'}`}><i className={`fa-solid ${icon} mr-2 ${type===id?'text-orange-500':'text-gray-400'}`} /><span className="text-xs font-bold">{label}</span></button>)}</div>{type==='promptpay'&&<label className="mt-4 block"><span className="mb-1.5 block text-xs font-bold text-gray-600">เบอร์โทรศัพท์ 10 หลัก หรือเลขพร้อมเพย์</span><input required value={value.detail||''} onChange={(e)=>onChange({...value,detail:e.target.value})} placeholder="0812345678" className="h-11 w-full rounded-xl bg-gray-100 px-3 text-sm outline-none focus:ring-2 focus:ring-orange-200" /></label>}{type==='card'&&<label className="mt-4 block"><span className="mb-1.5 block text-xs font-bold text-gray-600">เลขบัตร 4 หลักสุดท้าย</span><input required inputMode="numeric" maxLength={4} value={value.detail||''} onChange={(e)=>onChange({...value,detail:e.target.value.replace(/\D/g,'').slice(-4)})} placeholder="4242" className="h-11 w-full rounded-xl bg-gray-100 px-3 text-sm outline-none focus:ring-2 focus:ring-orange-200" /></label>}{type==='bank'&&<label className="mt-4 block"><span className="mb-1.5 block text-xs font-bold text-gray-600">ชื่อธนาคาร</span><input required value={value.detail||''} onChange={(e)=>onChange({...value,detail:e.target.value})} placeholder="เช่น กสิกรไทย" className="h-11 w-full rounded-xl bg-gray-100 px-3 text-sm outline-none focus:ring-2 focus:ring-orange-200" /></label>}{type==='cod'&&<div className="mt-4 rounded-2xl bg-gray-50 p-4 text-xs text-gray-500">ชำระเงินเมื่อได้รับสินค้า</div>}<label className="mt-4 flex items-center justify-between rounded-2xl bg-orange-50 px-4 py-3 text-xs font-bold text-orange-700">ตั้งเป็นวิธีหลัก<input type="checkbox" checked={Boolean(value.default)} onChange={(e)=>onChange({...value,default:e.target.checked})} className="size-4 accent-orange-500" /></label><div className="mt-5 flex gap-2"><button type="button" onClick={onCancel} className="h-11 flex-1 rounded-full bg-gray-100 text-sm font-bold text-gray-600">ยกเลิก</button><button type="submit" className="h-11 flex-1 rounded-full bg-orange-500 text-sm font-bold text-white">{editing?'บันทึก':'เพิ่มวิธีชำระเงิน'}</button></div></form>
+  return <form onSubmit={onSave} className="rounded-3xl bg-white p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><div><h2 className="m-0 text-base font-extrabold text-gray-900">{editing ? 'แก้ไขวิธีชำระเงิน' : 'เพิ่มวิธีชำระเงิน'}</h2><p className="m-0 mt-1 text-xs text-gray-400">ข้อมูลจะถูกใช้ในหน้าชำระเงิน</p></div><span className="grid size-10 place-items-center rounded-full bg-orange-50 text-orange-500"><i className="fa-solid fa-wallet" /></span></div><div className="grid grid-cols-2 gap-2">{[['promptpay', 'พร้อมเพย์', 'fa-qrcode'], ['card', 'บัตรเครดิต / เดบิต', 'fa-credit-card'], ['bank', 'โอนผ่านธนาคาร', 'fa-building-columns'], ['cod', 'เก็บเงินปลายทาง', 'fa-money-bill-wave']].map(([id, label, icon]) => <button key={id} type="button" onClick={() => onChange({ ...value, type: id })} className={`rounded-2xl border p-3 text-left ${type === id ? 'border-orange-500 bg-orange-50' : 'border-gray-100 bg-white'}`}><i className={`fa-solid ${icon} mr-2 ${type === id ? 'text-orange-500' : 'text-gray-400'}`} /><span className="text-xs font-bold">{label}</span></button>)}</div>{type === 'promptpay' && <label className="mt-4 block"><span className="mb-1.5 block text-xs font-bold text-gray-600">เบอร์โทรศัพท์ 10 หลัก หรือเลขพร้อมเพย์</span><input required value={value.detail || ''} onChange={(e) => onChange({ ...value, detail: e.target.value })} placeholder="0812345678" className="h-11 w-full rounded-xl bg-gray-100 px-3 text-sm outline-none focus:ring-2 focus:ring-orange-200" /></label>}{type === 'card' && <label className="mt-4 block"><span className="mb-1.5 block text-xs font-bold text-gray-600">เลขบัตร 4 หลักสุดท้าย</span><input required inputMode="numeric" maxLength={4} value={value.detail || ''} onChange={(e) => onChange({ ...value, detail: e.target.value.replace(/\D/g, '').slice(-4) })} placeholder="4242" className="h-11 w-full rounded-xl bg-gray-100 px-3 text-sm outline-none focus:ring-2 focus:ring-orange-200" /></label>}{type === 'bank' && <label className="mt-4 block"><span className="mb-1.5 block text-xs font-bold text-gray-600">ชื่อธนาคาร</span><input required value={value.detail || ''} onChange={(e) => onChange({ ...value, detail: e.target.value })} placeholder="เช่น กสิกรไทย" className="h-11 w-full rounded-xl bg-gray-100 px-3 text-sm outline-none focus:ring-2 focus:ring-orange-200" /></label>}{type === 'cod' && <div className="mt-4 rounded-2xl bg-gray-50 p-4 text-xs text-gray-500">ชำระเงินเมื่อได้รับสินค้า</div>}<label className="mt-4 flex items-center justify-between rounded-2xl bg-orange-50 px-4 py-3 text-xs font-bold text-orange-700">ตั้งเป็นวิธีหลัก<input type="checkbox" checked={Boolean(value.default)} onChange={(e) => onChange({ ...value, default: e.target.checked })} className="size-4 accent-orange-500" /></label><div className="mt-5 flex gap-2"><button type="button" onClick={onCancel} className="h-11 flex-1 rounded-full bg-gray-100 text-sm font-bold text-gray-600">ยกเลิก</button><button type="submit" className="h-11 flex-1 rounded-full bg-orange-500 text-sm font-bold text-white">{editing ? 'บันทึก' : 'เพิ่มวิธีชำระเงิน'}</button></div></form>
 }
 
 function Payments() {
-  const [payments,setPayments]=useState(()=>readStorage(PAYMENT_STORAGE_KEY,seedPayments)),[showForm,setShowForm]=useState(false),[editingId,setEditingId]=useState(null),[form,setForm]=useState({type:'promptpay',detail:'',default:false})
-  const persist=(next)=>{setPayments(next);saveStorage(PAYMENT_STORAGE_KEY,next);window.dispatchEvent(new Event('petshop-payment-updated'))}
-  const openAdd=()=>{setEditingId(null);setForm({type:'promptpay',detail:'',default:payments.length===0});setShowForm(true)}
-  const openEdit=(payment)=>{setEditingId(payment.id);let detail=payment.detail||'';if(payment.type==='card')detail=detail.replace(/\D/g,'').slice(-4);setForm({type:payment.type,detail,default:Boolean(payment.default)});setShowForm(true)}
-  const display=(payment)=>payment.type==='card'?`•••• •••• •••• ${String(payment.detail||'').replace(/\D/g,'').slice(-4)||'----'}`:payment.type==='cod'?'ชำระเงินเมื่อได้รับสินค้า':payment.detail||'-'
-  const save=(event)=>{event.preventDefault();const detail=form.type==='cod'?'ชำระเงินเมื่อได้รับสินค้า':form.detail.trim();if(form.type!=='cod'&&!detail)return;const names={promptpay:'พร้อมเพย์',card:'บัตรเครดิต / เดบิต',bank:'โอนผ่านธนาคาร',cod:'เก็บเงินปลายทาง'},icons={promptpay:'fa-qrcode',card:'fa-credit-card',bank:'fa-building-columns',cod:'fa-money-bill-wave'};const item={id:editingId??Date.now(),type:form.type,name:names[form.type],detail,icon:icons[form.type],default:form.default};let next=editingId?payments.map((p)=>p.id===editingId?item:p):[...payments,item];if(item.default||next.length===1)next=next.map((p)=>({...p,default:p.id===item.id}));else if(!next.some((p)=>p.default))next=next.map((p,i)=>({...p,default:i===0}));persist(next);setShowForm(false);setEditingId(null)}
-  const remove=(id)=>{if(!window.confirm('ต้องการลบวิธีชำระเงินนี้ใช่ไหม?'))return;let next=payments.filter((p)=>p.id!==id);if(next.length&&!next.some((p)=>p.default))next=next.map((p,i)=>({...p,default:i===0}));persist(next)}
-  const setDefault=(id)=>persist(payments.map((p)=>({...p,default:p.id===id})))
-  return <PageShell title="วิธีชำระเงิน" icon="fa-credit-card"><button type="button" onClick={openAdd} className="flex w-full items-center gap-3 rounded-3xl border border-dashed border-orange-300 bg-orange-50 p-4 text-left active:scale-[0.99]"><span className="grid size-11 place-items-center rounded-2xl bg-white text-orange-500 shadow-sm"><i className="fa-solid fa-plus" /></span><span className="flex-1"><strong className="block text-sm font-extrabold text-gray-800">เพิ่มวิธีชำระเงิน</strong><small className="mt-1 block text-xs text-gray-400">เลือกวิธีที่ต้องการใช้ตอนชำระเงิน</small></span><i className="fa-solid fa-chevron-right text-xs text-orange-400" /></button>{showForm&&<div className="mt-4"><PaymentForm value={form} onChange={setForm} onSave={save} onCancel={()=>setShowForm(false)} editing={Boolean(editingId)} /></div>}<div className="mt-5 space-y-3">{payments.map((payment)=><article key={payment.id} className={`rounded-3xl border bg-white p-4 shadow-sm ${payment.default?'border-orange-200':'border-gray-100'}`}><div className="flex items-center gap-3"><span className={`grid size-11 place-items-center rounded-2xl ${payment.default?'bg-orange-500 text-white':'bg-gray-100 text-gray-500'}`}><i className={`fa-solid ${payment.icon||'fa-credit-card'}`} /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h2 className="m-0 text-sm font-extrabold">{payment.name}</h2>{payment.default&&<span className="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-extrabold text-orange-600">หลัก</span>}</div><p className="m-0 mt-1 text-xs text-gray-400">{display(payment)}</p></div></div><div className="mt-3 flex justify-end gap-2 border-t border-gray-100 pt-3">{!payment.default&&<button type="button" onClick={()=>setDefault(payment.id)} className="rounded-full bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-800">ตั้งเป็นหลัก</button>}<button type="button" onClick={()=>openEdit(payment)} className="rounded-full bg-orange-50 px-3 py-2 text-[11px] font-bold text-orange-600"><i className="fa-solid fa-pen mr-1" />แก้ไข</button><button type="button" onClick={()=>remove(payment.id)} className="rounded-full bg-red-50 px-3 py-2 text-[11px] font-bold text-red-500"><i className="fa-solid fa-trash mr-1" />ลบ</button></div></article>)}</div></PageShell>
+  const [payments, setPayments] = useState(() => readStorage(PAYMENT_STORAGE_KEY, seedPayments)), [showForm, setShowForm] = useState(false), [editingId, setEditingId] = useState(null), [form, setForm] = useState({ type: 'promptpay', detail: '', default: false })
+  const persist = (next) => { setPayments(next); saveStorage(PAYMENT_STORAGE_KEY, next); window.dispatchEvent(new Event('petshop-payment-updated')) }
+  const openAdd = () => { setEditingId(null); setForm({ type: 'promptpay', detail: '', default: payments.length === 0 }); setShowForm(true) }
+  const openEdit = (payment) => { setEditingId(payment.id); let detail = payment.detail || ''; if (payment.type === 'card') detail = detail.replace(/\D/g, '').slice(-4); setForm({ type: payment.type, detail, default: Boolean(payment.default) }); setShowForm(true) }
+  const display = (payment) => payment.type === 'card' ? `•••• •••• •••• ${String(payment.detail || '').replace(/\D/g, '').slice(-4) || '----'}` : payment.type === 'cod' ? 'ชำระเงินเมื่อได้รับสินค้า' : payment.detail || '-'
+  const save = (event) => { event.preventDefault(); const detail = form.type === 'cod' ? 'ชำระเงินเมื่อได้รับสินค้า' : form.detail.trim(); if (form.type !== 'cod' && !detail) return; const names = { promptpay: 'พร้อมเพย์', card: 'บัตรเครดิต / เดบิต', bank: 'โอนผ่านธนาคาร', cod: 'เก็บเงินปลายทาง' }, icons = { promptpay: 'fa-qrcode', card: 'fa-credit-card', bank: 'fa-building-columns', cod: 'fa-money-bill-wave' }; const item = { id: editingId ?? Date.now(), type: form.type, name: names[form.type], detail, icon: icons[form.type], default: form.default }; let next = editingId ? payments.map((p) => p.id === editingId ? item : p) : [...payments, item]; if (item.default || next.length === 1) next = next.map((p) => ({ ...p, default: p.id === item.id })); else if (!next.some((p) => p.default)) next = next.map((p, i) => ({ ...p, default: i === 0 })); persist(next); setShowForm(false); setEditingId(null) }
+  const remove = (id) => { if (!window.confirm('ต้องการลบวิธีชำระเงินนี้ใช่ไหม?')) return; let next = payments.filter((p) => p.id !== id); if (next.length && !next.some((p) => p.default)) next = next.map((p, i) => ({ ...p, default: i === 0 })); persist(next) }
+  const setDefault = (id) => persist(payments.map((p) => ({ ...p, default: p.id === id })))
+  return <PageShell title="วิธีชำระเงิน" icon="fa-credit-card"><button type="button" onClick={openAdd} className="flex w-full items-center gap-3 rounded-3xl border border-dashed border-orange-300 bg-orange-50 p-4 text-left active:scale-[0.99]"><span className="grid size-11 place-items-center rounded-2xl bg-white text-orange-500 shadow-sm"><i className="fa-solid fa-plus" /></span><span className="flex-1"><strong className="block text-sm font-extrabold text-gray-800">เพิ่มวิธีชำระเงิน</strong><small className="mt-1 block text-xs text-gray-400">เลือกวิธีที่ต้องการใช้ตอนชำระเงิน</small></span><i className="fa-solid fa-chevron-right text-xs text-orange-400" /></button>{showForm && <div className="mt-4"><PaymentForm value={form} onChange={setForm} onSave={save} onCancel={() => setShowForm(false)} editing={Boolean(editingId)} /></div>}<div className="mt-5 space-y-3">{payments.map((payment) => <article key={payment.id} className={`rounded-3xl border bg-white p-4 shadow-sm ${payment.default ? 'border-orange-200' : 'border-gray-100'}`}><div className="flex items-center gap-3"><span className={`grid size-11 place-items-center rounded-2xl ${payment.default ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-500'}`}><i className={`fa-solid ${payment.icon || 'fa-credit-card'}`} /></span><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h2 className="m-0 text-sm font-extrabold">{payment.name}</h2>{payment.default && <span className="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-extrabold text-orange-600">หลัก</span>}</div><p className="m-0 mt-1 text-xs text-gray-400">{display(payment)}</p></div></div><div className="mt-3 flex justify-end gap-2 border-t border-gray-100 pt-3">{!payment.default && <button type="button" onClick={() => setDefault(payment.id)} className="rounded-full bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-800">ตั้งเป็นหลัก</button>}<button type="button" onClick={() => openEdit(payment)} className="rounded-full bg-orange-50 px-3 py-2 text-[11px] font-bold text-orange-600"><i className="fa-solid fa-pen mr-1" />แก้ไข</button><button type="button" onClick={() => remove(payment.id)} className="rounded-full bg-red-50 px-3 py-2 text-[11px] font-bold text-red-500"><i className="fa-solid fa-trash mr-1" />ลบ</button></div></article>)}</div></PageShell>
 }
 
 function SimplePage({ title, icon, text }) { return <PageShell title={title} icon={icon}><div className="rounded-3xl bg-white p-8 text-center shadow-sm"><div className="mx-auto grid size-14 place-items-center rounded-full bg-orange-50 text-orange-500"><i className={`fa-solid ${icon} text-xl`} /></div><h2 className="mt-3 text-sm font-extrabold">{title}</h2><p className="mt-1 text-xs leading-5 text-gray-400">{text}</p></div></PageShell> }
-export default function ProfileSettings({ type }) { if(type==='addresses')return <Addresses />;if(type==='payment')return <Payments />;if(type==='edit')return <SimplePage title="แก้ไขข้อมูลส่วนตัว" icon="fa-user-pen" text="ส่วนแก้ไขข้อมูลส่วนตัวพร้อมเชื่อมต่อกับข้อมูลสมาชิกในขั้นถัดไป" />;if(type==='favorites')return <SimplePage title="รายการโปรด" icon="fa-heart" text="รายการสินค้าที่คุณบันทึกไว้จะแสดงที่หน้านี้" />;if(type==='coupons')return <SimplePage title="คูปอง" icon="fa-ticket" text="คูปองและส่วนลดของคุณจะแสดงที่หน้านี้" />;return <SimplePage title="ตั้งค่าโปรไฟล์" icon="fa-gear" text="เลือกเมนูจากหน้าโปรไฟล์เพื่อจัดการข้อมูลของคุณ" /> }
+export default function ProfileSettings({ type }) { if (type === 'addresses') return <Addresses />; if (type === 'payment') return <Payments />; if (type === 'edit') return <SimplePage title="แก้ไขข้อมูลส่วนตัว" icon="fa-user-pen" text="ส่วนแก้ไขข้อมูลส่วนตัวพร้อมเชื่อมต่อกับข้อมูลสมาชิกในขั้นถัดไป" />; if (type === 'favorites') return <SimplePage title="รายการโปรด" icon="fa-heart" text="รายการสินค้าที่คุณบันทึกไว้จะแสดงที่หน้านี้" />; if (type === 'coupons') return <SimplePage title="คูปอง" icon="fa-ticket" text="คูปองและส่วนลดของคุณจะแสดงที่หน้านี้" />; return <SimplePage title="ตั้งค่าโปรไฟล์" icon="fa-gear" text="เลือกเมนูจากหน้าโปรไฟล์เพื่อจัดการข้อมูลของคุณ" /> }
