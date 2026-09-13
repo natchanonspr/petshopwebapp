@@ -15,6 +15,7 @@ export default function Login() {
 
   const saveLineUser = async () => {
     setLoading(true)
+
     try {
       const profile = await liff.getProfile()
 
@@ -23,9 +24,13 @@ export default function Login() {
         displayName: profile.displayName,
         pictureUrl: profile.pictureUrl || '',
       })
+
       localStorage.setItem('petshop_token', token)
 
-      const existing = JSON.parse(localStorage.getItem('petshop_user') || '{}')
+      const existing = JSON.parse(
+        localStorage.getItem('petshop_user') || '{}'
+      )
+
       const user = {
         ...existing,
         lineUserId: profile.userId,
@@ -36,56 +41,29 @@ export default function Login() {
         loginProvider: 'line-liff',
       }
 
-      localStorage.setItem('petshop_user', JSON.stringify(user))
+      localStorage.setItem(
+        'petshop_user',
+        JSON.stringify(user)
+      )
+
       localStorage.setItem('petshop_user_auth', 'true')
 
-      const existingProfile = JSON.parse(localStorage.getItem('petshop_profile') || '{}')
-      const profileData = {
-        ...existingProfile,
-        name: profile.displayName,
-        avatar: existingProfile.avatar || profile.pictureUrl || '',
-      }
-      localStorage.setItem('petshop_profile', JSON.stringify(profileData))
-      window.dispatchEvent(new Event('petshop-profile-updated'))
-      await new Promise((resolve) => setTimeout(resolve, 1200))
-      navigate(location.state?.from || '/home', { replace: true })
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1200)
+      )
+
+      navigate(
+        location.state?.from || '/home',
+        { replace: true }
+      )
     } catch (err) {
       console.error('LINE login failed:', err)
       setLoading(false)
-      setError(err?.message || 'เข้าสู่ระบบ LINE ไม่สำเร็จ')
+      setError(
+        err?.message || 'เข้าสู่ระบบ LINE ไม่สำเร็จ'
+      )
     }
   }
-
-  useEffect(() => {
-    const liffId = import.meta.env.VITE_LIFF_ID
-    if (!liffId) {
-      setError('ยังไม่ได้ตั้งค่า LIFF ID')
-      return
-    }
-
-    let active = true
-    liff.init({ liffId })
-      .then(async () => {
-        if (!active) return
-        setLineReady(true)
-        if (liff.isLoggedIn()) {
-          try {
-            await saveLineUser()
-          } catch (err) {
-            console.error('LINE profile failed:', err)
-            if (active) setError('อ่านข้อมูลบัญชี LINE ไม่สำเร็จ')
-          }
-        }
-      })
-      .catch((err) => {
-        console.error('LIFF init failed:', err)
-        if (active) setError('เชื่อมต่อ LINE ไม่สำเร็จ')
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
 
   const handleLineLogin = async () => {
     const liffId = import.meta.env.VITE_LIFF_ID

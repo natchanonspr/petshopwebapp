@@ -1,23 +1,30 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AdminUserSync from './components/AdminUserSync.jsx'
+
 import Home from './pages/home/Home.jsx'
 import Pets from './pages/pets/Pets.jsx'
 import PetDetail from './pages/pets/PetDetail.jsx'
 import Recommendation from './pages/recommendation/Recommendation.jsx'
+
 import Products from './pages/products/Products.jsx'
 import ProductDetail from './pages/product-detail/ProductDetail.jsx'
+
 import Cart from './pages/cart/Cart.jsx'
 import Checkout from './pages/cart/Checkout.jsx'
 import OrderSuccess from './pages/cart/OrderSuccess.jsx'
+
 import Orders from './pages/orders/Orders.jsx'
 import OrderDetail from './pages/orders/OrderDetail.jsx'
+
 import Profile from './pages/profile/Profile.jsx'
 import ProfileSettings from './pages/profile/ProfileSettings.jsx'
 import EditProfile from './pages/profile/EditProfile.jsx'
 import Help from './pages/profile/Help.jsx'
 import Coupons from './pages/profile/Coupons.jsx'
 import Favorites from './pages/profile/Favorites.jsx'
+
 import Notifications from './pages/notifications/Notifications.jsx'
+
 import AdminRoute from './pages/admin/AdminRoute.jsx'
 import AdminLogin from './pages/admin/AdminLogin.jsx'
 import AdminLayout from './pages/admin/AdminLayout.jsx'
@@ -32,43 +39,252 @@ import AdminNotifications from './pages/admin/AdminNotifications.jsx'
 import AdminSettings from './pages/admin/AdminSettings.jsx'
 import AdminReports from './pages/admin/AdminReports.jsx'
 import AdminStore from './pages/admin/AdminStore.jsx'
+
 import Login from './pages/auth/Login.jsx'
 import AuthMock from './pages/auth/AuthMock.jsx'
 import PasswordLoginMock from './pages/auth/PasswordLoginMock.jsx'
 
-export default function App(){return <BrowserRouter><AdminUserSync/><Routes>
-<Route path="/" element={<Login/>}/><Route path="/login" element={<Login/>}/>
-<Route path="/login/password" element={<PasswordLoginMock/>}/>
-<Route path="/register" element={<AuthMock mode="register"/>}/>
-<Route path="/forgot-password" element={<AuthMock mode="forgot"/>}/>
-<Route path="/home" element={<Home/>}/><Route path="/pets" element={<Pets/>}/>
-<Route path="/pets/:petId" element={<PetDetail/>}/>
-<Route path="/recommendation" element={<Recommendation/>}/>
-<Route path="/products" element={<Products/>}/>
-<Route path="/products/:productId" element={<ProductDetail/>}/>
-<Route path="/cart" element={<Cart/>}/>
-<Route path="/checkout" element={<Checkout/>}/>
-<Route path="/orders/success" element={<OrderSuccess/>}/>
-<Route path="/orders/:orderId" element={<OrderDetail/>}/>
-<Route path="/orders" element={<Orders/>}/>
-<Route path="/profile" element={<Profile/>}/>
-<Route path="/profile/edit" element={<EditProfile/>}/>
-<Route path="/profile/addresses" element={<ProfileSettings type="addresses"/>}/>
-<Route path="/profile/payment" element={<ProfileSettings type="payment"/>}/>
-<Route path="/profile/favorites" element={<Favorites/>}/>
-<Route path="/profile/coupons" element={<Coupons/>}/>
-<Route path="/profile/help" element={<Help/>}/>
-<Route path="/notifications" element={<Notifications/>}/>
-<Route path="/home/admin/login" element={<AdminLogin/>}/>
-<Route path="/home/admin" element={<AdminRoute><AdminLayout/></AdminRoute>}><Route index element={<AdminDashboard/>}/>
-<Route path="orders" element={<AdminOrders/>}/>
-<Route path="orders/:orderId" element={<AdminOrderDetail/>}/>
-<Route path="products" element={<AdminProducts/>}/>
-<Route path="customers" element={<AdminCustomers/>}/>
-<Route path="customers/:userId" element={<AdminCustomerDetail/>}/>
-<Route path="coupons" element={<AdminCoupons/>}/>
-<Route path="notifications" element={<AdminNotifications/>}/>
-<Route path="reports" element={<AdminReports/>}/>
-<Route path="store" element={<AdminStore/>}/>
-<Route path="settings" element={<AdminSettings/>}/></Route>
-<Route path="*" element={<Navigate to="/home" replace/>}/></Routes></BrowserRouter>}
+function ProtectedRoute({ children }) {
+    const token = localStorage.getItem('petshop_token')
+
+    if (!token) {
+        return <Navigate to="/login" replace />
+    }
+
+    return children
+}
+
+export default function App() {
+    return (
+        <BrowserRouter>
+            <AdminUserSync />
+
+            <Routes>
+
+                {/* =========================
+            Auth
+        ========================= */}
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/login/password" element={<PasswordLoginMock />} />
+                <Route path="/register" element={<AuthMock mode="register" />} />
+                <Route path="/forgot-password" element={<AuthMock mode="forgot" />} />
+
+
+                {/* =========================
+            User
+        ========================= */}
+
+                <Route
+                    path="/home"
+                    element={
+                        <ProtectedRoute>
+                            <Home />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/pets"
+                    element={
+                        <ProtectedRoute>
+                            <Pets />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/pets/:petId"
+                    element={
+                        <ProtectedRoute>
+                            <PetDetail />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/recommendation"
+                    element={
+                        <ProtectedRoute>
+                            <Recommendation />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/products"
+                    element={
+                        <ProtectedRoute>
+                            <Products />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/products/:productId"
+                    element={
+                        <ProtectedRoute>
+                            <ProductDetail />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/cart"
+                    element={
+                        <ProtectedRoute>
+                            <Cart />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/checkout"
+                    element={
+                        <ProtectedRoute>
+                            <Checkout />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/orders/success"
+                    element={
+                        <ProtectedRoute>
+                            <OrderSuccess />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/orders"
+                    element={
+                        <ProtectedRoute>
+                            <Orders />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/orders/:orderId"
+                    element={
+                        <ProtectedRoute>
+                            <OrderDetail />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute>
+                            <Profile />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile/edit"
+                    element={
+                        <ProtectedRoute>
+                            <EditProfile />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile/addresses"
+                    element={
+                        <ProtectedRoute>
+                            <ProfileSettings type="addresses" />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile/payment"
+                    element={
+                        <ProtectedRoute>
+                            <ProfileSettings type="payment" />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile/favorites"
+                    element={
+                        <ProtectedRoute>
+                            <Favorites />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile/coupons"
+                    element={
+                        <ProtectedRoute>
+                            <Coupons />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile/help"
+                    element={
+                        <ProtectedRoute>
+                            <Help />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/notifications"
+                    element={
+                        <ProtectedRoute>
+                            <Notifications />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                {/* =========================
+            Admin
+        ========================= */}
+
+                <Route
+                    path="/home/admin/login"
+                    element={<AdminLogin />}
+                />
+
+                <Route
+                    path="/home/admin"
+                    element={
+                        <AdminRoute>
+                            <AdminLayout />
+                        </AdminRoute>
+                    }
+                >
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="orders" element={<AdminOrders />} />
+                    <Route path="orders/:orderId" element={<AdminOrderDetail />} />
+                    <Route path="products" element={<AdminProducts />} />
+                    <Route path="customers" element={<AdminCustomers />} />
+                    <Route path="customers/:userId" element={<AdminCustomerDetail />} />
+                    <Route path="coupons" element={<AdminCoupons />} />
+                    <Route path="notifications" element={<AdminNotifications />} />
+                    <Route path="reports" element={<AdminReports />} />
+                    <Route path="store" element={<AdminStore />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                </Route>
+
+
+                {/* Unknown */}
+                <Route
+                    path="*"
+                    element={<Navigate to="/home" replace />}
+                />
+
+            </Routes>
+        </BrowserRouter>
+    )
+}
