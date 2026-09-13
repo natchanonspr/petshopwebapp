@@ -54,12 +54,12 @@ func main() {
 	if err := db.AutoMigrate(
 		&user.User{},
 		&pet.Pet{},
-		&category.Category{},
-		&product.Product{},
-		&cart.Cart{},
-		&address.Address{},
 		&order.Order{},
 		&order.OrderItem{},
+		&category.Category{},
+		&cart.Cart{},
+		&product.Product{},
+		&address.Address{},
 	); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
