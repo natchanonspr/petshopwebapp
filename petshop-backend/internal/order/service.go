@@ -133,6 +133,10 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 			}
 		}
 
+		if err := cart.ClearCart(tx, userID); err != nil {
+			return err
+		}
+
 		createdOrder = order
 
 		return nil

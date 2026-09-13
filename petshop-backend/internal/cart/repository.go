@@ -45,3 +45,8 @@ func UpdateCart(cart *Cart) error {
 func DeleteCart(cartID int64) error {
 	return db.Delete(&Cart{}, cartID).Error
 }
+
+// ล้างสินค้าทั้งหมดในตะกร้า
+func ClearCart(tx *gorm.DB, userID int64) error {
+	return tx.Where("userID = ?", userID).Delete(&Cart{}).Error
+}
