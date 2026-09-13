@@ -74,10 +74,9 @@ func main() {
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: strings.Join([]string{
 			"http://localhost:5175",
-			"https://garnet-tradition-persuader.ngrok-free.dev",
 			"https://petshopwebapp-coz5.vercel.app",
 		}, ","),
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization, ngrok-skip-browser-warning",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
 
