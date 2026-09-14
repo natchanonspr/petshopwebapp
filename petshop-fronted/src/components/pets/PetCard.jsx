@@ -66,6 +66,17 @@ export default function PetCard({ pet, variant = 'compact', onEdit, onDelete, is
             </div>
           </div>
 
+          <div className="mt-3 space-y-2 rounded-2xl bg-orange-50 px-3 py-3">
+            <div>
+              <p className="m-0 text-[10px] font-bold text-orange-600">ลักษณะ</p>
+              <p className="m-0 mt-0.5 line-clamp-2 text-[11px] leading-5 text-gray-600">{pet.pet_appearance || 'ยังไม่มีข้อมูลลักษณะ'}</p>
+            </div>
+            <div>
+              <p className="m-0 text-[10px] font-bold text-orange-600">นิสัย</p>
+              <p className="m-0 mt-0.5 line-clamp-2 text-[11px] leading-5 text-gray-600">{pet.pet_personality || 'ยังไม่มีข้อมูลนิสัย'}</p>
+            </div>
+          </div>
+
           <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
             <Link to={`/pets/${pet.pet_id}`} className="flex h-12 flex-col items-center justify-center gap-0.5 border-r border-gray-100 bg-white text-orange-500 active:bg-orange-50">
               <i className="fa-regular fa-file-lines text-sm" /><span className="text-[10px] font-bold">ดูข้อมูล</span>

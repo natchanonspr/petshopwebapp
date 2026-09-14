@@ -28,6 +28,8 @@ const emptyForm = {
   pet_neutered: false,
   pet_disease: '',
   pet_health: '',
+  pet_appearance: '',
+  pet_personality: '',
   description: '',
   image: '',
 }
@@ -90,6 +92,8 @@ export default function Pets() {
       pet_neutered: Boolean(pet.pet_neutered),
       pet_disease: pet.pet_disease || '',
       pet_health: pet.pet_health || '',
+      pet_appearance: pet.pet_appearance || '',
+      pet_personality: pet.pet_personality || '',
       description: pet.description || '',
       image: pet.image || '',
     })
@@ -142,6 +146,8 @@ export default function Pets() {
       pet_neutered: Boolean(form.pet_neutered),
       pet_disease: form.pet_disease.trim(),
       pet_health: form.pet_health.trim(),
+      pet_appearance: form.pet_appearance.trim(),
+      pet_personality: form.pet_personality.trim(),
       description: form.description.trim(),
       image: form.image || '',
     }
@@ -342,6 +348,16 @@ export default function Pets() {
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold">ปัญหาสุขภาพ</span>
                 <input value={form.pet_health} onChange={(e) => setField('pet_health', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm" placeholder="เช่น ไม่มี, แพ้อาหาร" />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold">ลักษณะของสัตว์เลี้ยง</span>
+                <textarea value={form.pet_appearance} onChange={(e) => setField('pet_appearance', e.target.value)} rows="3" className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm" placeholder="เช่น ขนสั้น สีเทา ตัวกลม ดวงตากลมโต" />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold">นิสัยของสัตว์เลี้ยง</span>
+                <textarea value={form.pet_personality} onChange={(e) => setField('pet_personality', e.target.value)} rows="3" className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm" placeholder="เช่น ขี้อ้อน ร่าเริง ชอบเล่นกับคน รักสงบ" />
               </label>
 
               <label className="block">

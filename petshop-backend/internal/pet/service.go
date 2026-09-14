@@ -30,9 +30,11 @@ func CreatePetService(userID int64, req *PetRequest) (*Pet, error) {
 		PetBirthdate: birthdate,
 		PetNeutered:  req.PetNeutered,
 		PetDisease:   req.PetDisease,
-		PetHealth:    req.PetHealth,
-		Description:  req.Description,
-		PetImage:     req.PetImage,
+		PetHealth:      req.PetHealth,
+		PetAppearance:  req.PetAppearance,
+		PetPersonality: req.PetPersonality,
+		Description:    req.Description,
+		PetImage:       req.PetImage,
 	}
 
 	if err := CreatePet(pet); err != nil {
@@ -73,6 +75,8 @@ func UpdatePetService(userID, petID int64, req *PetRequest) (*Pet, error) {
 	pet.PetNeutered = req.PetNeutered
 	pet.PetDisease = req.PetDisease
 	pet.PetHealth = req.PetHealth
+	pet.PetAppearance = req.PetAppearance
+	pet.PetPersonality = req.PetPersonality
 	pet.Description = req.Description
 	pet.PetImage = req.PetImage
 
