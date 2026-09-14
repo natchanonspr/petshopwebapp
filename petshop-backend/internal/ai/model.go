@@ -1,5 +1,7 @@
 package ai
 
+import "time"
+
 type PetData struct {
 	PetID        int64   `json:"pet_id"`
 	UserID       int64   `json:"user_id"`
@@ -61,4 +63,13 @@ type AIResponse struct {
 
 type AICandidate struct {
 	Content AIContent `json:"content"`
+}
+
+type AIRecommendation struct {
+	ID        int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserID    int64     `json:"user_id"`
+	PetID     int64     `json:"pet_id"`
+	ProductID int64     `json:"product_id"`
+	Reason    string    `json:"reason"`
+	CreatedAt time.Time `json:"created_at"`
 }

@@ -68,6 +68,7 @@ func main() {
 		&cart.Cart{},
 		&notification.Notification{},
 		&notification.NotificationRecipient{},
+		&ai.AIRecommendation{},
 	); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
