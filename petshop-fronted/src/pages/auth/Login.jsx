@@ -382,11 +382,11 @@ export default function Login() {
           <button
             type="button"
             onClick={() =>
-              navigate('/home/admin/login')
+              navigate('/home/admin')
             }
             className="mt-2 text-xs font-semibold text-gray-400 hover:text-orange-500"
           >
-            เข้าสู่ระบบ Admin
+            เข้าสู่ระบบผู้ดูแลระบบ
           </button>
 
         </section>
