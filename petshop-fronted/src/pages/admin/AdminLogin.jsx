@@ -64,6 +64,7 @@ export default function AdminLogin() {
 
       // ใช้ JWT ตัวเดียวกับ User
       localStorage.setItem('petshop_token', token)
+      sessionStorage.removeItem('petshop_admin_logged_out')
 
       // สถานะ Login
       localStorage.setItem(
@@ -119,8 +120,16 @@ export default function AdminLogin() {
 
         setLineReady(true)
 
-        // ถ้า LINE Login อยู่แล้ว
-        // ให้ส่งข้อมูลไป Backend ทันที
+        // ถ้าเพิ่งกด Logout จาก Admin ให้หยุด auto-login
+        // เพื่อไม่ให้หน้า Login เด้งกลับเข้า Admin ทันที
+        const loggedOut = sessionStorage.getItem('petshop_admin_logged_out') === 'true'
+
+        if (loggedOut) {
+          sessionStorage.removeItem('petshop_admin_logged_out')
+          return
+        }
+
+        // ถ้า LINE Login อยู่แล้ว ให้ส่งข้อมูลไป Backend ทันที
         if (liff.isLoggedIn()) {
           await saveLineUser()
         }
@@ -165,7 +174,7 @@ export default function AdminLogin() {
     try {
       if (!liff.isLoggedIn()) {
         const redirectUri =
-          `${window.location.origin}/home/admin/login`
+          `${window.location.origin}/home/admin`
 
         console.log(
           'Admin LINE login redirect:',
@@ -228,6 +237,7 @@ export default function AdminLogin() {
         'petshop_token',
         token
       )
+      sessionStorage.removeItem('petshop_admin_logged_out')
 
       localStorage.setItem(
         'petshop_user_auth',
