@@ -246,7 +246,11 @@ export default function AdminLayout() {
       window.removeEventListener('petshop-profile-updated', refreshProfile)
     }
   }, [])
-  const logout = () => { localStorage.removeItem('petshop_admin_auth'); navigate('/home/admin/login', { replace: true }) }
+  const logout = () => { 
+    localStorage.removeItem('petshop_token')
+    localStorage.removeItem('petshop_user_auth')
+    setProfileOpen(false)
+    navigate('/home/admin/login', { replace: true }) }
 
   return <div className="admin-panel min-h-screen bg-[#f8f9fc] text-gray-900">
     <header className={`fixed inset-x-0 top-0 z-[60] h-[72px] border-b border-gray-100 bg-white/95 backdrop-blur transition-all duration-200 ${expanded ? 'lg:pl-[290px]' : 'lg:pl-[90px]'}`}>
