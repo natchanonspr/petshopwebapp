@@ -1,6 +1,9 @@
 package order
 
-import "time"
+import (
+	"os/user"
+	"time"
+)
 
 type Order struct {
 	OrderID       int64     `gorm:"primaryKey;autoIncrement" json:"order_id"`
@@ -14,6 +17,7 @@ type Order struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 
 	Items []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
+	User  user.User   `gorm:"foreignKey:UserID;references:UserID" json:"user"`
 }
 
 type OrderItem struct {

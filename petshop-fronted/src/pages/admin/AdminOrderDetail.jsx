@@ -70,7 +70,10 @@ function normalizeOrder(order) {
 
     displayId: `#PP-${String(order.order_id).padStart(4, '0')}`,
 
-    customer: `User #${order.user_id}`,
+    customer:
+      order.user?.username ||
+      order.user?.name ||
+      `User #${order.user_id}`,
 
     total: Number(order.total_amount || 0),
 
@@ -88,17 +91,17 @@ function normalizeOrder(order) {
 
     date: createdAt
       ? createdAt.toLocaleDateString('th-TH', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
       : '—',
 
     time: createdAt
       ? createdAt.toLocaleTimeString('th-TH', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }) + ' น.'
+        hour: '2-digit',
+        minute: '2-digit',
+      }) + ' น.'
       : '—',
 
     items: Array.isArray(order.items)
@@ -134,7 +137,7 @@ export default function AdminOrderDetail() {
       console.error('load admin order error:', err)
       setError(
         err.message ||
-          'ไม่สามารถโหลดรายละเอียดคำสั่งซื้อได้'
+        'ไม่สามารถโหลดรายละเอียดคำสั่งซื้อได้'
       )
     } finally {
       setLoading(false)
@@ -200,7 +203,7 @@ export default function AdminOrderDetail() {
 
       setToast(
         err.message ||
-          'ไม่สามารถเปลี่ยนสถานะคำสั่งซื้อได้'
+        'ไม่สามารถเปลี่ยนสถานะคำสั่งซื้อได้'
       )
 
       setTimeout(() => {
@@ -243,7 +246,7 @@ export default function AdminOrderDetail() {
 
       setToast(
         err.message ||
-          'ไม่สามารถยกเลิกคำสั่งซื้อได้'
+        'ไม่สามารถยกเลิกคำสั่งซื้อได้'
       )
 
       setTimeout(() => {
@@ -314,10 +317,9 @@ export default function AdminOrderDetail() {
         </div>
 
         <div
-          className={`w-fit rounded-full px-3 py-1.5 text-xs font-bold ${
-            statusTone[order.status] ||
+          className={`w-fit rounded-full px-3 py-1.5 text-xs font-bold ${statusTone[order.status] ||
             'bg-gray-50 text-gray-500'
-          }`}
+            }`}
         >
           {order.status}
         </div>
@@ -719,17 +721,17 @@ export default function AdminOrderDetail() {
             address.district ||
             address.province ||
             address.postcode) && (
-            <div>
-              {[
-                address.subdistrict,
-                address.district,
-                address.province,
-                address.postcode,
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            </div>
-          )}
+              <div>
+                {[
+                  address.subdistrict,
+                  address.district,
+                  address.province,
+                  address.postcode,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              </div>
+            )}
 
           {!address.name &&
             !address.full_name &&

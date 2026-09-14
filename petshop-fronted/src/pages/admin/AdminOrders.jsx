@@ -53,7 +53,10 @@ function normalizeOrder(order) {
 
     id: `#PP-${String(order.order_id).padStart(4, '0')}`,
 
-    customer: `User #${order.user_id}`,
+    customer:
+      order.user?.username ||
+      order.user?.name ||
+      `User #${order.user_id}`,
 
     total: Number(order.total_amount || 0),
 
@@ -70,17 +73,17 @@ function normalizeOrder(order) {
 
     date: createdAt
       ? createdAt.toLocaleDateString('th-TH', {
-          day: 'numeric',
-          month: 'short',
-          year: '2-digit',
-        })
+        day: 'numeric',
+        month: 'short',
+        year: '2-digit',
+      })
       : '—',
 
     time: createdAt
       ? createdAt.toLocaleTimeString('th-TH', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }) + ' น.'
+        hour: '2-digit',
+        minute: '2-digit',
+      }) + ' น.'
       : '—',
 
     phone: '—',
@@ -119,7 +122,7 @@ export default function AdminOrders() {
 
       setError(
         err.message ||
-          'ไม่สามารถโหลดคำสั่งซื้อได้'
+        'ไม่สามารถโหลดคำสั่งซื้อได้'
       )
     } finally {
       setLoading(false)
@@ -172,27 +175,45 @@ export default function AdminOrders() {
   // =========================
   // Count each status
   // =========================
+  const activeOrders = orders.filter(
+    (order) =>
+      order.order_status !== 'cancelled'
+  )
+
   const counts = Object.fromEntries(
-    tabs.map((item) => [
-      item,
-      item === 'ทั้งหมด'
-        ? orders.length
-        : orders.filter(
-            (order) =>
-              order.status === item
-          ).length,
-    ])
+    tabs.map((item) => {
+      if (item === 'ทั้งหมด') {
+        return [
+          item,
+          orders.length,
+        ]
+      }
+
+      return [
+        item,
+        orders.filter(
+          (order) =>
+            order.status === item
+        ).length,
+      ]
+    })
   )
 
   // =========================
   // Total Amount
   // =========================
   const totalAmount = useMemo(() => {
-    return orders.reduce(
-      (sum, order) =>
-        sum + Number(order.total || 0),
-      0
-    )
+    return orders
+      .filter(
+        (order) =>
+          order.order_status !== 'cancelled'
+      )
+      .reduce(
+        (sum, order) =>
+          sum +
+          Number(order.total || 0),
+        0
+      )
   }, [orders])
 
   // =========================
@@ -440,20 +461,18 @@ export default function AdminOrders() {
                 onClick={() =>
                   setTab(item)
                 }
-                className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                  active
-                    ? 'bg-violet-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-                }`}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${active
+                  ? 'bg-violet-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                  }`}
               >
                 {item}
 
                 <span
-                  className={`ml-1 ${
-                    active
-                      ? 'text-white/80'
-                      : 'text-gray-400'
-                  }`}
+                  className={`ml-1 ${active
+                    ? 'text-white/80'
+                    : 'text-gray-400'
+                    }`}
                 >
                   {counts[item] || 0}
                 </span>
@@ -617,15 +636,14 @@ export default function AdminOrders() {
                       {/* Payment */}
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                            order.payment ===
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${order.payment ===
                             'ชำระแล้ว'
-                              ? 'bg-green-50 text-green-600'
-                              : order.payment ===
-                                'ยกเลิก'
-                                ? 'bg-red-50 text-red-500'
-                                : 'bg-orange-50 text-orange-600'
-                          }`}
+                            ? 'bg-green-50 text-green-600'
+                            : order.payment ===
+                              'ยกเลิก'
+                              ? 'bg-red-50 text-red-500'
+                              : 'bg-orange-50 text-orange-600'
+                            }`}
                         >
                           {order.payment}
                         </span>
@@ -641,10 +659,9 @@ export default function AdminOrders() {
                       {/* Status */}
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                            tone[order.status] ||
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${tone[order.status] ||
                             'bg-gray-50 text-gray-500'
-                          }`}
+                            }`}
                         >
                           {order.status}
                         </span>

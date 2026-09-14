@@ -54,7 +54,7 @@ func GetOrderItems(orderID int64) ([]OrderItem, error) {
 func GetAllOrdersAdmin() ([]Order, error) {
 	var orders []Order
 
-	err := db.Preload("Items").Order("created_at desc").Find(&orders).Error
+	err := db.Preload("User").Preload("Items").Order("created_at desc").Find(&orders).Error
 
 	return orders, err
 }
@@ -63,7 +63,7 @@ func GetAllOrdersAdmin() ([]Order, error) {
 func GetOrderAdmin(orderID int64) (*Order, error) {
 	var order Order
 
-	err := db.Preload("Items").Where("order_id = ?", orderID).First(&order).Error
+	err := db.Preload("User").Preload("Items").Where("order_id = ?", orderID).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
