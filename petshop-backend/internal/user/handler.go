@@ -94,3 +94,56 @@ func UpdateProfile(c *fiber.Ctx) error {
 		"data":    user,
 	})
 }
+
+// Admin
+func AdminList(c *fiber.Ctx) error {
+	users, err := AdminListUsers()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "ไม่สามารถโหลดผู้ใช้งานได้",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data": users,
+	})
+}
+
+func AdminRead(c *fiber.Ctx) error {
+	userID, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "รหัสผู้ใช้งานไม่ถูกต้อง",
+		})
+	}
+
+	user, err := AdminGetUser(int64(userID))
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "ไม่พบผู้ใช้งาน",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data": user,
+	})
+}
+
+func AdminDelete(c *fiber.Ctx) error {
+	userID, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "รหัสผู้ใช้งานไม่ถูกต้อง",
+		})
+	}
+
+	if err := AdminDeleteUser(int64(userID)); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Delete User Successful",
+	})
+}

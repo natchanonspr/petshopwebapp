@@ -90,7 +90,7 @@ func main() {
 			"https://petshopwebapp-coz5.vercel.app",
 		}, ","),
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization, ngrok-skip-browser-warning",
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+		AllowMethods: "GET, POST, PUT, DELETE, PATCH, OPTIONS",
 	}))
 
 	// User API
@@ -101,6 +101,12 @@ func main() {
 	profile := app.Group("/profile", middleware.JWTProtected(jwtSecret))
 	profile.Get("/", user.GetProfile)
 	profile.Put("/", user.UpdateProfile)
+
+	// Admin User API
+	adminUsers := app.Group("/admin/users", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
+	adminUsers.Get("/", user.AdminList)
+	adminUsers.Get("/:id", user.AdminRead)
+	adminUsers.Delete("/:id", user.AdminDelete)
 
 	// PET API
 	pets := app.Group("/pets", middleware.JWTProtected(jwtSecret))

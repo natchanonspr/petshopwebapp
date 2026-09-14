@@ -32,3 +32,7 @@ func UpdateUser(user *User) error {
 		"user_picture_url": user.UserPictureURL,
 	}).Error
 }
+
+func DeleteUser(userID int64) error {
+	return db.Delete(&User{}, userID).Error
+}

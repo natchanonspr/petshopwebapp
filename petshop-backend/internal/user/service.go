@@ -126,3 +126,35 @@ func UpdateProfileService(
 
 	return user, nil
 }
+
+// Admin : ดูผู้ใช้งานทั้งหมด
+func AdminListUsers() ([]User, error) {
+	var users []User
+
+	err := db.
+		Where("user_role = ?", "user").
+		Order("created_at desc").
+		Find(&users).Error
+
+	return users, err
+}
+
+// Admin : ดูผู้ใช้งานคนเดียว
+func AdminGetUser(userID int64) (*User, error) {
+	var user User
+
+	err := db.
+		Where("user_id = ?", userID).
+		First(&user).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// Admin : ลบบัญชีผู้ใช้
+func AdminDeleteUser(userID int64) error {
+	return db.Delete(&User{}, userID).Error
+}

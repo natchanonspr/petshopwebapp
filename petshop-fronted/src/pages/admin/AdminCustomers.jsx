@@ -1,6 +1,557 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loadAdminData, updateAdminData } from '../../admin/data'
+import { getAdminUsers, deleteAdminUser } from '../../api/users.js'
 
-export default function AdminCustomers(){const [data,setData]=useState(loadAdminData());const [search,setSearch]=useState('');const [status,setStatus]=useState('ทั้งหมด');const [confirm,setConfirm]=useState(null);const nav=useNavigate();const refresh=()=>setData(loadAdminData());useEffect(()=>{window.addEventListener('petshop-admin-data-updated',refresh);window.addEventListener('storage',refresh);return()=>{window.removeEventListener('petshop-admin-data-updated',refresh);window.removeEventListener('storage',refresh)}},[]);const users=data.users||[];const filtered=useMemo(()=>users.filter(u=>{const q=search.trim().toLowerCase();return(status==='ทั้งหมด'||(status==='ใช้งาน'&&u.status==='active')||(status==='ระงับ'&&u.status==='suspended'))&&(!q||`${u.name} ${u.phone||''} ${u.email||''} ${u.id}`.toLowerCase().includes(q))}),[users,search,status]);const toggle=u=>{updateAdminData(d=>{const x=d.users.find(v=>v.id===u.id);if(x){const next=x.status==='active'?'suspended':'active';x.status=next;x.activity=[{id:Date.now(),action:next==='active'?'ยกเลิกการระงับ':'ระงับบัญชี',time:new Date().toLocaleString('th-TH')},...(x.activity||[])].slice(0,50)}});setConfirm(null)};const removeUser=u=>{updateAdminData(d=>{const id=Number(u.id);d.users=(d.users||[]).filter(v=>Number(v.id)!==id);d.orders=(d.orders||[]).filter(o=>Number(o.userId||o.customerId||0)!==id||o.customer!==u.name)});setConfirm(null)};return <div className="space-y-4 pb-20 md:pb-6"><div><div className="text-[10px] text-gray-400"><Link to="/home/admin">หน้าหลัก</Link><i className="fa-solid fa-chevron-right mx-2 text-[8px]"/>ผู้ใช้งาน</div><h1 className="mt-1 text-[22px] font-extrabold">จัดการผู้ใช้งาน </h1><p className="mt-0.5 text-[11px] text-gray-400">ข้อมูล User และ Customer ใช้ชุดข้อมูลเดียวกัน</p></div><div className="grid gap-3 sm:grid-cols-3"><Stat label="ผู้ใช้งานทั้งหมด" value={users.length} icon="fa-users"/><Stat label="ใช้งานอยู่" value={users.filter(u=>u.status==='active').length} icon="fa-user-check"/><Stat label="ถูกระงับ" value={users.filter(u=>u.status==='suspended').length} icon="fa-user-lock"/></div><section className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-sm"><div className="flex flex-col gap-2 md:flex-row"><label className="relative flex-1"><i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="ค้นหาชื่อ เบอร์โทร อีเมล หรือ User ID..." className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-[11px] outline-none focus:border-violet-300 focus:bg-white"/></label><select value={status} onChange={e=>setStatus(e.target.value)} className="h-10 rounded-lg border border-gray-200 px-3 text-[11px]"><option>ทั้งหมด</option><option>ใช้งาน</option><option>ระงับ</option></select></div></section><section className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm"><div className="flex items-center justify-between border-b border-gray-100 px-4 py-3"><div><h2 className="text-sm font-extrabold">รายชื่อ Customer / User</h2><p className="text-[10px] text-gray-400">แสดง {filtered.length} จาก {users.length} รายการ</p></div></div><div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-[11px]"><thead className="bg-[#fafafa] text-[9px] font-bold text-gray-400"><tr><th className="px-4 py-3">ผู้ใช้งาน</th><th>เบอร์โทร</th><th>ออเดอร์</th><th>ใช้งานล่าสุด</th><th>สถานะบัญชี</th><th className="text-center">จัดการ</th></tr></thead><tbody>{filtered.map(u=><tr key={u.id} className="border-t border-gray-50 hover:bg-violet-50/30"><td className="px-4 py-3"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-violet-50 text-violet-600"><i className="fa-solid fa-user text-[10px]"/></span><div><div className="font-bold">{u.name}</div><div className="text-[9px] text-gray-400">{u.email||'ไม่มีอีเมล'} · #{String(u.id).padStart(5,'0')}</div></div></div></td><td>{u.phone||'—'}</td><td className="font-bold">{u.orders||0}</td><td className="text-gray-500">{u.lastActive||'—'}</td><td><span className={`rounded-full px-2 py-1 text-[9px] font-bold ${u.status==='active'?'bg-emerald-50 text-emerald-600':'bg-red-50 text-red-500'}`}>{u.status==='active'?'ใช้งานได้':'ถูกระงับ'}</span></td><td><div className="flex justify-center gap-1"><button onClick={()=>nav(`/home/admin/customers/${u.id}`)} className="grid size-8 place-items-center rounded-lg border border-gray-200 text-gray-500 hover:text-violet-600" title="ดูรายละเอียด"><i className="fa-regular fa-eye text-[10px]"/></button><button onClick={()=>setConfirm({type:'status',user:u})} className="grid size-8 place-items-center rounded-lg border border-gray-200 text-gray-500 hover:text-red-500" title={u.status==='active'?'ระงับ':'ยกเลิกการระงับ'}><i className={`fa-solid ${u.status==='active'?'fa-user-lock':'fa-user-check'} text-[10px]`}/></button><button onClick={()=>setConfirm({type:'delete',user:u})} className="grid size-8 place-items-center rounded-lg border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600" title="ลบบัญชี"><i className="fa-solid fa-trash text-[10px]"/></button></div></td></tr>)}</tbody></table></div>{!filtered.length&&<div className="p-12 text-center text-xs text-gray-400">ไม่พบผู้ใช้งาน</div>}</section>{confirm&&<div className="fixed inset-0 z-[100] grid place-items-center bg-gray-950/45 p-4 backdrop-blur-sm"><div className="w-full max-w-sm overflow-hidden rounded-[24px] border border-white/70 bg-white text-center shadow-[0_24px_80px_rgba(31,24,70,0.22)]"><div className={`h-1.5 w-full ${confirm.type==='delete'?'bg-red-500':confirm.user.status==='active'?'bg-amber-400':'bg-emerald-500'}`}/><div className="p-6">{confirm.type==='delete'?<><span className="mx-auto grid size-16 place-items-center rounded-full bg-red-50 text-red-500 shadow-inner"><i className="fa-solid fa-trash-can text-xl"/></span><h2 className="mt-4 text-lg font-extrabold text-gray-900">ลบบัญชีผู้ใช้งาน?</h2><p className="mt-1 text-xs text-gray-500">{confirm.user.name}</p><p className="mt-2 text-[10px] leading-4 text-red-400">การลบบัญชีจะนำ User ออกจากระบบ Admin และลบออเดอร์ที่ผูกกับ User นี้</p></>:<><span className={`mx-auto grid size-16 place-items-center rounded-full shadow-inner ${confirm.user.status==='active'?'bg-amber-50 text-amber-500':'bg-emerald-50 text-emerald-500'}`}><i className={`fa-solid ${confirm.user.status==='active'?'fa-user-lock':'fa-user-check'} text-xl`}/></span><h2 className="mt-4 text-lg font-extrabold text-gray-900">{confirm.user.status==='active'?'ระงับบัญชี?':'ยกเลิกการระงับบัญชี?'}</h2><p className="mt-1 text-xs font-bold text-gray-700">{confirm.user.status==='active'?'หลังจากระงับ ผู้ใช้งานจะถูกระงับบัญชี':'บัญชีจะกลับมาใช้งานได้ตามปกติ'}</p><p className="mt-1 text-xs text-gray-500">{confirm.user.name}</p></>}<div className="mt-6 flex gap-2"><button onClick={()=>setConfirm(null)} className="h-11 flex-1 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-500 transition hover:bg-gray-50">ยกเลิก</button><button onClick={()=>confirm.type==='delete'?removeUser(confirm.user):toggle(confirm.user)} className={`h-11 flex-1 rounded-xl text-xs font-bold text-white shadow-sm transition hover:-translate-y-0.5 ${confirm.type==='delete'?'bg-red-500 hover:bg-red-600':'bg-[#6d3df5] hover:bg-[#5b2fe0]'}`}>{confirm.type==='delete'?'ลบบัญชี':confirm.user.status==='active'?'ระงับ':'ยกเลิกการระงับ'}</button></div></div></div></div>}</div>}
-function Stat({label,value,icon}){return <div className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-sm"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#f1edff] text-[#6d3df5]"><i className={`fa-solid ${icon} text-[11px]`}/></span><div><div className="text-[9px] text-gray-400">{label}</div><div className="text-lg font-extrabold">{value}</div></div></div></div>}
+function formatDate(value) {
+    if (!value) return '—'
+
+    const date = new Date(value)
+
+    if (Number.isNaN(date.getTime())) {
+        return '—'
+    }
+
+    return date.toLocaleDateString('th-TH', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    })
+}
+
+function getDisplayName(user) {
+    return (
+        user?.username ||
+        user?.name ||
+        `User #${user?.user_id ?? '—'}`
+    )
+}
+
+function getDisplayEmail(user) {
+    return user?.email || 'ไม่มีอีเมล'
+}
+
+function getDisplayPhone(user) {
+    return user?.phone || 'ไม่มีเบอร์โทร'
+}
+
+function StatCard({
+    label,
+    value,
+    icon,
+}) {
+    return (
+        <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                    <i className={`fa-solid ${icon}`} />
+                </div>
+
+                <div>
+                    <p className="text-[11px] text-gray-400">
+                        {label}
+                    </p>
+
+                    <p className="text-xl font-bold text-gray-900">
+                        {value.toLocaleString('th-TH')}
+                    </p>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default function AdminCustomers() {
+    const navigate = useNavigate()
+
+    const [users, setUsers] = useState([])
+    const [search, setSearch] = useState('')
+
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState('')
+
+    const [deleteTarget, setDeleteTarget] =
+        useState(null)
+
+    const [deleting, setDeleting] =
+        useState(false)
+
+    const loadUsers = async () => {
+        try {
+            setLoading(true)
+            setError('')
+
+            const data = await getAdminUsers()
+
+            setUsers(
+                Array.isArray(data)
+                    ? data
+                    : [],
+            )
+        } catch (err) {
+            console.error(
+                'load admin users error:',
+                err,
+            )
+
+            setError(
+                err?.message ||
+                'ไม่สามารถโหลดข้อมูลผู้ใช้งานได้',
+            )
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        loadUsers()
+    }, [])
+
+    const filteredUsers = useMemo(() => {
+        const keyword =
+            search.trim().toLowerCase()
+
+        if (!keyword) {
+            return users
+        }
+
+        return users.filter((user) => {
+            const searchableText = [
+                user?.user_id,
+                user?.username,
+                user?.name,
+                user?.email,
+                user?.phone,
+            ]
+                .map((value) =>
+                    String(value ?? ''),
+                )
+                .join(' ')
+                .toLowerCase()
+
+            return searchableText.includes(
+                keyword,
+            )
+        })
+    }, [users, search])
+
+    const handleDelete = async () => {
+        if (!deleteTarget) {
+            return
+        }
+
+        try {
+            setDeleting(true)
+            setError('')
+
+            await deleteAdminUser(
+                deleteTarget.user_id,
+            )
+
+            setUsers((prev) =>
+                prev.filter(
+                    (user) =>
+                        Number(user.user_id) !==
+                        Number(deleteTarget.user_id),
+                ),
+            )
+
+            setDeleteTarget(null)
+        } catch (err) {
+            console.error(
+                'delete admin user error:',
+                err,
+            )
+
+            setError(
+                err?.message ||
+                'ไม่สามารถลบผู้ใช้งานได้',
+            )
+        } finally {
+            setDeleting(false)
+        }
+    }
+
+    return (
+        <div className="space-y-4 pb-20 md:pb-6">
+
+            {/* =========================
+          Header
+      ========================= */}
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <div className="mb-2 flex items-center gap-2 text-[10px] text-gray-400">
+                        <Link
+                            to="/home/admin"
+                            className="hover:text-gray-700"
+                        >
+                            หน้าหลัก
+                        </Link>
+
+                        <i className="fa-solid fa-chevron-right text-[8px]" />
+
+                        <span>
+                            ผู้ใช้งาน
+                        </span>
+                    </div>
+
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        จัดการผู้ใช้งาน
+                    </h1>
+
+                    <p className="mt-1 text-xs text-gray-400">
+                        ข้อมูลลูกค้าจากระบบสมาชิก
+                    </p>
+                </div>
+            </div>
+
+            {/* =========================
+          Summary
+      ========================= */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <StatCard
+                    label="ผู้ใช้งานทั้งหมด"
+                    value={users.length}
+                    icon="fa-users"
+                />
+
+                <StatCard
+                    label="ผลการค้นหา"
+                    value={filteredUsers.length}
+                    icon="fa-magnifying-glass"
+                />
+            </div>
+
+            {/* =========================
+          Search
+      ========================= */}
+            <section className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-sm">
+                <div className="relative">
+                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-gray-400" />
+
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(event) =>
+                            setSearch(event.target.value)
+                        }
+                        placeholder="ค้นหาชื่อ เบอร์โทร อีเมล หรือ User ID..."
+                        className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-10 text-[11px] text-gray-700 outline-none transition focus:border-violet-300 focus:bg-white"
+                    />
+
+                    {search && (
+                        <button
+                            type="button"
+                            onClick={() => setSearch('')}
+                            className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            aria-label="ล้างการค้นหา"
+                        >
+                            <i className="fa-solid fa-xmark text-xs" />
+                        </button>
+                    )}
+                </div>
+            </section>
+
+            {/* =========================
+          Error
+      ========================= */}
+            {error && (
+                <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-500">
+                    <div className="flex items-center justify-between gap-3">
+                        <span>
+                            {error}
+                        </span>
+
+                        <button
+                            type="button"
+                            onClick={loadUsers}
+                            className="shrink-0 underline"
+                        >
+                            ลองใหม่
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* =========================
+          Table
+      ========================= */}
+            <section className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
+
+                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                    <div>
+                        <h2 className="text-sm font-extrabold text-gray-900">
+                            รายชื่อลูกค้า
+                        </h2>
+
+                        <p className="mt-0.5 text-[10px] text-gray-400">
+                            แสดง {filteredUsers.length} จาก {users.length} รายการ
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={loadUsers}
+                        disabled={loading}
+                        className="grid size-8 place-items-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 hover:text-violet-600 disabled:opacity-50"
+                        title="รีเฟรช"
+                    >
+                        <i
+                            className={`fa-solid fa-rotate-right text-[11px] ${loading
+                                    ? 'animate-spin'
+                                    : ''
+                                }`}
+                        />
+                    </button>
+                </div>
+
+                {loading ? (
+                    <div className="p-14 text-center text-xs text-gray-400">
+                        <i className="fa-solid fa-spinner fa-spin mr-2" />
+                        กำลังโหลดข้อมูลลูกค้า...
+                    </div>
+                ) : (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[900px] text-left text-[11px]">
+
+                                <thead className="bg-[#fafafa] text-[9px] font-bold text-gray-400">
+                                    <tr>
+                                        <th className="px-4 py-3">
+                                            ผู้ใช้งาน
+                                        </th>
+
+                                        <th className="px-4 py-3">
+                                            เบอร์โทร
+                                        </th>
+
+                                        <th className="px-4 py-3">
+                                            อีเมล
+                                        </th>
+
+                                        <th className="px-4 py-3">
+                                            วันที่สมัคร
+                                        </th>
+
+                                        <th className="px-4 py-3">
+                                            User ID
+                                        </th>
+
+                                        <th className="px-4 py-3 text-center">
+                                            จัดการ
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {filteredUsers.map(
+                                        (user) => (
+                                            <tr
+                                                key={user.user_id}
+                                                className="border-t border-gray-50 transition hover:bg-violet-50/30"
+                                            >
+
+                                                {/* User */}
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-violet-50 text-violet-600">
+                                                            {user.picture_url ? (
+                                                                <img
+                                                                    src={
+                                                                        user.picture_url
+                                                                    }
+                                                                    alt=""
+                                                                    className="size-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <i className="fa-solid fa-user text-[10px]" />
+                                                            )}
+                                                        </div>
+
+                                                        <div className="min-w-0">
+                                                            <p className="truncate font-bold text-gray-800">
+                                                                {getDisplayName(
+                                                                    user,
+                                                                )}
+                                                            </p>
+
+                                                            <p className="mt-0.5 truncate text-[9px] text-gray-400">
+                                                                {getDisplayEmail(
+                                                                    user,
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {/* Phone */}
+                                                <td className="px-4 py-3 text-gray-600">
+                                                    {getDisplayPhone(
+                                                        user,
+                                                    )}
+                                                </td>
+
+                                                {/* Email */}
+                                                <td className="px-4 py-3">
+                                                    <span className="text-gray-600">
+                                                        {getDisplayEmail(
+                                                            user,
+                                                        )}
+                                                    </span>
+                                                </td>
+
+                                                {/* Created */}
+                                                <td className="px-4 py-3 text-gray-500">
+                                                    {formatDate(
+                                                        user.created_at,
+                                                    )}
+                                                </td>
+
+                                                {/* User ID */}
+                                                <td className="px-4 py-3">
+                                                    <span className="font-bold text-violet-600">
+                                                        #
+                                                        {String(
+                                                            user.user_id,
+                                                        ).padStart(
+                                                            5,
+                                                            '0',
+                                                        )}
+                                                    </span>
+                                                </td>
+
+                                                {/* Actions */}
+                                                <td className="px-4 py-3">
+                                                    <div className="flex justify-center gap-1">
+
+                                                        {/* View */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                navigate(
+                                                                    `/home/admin/customers/${user.user_id}`,
+                                                                )
+                                                            }
+                                                            className="grid size-8 place-items-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600"
+                                                            title="ดูรายละเอียด"
+                                                        >
+                                                            <i className="fa-regular fa-eye text-[10px]" />
+                                                        </button>
+
+                                                        {/* Delete */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setDeleteTarget(
+                                                                    user,
+                                                                )
+                                                            }
+                                                            className="grid size-8 place-items-center rounded-lg border border-red-100 text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                                                            title="ลบผู้ใช้งาน"
+                                                        >
+                                                            <i className="fa-solid fa-trash text-[10px]" />
+                                                        </button>
+
+                                                    </div>
+                                                </td>
+
+                                            </tr>
+                                        ),
+                                    )}
+                                </tbody>
+
+                            </table>
+                        </div>
+
+                        {filteredUsers.length === 0 && (
+                            <div className="p-14 text-center">
+                                <div className="mx-auto grid size-14 place-items-center rounded-full bg-gray-50 text-gray-300">
+                                    <i className="fa-solid fa-users text-xl" />
+                                </div>
+
+                                <p className="mt-3 text-sm font-semibold text-gray-500">
+                                    ไม่พบผู้ใช้งาน
+                                </p>
+
+                                <p className="mt-1 text-xs text-gray-400">
+                                    ลองเปลี่ยนคำค้นหา
+                                </p>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                <div className="border-t border-[#f0f0f3] px-4 py-3 text-center text-[10px] text-gray-400">
+                    แสดง {filteredUsers.length} จาก{' '}
+                    {users.length} ผู้ใช้งาน
+                </div>
+            </section>
+
+            {/* =========================
+          Delete Confirmation
+      ========================= */}
+            {deleteTarget && (
+                <div className="fixed inset-0 z-[100] grid place-items-center bg-gray-950/45 p-4 backdrop-blur-sm">
+
+                    <div className="w-full max-w-sm overflow-hidden rounded-[24px] border border-white/70 bg-white shadow-[0_24px_80px_rgba(31,24,70,0.22)]">
+
+                        <div className="h-1.5 w-full bg-red-500" />
+
+                        <div className="p-6 text-center">
+
+                            <span className="mx-auto grid size-16 place-items-center rounded-full bg-red-50 text-red-500">
+                                <i className="fa-solid fa-trash-can text-xl" />
+                            </span>
+
+                            <h2 className="mt-4 text-lg font-extrabold text-gray-900">
+                                ลบผู้ใช้งาน?
+                            </h2>
+
+                            <p className="mt-2 text-sm font-bold text-gray-700">
+                                {getDisplayName(
+                                    deleteTarget,
+                                )}
+                            </p>
+
+                            <p className="mt-2 text-xs leading-5 text-gray-500">
+                                การลบผู้ใช้งานจะลบข้อมูล User
+                                ออกจากระบบ
+                            </p>
+
+                            <div className="mt-6 flex gap-2">
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setDeleteTarget(null)
+                                    }
+                                    disabled={deleting}
+                                    className="h-11 flex-1 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-500 transition hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    ยกเลิก
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    disabled={deleting}
+                                    className="h-11 flex-1 rounded-xl bg-red-500 text-xs font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {deleting ? (
+                                        <>
+                                            <i className="fa-solid fa-spinner fa-spin mr-2" />
+                                            กำลังลบ...
+                                        </>
+                                    ) : (
+                                        'ยืนยันลบ'
+                                    )}
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+        </div>
+    )
+}

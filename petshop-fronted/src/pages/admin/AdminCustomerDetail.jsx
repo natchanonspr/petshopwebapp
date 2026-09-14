@@ -1,67 +1,777 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { loadAdminData, updateAdminData } from '../../admin/data'
-import { getOrders } from '../../data/orders.js'
 
-const money = (n) => `฿${Number(n || 0).toLocaleString('th-TH')}`
-const date = (v) => { if (!v) return 'ไม่ระบุ'; const d = new Date(`${v}T00:00:00`); return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString('th-TH', { day:'2-digit', month:'2-digit', year:'numeric' }) }
-const normalize = (v) => String(v || '').trim().toLowerCase().replace(/[-\s]/g, '')
+import {
+  getAdminUser,
+} from '../../api/users.js'
 
-function getCustomerOrders(user) {
-  if (!user) return []
-  const adminOrders = loadAdminData().orders || []
-  const customerOrders = getOrders()
-  const id = Number(user.customerId || user.id)
-  const name = normalize(user.name)
-  const phone = normalize(user.phone)
-  const email = normalize(user.email)
-  const all = [...customerOrders, ...adminOrders]
-  const seen = new Set()
-  return all.filter((order) => {
-    if (!order || seen.has(order.id)) return false
-    const orderId = Number(order.userId || order.customerId || 0)
-    const orderName = normalize(order.address?.name || order.name || order.customer)
-    const orderPhone = normalize(order.address?.phone || order.phone)
-    const orderEmail = normalize(order.address?.email || order.email || order.customerEmail)
-    const matched = orderId === id || (phone && orderPhone === phone) || (email && orderEmail === email) || (name && orderName === name)
-    if (matched) seen.add(order.id)
-    return matched
-  })
+import {
+  getAdminOrders,
+} from '../../api/orders.js'
+
+const statusMap = {
+  pending: 'รอดำเนินการ',
+  confirmed: 'ยืนยันออเดอร์แล้ว',
+  shipped: 'กำลังจัดส่ง',
+  deliveried: 'จัดส่งสำเร็จ',
+  cancelled: 'ยกเลิก',
 }
 
-export default function AdminCustomerDetail(){
-  const { userId } = useParams(); const nav = useNavigate()
-  const [data,setData] = useState(loadAdminData()); const [customerOrders,setCustomerOrders] = useState([]); const [confirm,setConfirm] = useState(false); const [toast,setToast] = useState('')
-  const refresh = () => { const nextData=loadAdminData(); setData(nextData); const current=(nextData.users||[]).find(u=>String(u.id)===String(userId)); setCustomerOrders(getCustomerOrders(current)) }
-  useEffect(()=>{ refresh(); const events=['petshop-admin-data-updated','storage','petshop-profile-updated','petshop-address-updated','petshop-payment-updated','petshop-pets-updated','petshop-favorites-updated','petshop-orders-updated','petshop:notifications']; events.forEach(e=>window.addEventListener(e,refresh)); const timer=window.setInterval(refresh,1000); return()=>{events.forEach(e=>window.removeEventListener(e,refresh));window.clearInterval(timer)} },[userId])
-  const user = (data.users||[]).find(u=>String(u.id)===String(userId))
-  const orders = customerOrders
-  const addresses = user?.addresses || []; const payments=user?.paymentMethods||[]; const pets=user?.pets||[]; const favorites=user?.favorites||[]; const notifications=user?.notifications||[]
-  const total=useMemo(()=>orders.reduce((s,o)=>s+Number(o.total||0),0),[orders])
-  if(!user) return <div className="rounded-xl border border-[#ececf2] bg-white p-12 text-center"><p className="font-bold">ไม่พบผู้ใช้งาน</p><button onClick={()=>nav('/home/admin/customers')} className="mt-4 rounded-lg bg-[#6d3df5] px-4 py-2 text-xs font-bold text-white">กลับรายชื่อผู้ใช้งาน</button></div>
-  const toggle=()=>{const next=user.status==='active'?'suspended':'active';updateAdminData(d=>{const x=d.users.find(u=>u.id===user.id);if(x)x.status=next});setConfirm(false);setToast(next==='active'?'เปิดใช้งานบัญชีแล้ว':'ระงับบัญชีแล้ว');setTimeout(()=>setToast(''),2200)}
-  return <div className="space-y-4 pb-20 md:pb-6">
-    <Header user={user} onBack={()=>nav('/home/admin/customers')} onToggle={()=>setConfirm(true)}/>
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Stat label="ออเดอร์ทั้งหมด" value={orders.length} icon="fa-receipt"/><Stat label="ยอดซื้อรวม" value={money(total)} icon="fa-baht-sign"/><Stat label="รายการโปรด" value={favorites.length} icon="fa-heart"/><Stat label="สัตว์เลี้ยง" value={pets.length} icon="fa-paw"/></div>
-    <div className="grid gap-4 xl:grid-cols-2">
-      <Card title="ข้อมูลส่วนตัว" icon="fa-user"><div className="grid gap-2 sm:grid-cols-2"><Info label="ชื่อ" value={user.name}/><Info label="เพศ" value={user.gender||'ไม่ระบุ'}/><Info label="วันเกิด" value={date(user.birthDate)}/><Info label="เบอร์โทร" value={user.phone||'-'}/><Info label="อีเมล" value={user.email||'-'}/><Info label="ใช้งานล่าสุด" value={user.lastActive||'-'}/></div></Card>
-      <Card title="ที่อยู่จัดส่ง" icon="fa-location-dot" extra={<Link to="/profile/addresses" className="text-[10px] font-bold text-[#6d3df5]">ดูฝั่ง Customer</Link>}>
-        {addresses.length?<div className="space-y-2">{addresses.map(a=><div key={a.id} className={`rounded-xl border p-3 ${a.default?'border-orange-200 bg-orange-50/40':'border-gray-100 bg-gray-50/50'}`}><div className="flex gap-3"><i className="fa-solid fa-location-dot mt-1 text-orange-500"/><div className="text-[11px] leading-5"><div className="font-extrabold">{a.recipient||user.name} {a.default&&<span className="ml-2 rounded-full bg-orange-100 px-2 py-1 text-[8px] text-orange-600">ที่อยู่หลัก</span>}</div><div className="text-gray-500">{a.phone||user.phone||'-'}<br/>{a.detail||'-'} ต.{a.subdistrict||'-'} อ.{a.district||'-'} จ.{a.province||'-'} {a.postalCode||''}</div></div></div></div>)}</div>:<Empty icon="fa-location-dot" text="ยังไม่มีที่อยู่จัดส่ง"/>}
-      </Card>
-      <Card title="วิธีชำระเงิน" icon="fa-credit-card"><div className="space-y-2">{payments.length?payments.map(p=><div key={p.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3"><span className="grid size-9 place-items-center rounded-lg bg-white text-[#6d3df5]"><i className={`fa-solid ${p.icon||'fa-credit-card'}`}/></span><div><div className="text-[11px] font-bold">{p.name||p.type||'วิธีชำระเงิน'}</div><div className="text-[10px] text-gray-400">{p.detail||'-'} {p.default&&<span className="ml-1 text-emerald-600">· หลัก</span>}</div></div></div>):<Empty icon="fa-credit-card" text="ยังไม่มีข้อมูลวิธีชำระเงิน"/>}</div></Card>
-      <Card title="สัตว์เลี้ยงของ Customer" icon="fa-paw">{pets.length?<div className="grid gap-2 sm:grid-cols-2">{pets.map((p,i)=><div key={p.id||i} className="rounded-xl border border-gray-100 p-3"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-orange-50 text-orange-500"><i className={`fa-solid ${String(p.type||'').toLowerCase().includes('cat')?'fa-cat':'fa-dog'}`}/></span><div><div className="text-[11px] font-extrabold">{p.name||p.petName||'สัตว์เลี้ยง'}</div><div className="text-[9px] text-gray-400">{p.breed||p.species||p.type||'-'} · {p.weight?`${p.weight} kg`:'ไม่ระบุน้ำหนัก'}</div></div></div></div>)}</div>:<Empty icon="fa-paw" text="ยังไม่มีข้อมูลสัตว์เลี้ยง"/>}</Card>
-    </div>
-    <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-      <Card title="ประวัติการสั่งซื้อ" icon="fa-receipt" extra={<Link to="/home/admin/orders" className="text-[10px] font-bold text-[#6d3df5]">ดูทั้งหมด</Link>}>{orders.length?<div className="overflow-x-auto"><table className="w-full min-w-[600px] text-left text-[11px]"><thead className="bg-[#fafafa] text-[9px] text-gray-400"><tr><th className="px-3 py-2">คำสั่งซื้อ</th><th>วันที่</th><th>ยอดรวม</th><th>ชำระเงิน</th><th>สถานะ</th></tr></thead><tbody>{orders.map(o=><tr key={o.id} className="border-t border-gray-50"><td className="px-3 py-3 font-bold text-[#6d3df5]"><Link to={`/home/admin/orders/${encodeURIComponent(o.id)}`} className="hover:underline">{o.id}</Link></td><td>{o.date||'-'}</td><td className="font-extrabold">{money(o.total)}</td><td>{o.payment?.name || o.paymentMethod?.name || o.payment || 'รอตรวจสอบ'}</td><td><span className="rounded-full bg-gray-50 px-2 py-1 text-[9px] font-bold">{o.status||'รอดำเนินการ'}</span></td></tr>)}</tbody></table></div>:<Empty icon="fa-receipt" text="ยังไม่มีคำสั่งซื้อ"/>}</Card>
-      <Card title="รายการโปรด" icon="fa-heart">{favorites.length?<div className="space-y-2">{favorites.slice(0,8).map((p,i)=><div key={p.id||i} className="flex items-center gap-3 rounded-lg bg-gray-50 p-2.5"><span className="grid size-8 place-items-center rounded-lg bg-white text-red-400"><i className="fa-solid fa-heart text-xs"/></span><div className="min-w-0 flex-1"><div className="truncate text-[11px] font-bold">{p.name||'สินค้า'}</div><div className="text-[9px] text-gray-400">{p.category||'สินค้า PetShop'} · {money(p.price)}</div></div></div>)}</div>:<Empty icon="fa-heart" text="ยังไม่มีรายการโปรด"/>}</Card>
-    </div>
-    <div className="grid gap-4 xl:grid-cols-2"><Card title="การแจ้งเตือน" icon="fa-bell">{notifications.length?<div className="space-y-2">{notifications.slice(0,8).map((n,i)=><div key={n.id||i} className="flex gap-3 rounded-lg bg-gray-50 p-3"><i className="fa-solid fa-bell mt-1 text-[#6d3df5]"/><div><div className="text-[11px] font-bold">{n.title||n.message||'การแจ้งเตือน'}</div><div className="text-[9px] text-gray-400">{n.createdAt||n.time||'ล่าสุด'}</div></div></div>)}</div>:<Empty icon="fa-bell" text="ยังไม่มีการแจ้งเตือนที่บันทึกไว้"/>}</Card><Card title="Activity ล่าสุด" icon="fa-clock-rotate-left">{user.activity?.length?<div className="space-y-2">{user.activity.slice(0,8).map((a,i)=><div key={a.id||i} className="flex gap-3 rounded-lg bg-gray-50 p-3"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-[#6d3df5]"><i className="fa-solid fa-clock text-[9px]"/></span><div><div className="text-[11px] font-bold">{a.action||'กิจกรรมบัญชี'}</div><div className="text-[9px] text-gray-400">{a.time||'ล่าสุด'}</div></div></div>)}</div>:<Empty icon="fa-clock-rotate-left" text="ยังไม่มี Activity ที่บันทึกไว้"/>}</Card></div>
-    {confirm&&<div className="fixed inset-0 z-[100] grid place-items-center bg-black/30 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl"><span className="mx-auto grid size-14 place-items-center rounded-full bg-violet-50 text-violet-600"><i className={`fa-solid ${user.status==='active'?'fa-user-lock':'fa-user-check'} text-xl`}/></span><h2 className="mt-4 text-lg font-extrabold">{user.status==='active'?'ระงับบัญชีผู้ใช้งาน?':'เปิดใช้งานบัญชีอีกครั้ง?'}</h2><p className="mt-2 text-sm text-gray-500">{user.name}</p><div className="mt-5 flex gap-2"><button onClick={()=>setConfirm(false)} className="h-10 flex-1 rounded-lg border border-gray-200 text-xs font-bold text-gray-500">ยกเลิก</button><button onClick={toggle} className="h-10 flex-1 rounded-lg bg-[#6d3df5] text-xs font-bold text-white">ยืนยัน</button></div></div></div>}
-    {toast&&<div className="fixed inset-x-4 bottom-5 z-[120] mx-auto w-auto max-w-md rounded-xl bg-gray-900 px-4 py-3 text-center text-xs font-bold text-white shadow-xl sm:inset-x-auto sm:right-5 sm:w-auto sm:max-w-none sm:text-left"><i className="fa-solid fa-circle-check mr-2 text-emerald-400"/>{toast}</div>}
-  </div>
+const statusTone = {
+  pending: 'bg-violet-50 text-violet-600',
+  confirmed: 'bg-indigo-50 text-indigo-600',
+  shipped: 'bg-blue-50 text-blue-600',
+  deliveried: 'bg-green-50 text-green-700',
+  cancelled: 'bg-red-50 text-red-500',
 }
-function Header({user,onBack,onToggle}){return <div><div className="text-[10px] text-gray-400"><Link to="/home/admin">หน้าหลัก</Link><i className="fa-solid fa-chevron-right mx-2 text-[8px]"/><Link to="/home/admin/customers">ผู้ใช้งาน</Link><i className="fa-solid fa-chevron-right mx-2 text-[8px]"/>รายละเอียด</div><div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-start gap-3"><button onClick={onBack} className="grid size-10 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#6d3df5]"><i className="fa-solid fa-arrow-left"/></button><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h1 className="max-w-full truncate text-[20px] font-extrabold sm:text-[22px]">{user.name}</h1><span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold ${user.status==='active'?'bg-emerald-50 text-emerald-600':'bg-red-50 text-red-500'}`}>{user.status==='active'?'ใช้งาน':'ระงับ'}</span></div><p className="mt-0.5 truncate text-[10px] text-gray-400 sm:text-[11px]">Customer / User #{String(user.id).padStart(5,'0')} · {user.email||'ไม่มีอีเมล'}</p></div></div><button onClick={onToggle} className={`w-full rounded-xl px-4 py-2.5 text-[11px] font-bold text-white sm:w-auto sm:shrink-0 ${user.status==='active'?'bg-red-500':'bg-emerald-600'}`}><i className={`fa-solid ${user.status==='active'?'fa-user-lock':'fa-user-check'} mr-2`}/>{user.status==='active'?'ระงับบัญชี':'เปิดใช้งาน'}</button></div></div>}
-function Card({title,icon,extra,children}){return <section className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-[0_2px_10px_rgba(30,30,50,0.03)]"><div className="mb-4 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="grid size-8 place-items-center rounded-lg bg-[#f1edff] text-[#6d3df5]"><i className={`fa-solid ${icon} text-[10px]`}/></span><h2 className="text-sm font-extrabold">{title}</h2></div>{extra}</div>{children}</section>}
-function Info({label,value}){return <div className="rounded-lg bg-gray-50 p-3"><div className="text-[9px] text-gray-400">{label}</div><div className="mt-0.5 text-[11px] font-bold">{value}</div></div>}
-function Stat({label,value,icon}){return <div className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-sm"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#f1edff] text-[#6d3df5]"><i className={`fa-solid ${icon} text-[11px]`}/></span><div><div className="text-[9px] text-gray-400">{label}</div><div className="text-lg font-extrabold">{value}</div></div></div></div>}
-function Empty({icon,text}){return <div className="rounded-xl bg-gray-50 p-7 text-center text-xs text-gray-400"><i className={`fa-solid ${icon} text-xl text-gray-200`}/><p className="mt-2">{text}</p></div>}
+
+const paymentMap = {
+  unpaid: 'รอตรวจสอบ',
+  paid: 'ชำระแล้ว',
+  cancelled: 'ยกเลิก',
+}
+
+function money(value) {
+  return `฿${Number(value || 0).toLocaleString(
+    'th-TH',
+    {
+      minimumFractionDigits: 2,
+    },
+  )}`
+}
+
+function formatDate(value) {
+  if (!value) {
+    return 'ไม่ระบุ'
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  return date.toLocaleDateString(
+    'th-TH',
+    {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    },
+  )
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return 'ไม่ระบุ'
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  return `${date.toLocaleDateString(
+    'th-TH',
+    {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    },
+  )} ${date.toLocaleTimeString(
+    'th-TH',
+    {
+      hour: '2-digit',
+      minute: '2-digit',
+    },
+  )} น.`
+}
+
+function normalizeResponse(data) {
+  if (
+    data &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    data.data !== undefined
+  ) {
+    return data.data
+  }
+
+  return data
+}
+
+function getUserName(user) {
+  return (
+    user?.username ||
+    user?.name ||
+    `User #${user?.user_id ?? '—'}`
+  )
+}
+
+function getUserEmail(user) {
+  return user?.email || 'ไม่มีอีเมล'
+}
+
+function getUserPhone(user) {
+  return user?.phone || 'ไม่มีเบอร์โทร'
+}
+
+function getOrderItems(order) {
+  if (Array.isArray(order?.items)) {
+    return order.items
+  }
+
+  return []
+}
+
+function getOrderQuantity(order) {
+  return getOrderItems(order).reduce(
+    (sum, item) =>
+      sum +
+      Math.max(
+        0,
+        Number(item?.order_quantity) || 0,
+      ),
+    0,
+  )
+}
+
+function getOrderProductName(order) {
+  const item = getOrderItems(order)[0]
+
+  return (
+    item?.product_name ||
+    'ไม่มีรายการสินค้า'
+  )
+}
+
+function getOrderProductImage(order) {
+  const item = getOrderItems(order)[0]
+
+  return item?.product_image || ''
+}
+
+function Stat({
+  label,
+  value,
+  icon,
+}) {
+  return (
+    <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+          <i
+            className={`fa-solid ${icon}`}
+          />
+        </div>
+
+        <div>
+          <p className="text-[11px] text-gray-400">
+            {label}
+          </p>
+
+          <p className="text-xl font-bold text-gray-900">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Info({
+  label,
+  value,
+}) {
+  return (
+    <div className="rounded-lg bg-gray-50 p-3">
+      <p className="text-[10px] text-gray-400">
+        {label}
+      </p>
+
+      <p className="mt-1 break-words text-xs font-bold text-gray-800">
+        {value || '—'}
+      </p>
+    </div>
+  )
+}
+
+function Empty({
+  icon,
+  text,
+}) {
+  return (
+    <div className="rounded-xl bg-gray-50 p-8 text-center">
+      <i
+        className={`fa-solid ${icon} text-2xl text-gray-200`}
+      />
+
+      <p className="mt-2 text-xs text-gray-400">
+        {text}
+      </p>
+    </div>
+  )
+}
+
+export default function AdminCustomerDetail() {
+  const { userId } = useParams()
+  const navigate = useNavigate()
+
+  const [user, setUser] = useState(null)
+  const [orders, setOrders] = useState([])
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const [userData, orderData] =
+        await Promise.all([
+          getAdminUser(userId),
+          getAdminOrders(),
+        ])
+
+      const userResponse =
+        normalizeResponse(userData)
+
+      const orderResponse =
+        normalizeResponse(orderData)
+
+      const customer =
+        userResponse &&
+          !Array.isArray(userResponse)
+          ? userResponse
+          : null
+
+      const allOrders =
+        Array.isArray(orderResponse)
+          ? orderResponse
+          : []
+
+      const customerOrders =
+        allOrders.filter(
+          (order) =>
+            Number(order?.user_id) ===
+            Number(userId),
+        )
+
+      setUser(customer)
+      setOrders(customerOrders)
+    } catch (err) {
+      console.error(
+        'load admin customer detail error:',
+        err,
+      )
+
+      setError(
+        err?.message ||
+        'ไม่สามารถโหลดข้อมูลลูกค้าได้',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!userId) {
+      setError(
+        'ไม่พบรหัสผู้ใช้งาน',
+      )
+      setLoading(false)
+      return
+    }
+
+    loadData()
+  }, [userId])
+
+  const totalSpent = useMemo(() => {
+    return orders.reduce(
+      (sum, order) =>
+        sum +
+        Number(order?.total_amount || 0),
+      0,
+    )
+  }, [orders])
+
+  const totalItems = useMemo(() => {
+    return orders.reduce(
+      (sum, order) =>
+        sum +
+        getOrderQuantity(order),
+      0,
+    )
+  }, [orders])
+
+  const completedOrders = useMemo(() => {
+    return orders.filter(
+      (order) =>
+        order?.order_status ===
+        'deliveried',
+    ).length
+  }, [orders])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-sm text-gray-400">
+          <i className="fa-solid fa-spinner fa-spin mr-2" />
+          กำลังโหลดข้อมูลลูกค้า...
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={() =>
+            navigate(
+              '/home/admin/customers',
+            )
+          }
+          className="text-sm font-semibold text-gray-500 hover:text-gray-800"
+        >
+          <i className="fa-solid fa-arrow-left mr-2" />
+          กลับรายชื่อผู้ใช้งาน
+        </button>
+
+        <div className="rounded-xl border border-red-100 bg-red-50 p-8 text-center text-sm font-bold text-red-500">
+          {error}
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-[#ececf2] bg-white p-12 text-center">
+        <i className="fa-solid fa-user-slash text-3xl text-gray-200" />
+
+        <p className="mt-3 font-bold text-gray-700">
+          ไม่พบผู้ใช้งาน
+        </p>
+
+        <button
+          type="button"
+          onClick={() =>
+            navigate(
+              '/home/admin/customers',
+            )
+          }
+          className="mt-4 rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-700"
+        >
+          กลับรายชื่อผู้ใช้งาน
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5 pb-20 md:pb-6">
+
+      {/* =========================
+          Header
+      ========================= */}
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-[10px] text-gray-400">
+          <Link
+            to="/home/admin"
+            className="hover:text-gray-700"
+          >
+            หน้าหลัก
+          </Link>
+
+          <i className="fa-solid fa-chevron-right text-[8px]" />
+
+          <Link
+            to="/home/admin/customers"
+            className="hover:text-gray-700"
+          >
+            ผู้ใช้งาน
+          </Link>
+
+          <i className="fa-solid fa-chevron-right text-[8px]" />
+
+          <span>
+            รายละเอียด
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+          <div className="flex min-w-0 items-start gap-3">
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  '/home/admin/customers',
+                )
+              }
+              className="grid size-10 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:border-violet-200 hover:text-violet-600"
+            >
+              <i className="fa-solid fa-arrow-left" />
+            </button>
+
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-extrabold text-gray-900">
+                {getUserName(user)}
+              </h1>
+
+              <p className="mt-1 text-[10px] text-gray-400 sm:text-[11px]">
+                Customer / User #
+                {String(
+                  user.user_id,
+                ).padStart(5, '0')}
+              </p>
+            </div>
+          </div>
+
+          <span className="w-fit rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-600">
+            {user.user_role ||
+              user.role ||
+              'user'}
+          </span>
+        </div>
+      </div>
+
+      {/* =========================
+          Summary
+      ========================= */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+        <Stat
+          label="ออเดอร์ทั้งหมด"
+          value={orders.length.toLocaleString(
+            'th-TH',
+          )}
+          icon="fa-receipt"
+        />
+
+        <Stat
+          label="ยอดซื้อรวม"
+          value={money(totalSpent)}
+          icon="fa-baht-sign"
+        />
+
+        <Stat
+          label="สินค้าที่สั่งซื้อ"
+          value={totalItems.toLocaleString(
+            'th-TH',
+          )}
+          icon="fa-box"
+        />
+
+        <Stat
+          label="จัดส่งสำเร็จ"
+          value={completedOrders.toLocaleString(
+            'th-TH',
+          )}
+          icon="fa-circle-check"
+        />
+
+      </div>
+
+      {/* =========================
+          Customer Info
+      ========================= */}
+      <section className="rounded-xl border border-[#ececf2] bg-white p-5 shadow-sm">
+
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+            <i className="fa-solid fa-user" />
+          </div>
+
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">
+              ข้อมูลลูกค้า
+            </h2>
+
+            <p className="text-[10px] text-gray-400">
+              ข้อมูลสมาชิกจากระบบ
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+          <Info
+            label="User ID"
+            value={String(
+              user.user_id,
+            )}
+          />
+
+          <Info
+            label="ชื่อผู้ใช้งาน"
+            value={getUserName(user)}
+          />
+
+          <Info
+            label="เบอร์โทร"
+            value={getUserPhone(user)}
+          />
+
+          <Info
+            label="อีเมล"
+            value={getUserEmail(user)}
+          />
+
+          <Info
+            label="LINE ID"
+            value={
+              user.user_line_id
+                ? 'เชื่อมต่อ LINE แล้ว'
+                : 'ไม่ได้เชื่อมต่อ'
+            }
+          />
+
+          <Info
+            label="Role"
+            value={
+              user.user_role ||
+              user.role ||
+              'user'
+            }
+          />
+
+          <Info
+            label="วันที่สมัคร"
+            value={formatDate(
+              user.created_at,
+            )}
+          />
+
+          <Info
+            label="เข้าสู่ระบบล่าสุด"
+            value="ไม่มีข้อมูล"
+          />
+
+        </div>
+      </section>
+
+      {/* =========================
+          Orders
+      ========================= */}
+      <section className="rounded-xl border border-[#ececf2] bg-white shadow-sm">
+
+        <div className="flex items-center justify-between border-b border-[#ececf2] px-5 py-4">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">
+              ประวัติการสั่งซื้อ
+            </h2>
+
+            <p className="mt-0.5 text-[10px] text-gray-400">
+              คำสั่งซื้อของ Customer
+            </p>
+          </div>
+
+          <Link
+            to="/home/admin/orders"
+            className="text-[10px] font-bold text-violet-600 hover:underline"
+          >
+            ดูทั้งหมด
+          </Link>
+        </div>
+
+        {orders.length === 0 ? (
+          <Empty
+            icon="fa-receipt"
+            text="Customer ยังไม่มีคำสั่งซื้อ"
+          />
+        ) : (
+          <div className="divide-y divide-[#f0f0f3]">
+
+            {orders.map((order) => {
+              const items =
+                getOrderItems(order)
+
+              const productName =
+                getOrderProductName(
+                  order,
+                )
+
+              const productImage =
+                getOrderProductImage(
+                  order,
+                )
+
+              const quantity =
+                getOrderQuantity(order)
+
+              const rawStatus =
+                String(
+                  order?.order_status ||
+                  '',
+                ).toLowerCase()
+
+              const statusLabel =
+                statusMap[
+                rawStatus
+                ] ||
+                rawStatus ||
+                'ไม่ทราบสถานะ'
+
+              const paymentLabel =
+                paymentMap[
+                order?.payment_status
+                ] ||
+                order?.payment_status ||
+                'รอตรวจสอบ'
+
+              return (
+                <div
+                  key={
+                    order.order_id
+                  }
+                  className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center"
+                >
+
+                  {/* Product image */}
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+
+                      {productImage ? (
+                        <img
+                          src={
+                            productImage
+                          }
+                          alt={
+                            productName
+                          }
+                          className="h-full w-full object-cover"
+                          onError={(
+                            event,
+                          ) => {
+                            event.currentTarget.style.display =
+                              'none'
+
+                            event.currentTarget.nextElementSibling?.classList.remove(
+                              'hidden',
+                            )
+                          }}
+                        />
+                      ) : null}
+
+                      <div
+                        className={`h-full w-full items-center justify-center text-gray-300 ${productImage
+                            ? 'hidden'
+                            : 'flex'
+                          }`}
+                      >
+                        <i className="fa-solid fa-box text-xl" />
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-violet-600">
+                        #PP-
+                        {String(
+                          order.order_id,
+                        ).padStart(
+                          4,
+                          '0',
+                        )}
+                      </p>
+
+                      <p className="mt-1 truncate text-sm font-bold text-gray-900">
+                        {productName}
+                      </p>
+
+                      <p className="mt-1 text-[10px] text-gray-400">
+                        {items.length}{' '}
+                        รายการ ·{' '}
+                        {quantity}{' '}
+                        ชิ้น
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* Date */}
+                  <div className="lg:w-[150px]">
+                    <p className="text-[10px] text-gray-400">
+                      วันที่สั่งซื้อ
+                    </p>
+
+                    <p className="mt-1 text-xs font-semibold text-gray-700">
+                      {formatDateTime(
+                        order.created_at,
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Payment */}
+                  <div className="lg:w-[130px]">
+                    <p className="text-[10px] text-gray-400">
+                      การชำระเงิน
+                    </p>
+
+                    <p className="mt-1 inline-flex rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold text-orange-600">
+                      {paymentLabel}
+                    </p>
+                  </div>
+
+                  {/* Status */}
+                  <div className="lg:w-[150px]">
+                    <p className="text-[10px] text-gray-400">
+                      สถานะ
+                    </p>
+
+                    <p
+                      className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${statusTone[
+                        rawStatus
+                        ] ||
+                        'bg-gray-50 text-gray-500'
+                        }`}
+                    >
+                      {statusLabel}
+                    </p>
+                  </div>
+
+                  {/* Total + detail */}
+                  <div className="flex items-center justify-between gap-4 lg:w-[180px] lg:justify-end">
+
+                    <div className="text-right">
+                      <p className="text-[10px] text-gray-400">
+                        ยอดรวม
+                      </p>
+
+                      <p className="mt-0.5 text-sm font-bold text-gray-900">
+                        {money(
+                          order.total_amount,
+                        )}
+                      </p>
+                    </div>
+
+                    <Link
+                      to={`/home/admin/orders/${encodeURIComponent(
+                        order.order_id,
+                      )}`}
+                      className="grid size-8 shrink-0 place-items-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600"
+                      title="ดูรายละเอียดคำสั่งซื้อ"
+                    >
+                      <i className="fa-regular fa-eye text-[10px]" />
+                    </Link>
+
+                  </div>
+
+                </div>
+              )
+            })}
+
+          </div>
+        )}
+
+      </section>
+
+    </div>
+  )
+}
