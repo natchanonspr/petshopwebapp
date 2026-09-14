@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"petshop-backend/internal/address"
+	"petshop-backend/internal/ai"
 	"petshop-backend/internal/cart"
 	"petshop-backend/internal/category"
 	"petshop-backend/internal/middleware"
@@ -53,6 +54,7 @@ func main() {
 	address.SetDB(db)
 	order.SetDB(db)
 	notification.SetDB(db)
+	ai.SetDB(db)
 
 	// สร้าง/อัปเดตตารางอัตโนมัติตาม struct
 	if err := db.AutoMigrate(
@@ -176,6 +178,9 @@ func main() {
 	adminNotifications.Get("/", notification.AdminList)
 	adminNotifications.Post("/", notification.AdminCreate)
 	adminNotifications.Delete("/", notification.AdminDelete)
+
+	//AI
+	app.Get("/ai/recommendations", middleware.JWTProtected(os.Getenv("JWT_SECRET")), ai.Recommendations)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))

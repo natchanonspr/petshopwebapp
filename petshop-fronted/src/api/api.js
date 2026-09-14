@@ -14,6 +14,7 @@ export async function apiFetch(url, options = {}) {
     ...options,
     headers: {
       ...ngrokHeaders(),
+      ...authHeaders(),
       ...(options.headers || {}),
     },
   })
