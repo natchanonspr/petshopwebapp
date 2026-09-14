@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import NotificationBadge from '../profile/NotificationBadge.jsx'
 import CartBadge from '../cart/CartBadge.jsx'
 import { getProductSearchSuggestions } from '../../lib/fuzzySearch.js'
-import { getProfile } from '../../api/user.js'
+import { getProfile } from '../../api/profile.js'
 
 export default function HomeHeader({ products = [] }) {
   const navigate = useNavigate()

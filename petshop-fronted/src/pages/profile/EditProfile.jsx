@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
-import { getProfile, updateProfile } from '../../api/user.js'
+import { getProfile, updateProfile } from '../../api/profile.js'
 
 export default function EditProfile() {
   const navigate = useNavigate()

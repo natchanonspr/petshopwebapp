@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import NotificationBadge from './NotificationBadge.jsx'
-import { getProfile } from '../../api/user.js'
+import { getProfile } from '../../api/profile.js'
 
 export default function ProfileHero() {
   const [profile, setProfile] = useState(null)
