@@ -107,6 +107,7 @@ func main() {
 	adminUsers.Get("/", user.AdminList)
 	adminUsers.Get("/:id", user.AdminRead)
 	adminUsers.Delete("/:id", user.AdminDelete)
+	adminUsers.Patch("/:id/role", user.AdminUpdateRole)
 
 	// PET API
 	pets := app.Group("/pets", middleware.JWTProtected(jwtSecret))

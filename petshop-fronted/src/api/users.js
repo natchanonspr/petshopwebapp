@@ -72,3 +72,44 @@ export async function deleteAdminUser(id) {
     'ลบลูกค้าไม่สำเร็จ',
   )
 }
+
+export async function updateAdminUserRole(
+  id,
+  role,
+) {
+  if (
+    !id ||
+    id === 'undefined' ||
+    id === 'null'
+  ) {
+    throw new Error(
+      'รหัสผู้ใช้งานไม่ถูกต้อง',
+    )
+  }
+
+  if (!['user', 'admin'].includes(role)) {
+    throw new Error(
+      'Role ไม่ถูกต้อง',
+    )
+  }
+
+  const res = await apiFetch(
+    `${API_BASE}/admin/users/${id}/role`,
+    {
+      method: 'PATCH',
+      headers: {
+        ...authHeaders(),
+        'Content-Type':
+          'application/json',
+      },
+      body: JSON.stringify({
+        role,
+      }),
+    },
+  )
+
+  return unwrap(
+    res,
+    'เปลี่ยนสิทธิ์ผู้ใช้งานไม่สำเร็จ',
+  )
+}

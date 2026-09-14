@@ -132,7 +132,6 @@ func AdminListUsers() ([]User, error) {
 	var users []User
 
 	err := db.
-		Where("user_role = ?", "user").
 		Order("created_at desc").
 		Find(&users).Error
 
@@ -157,4 +156,45 @@ func AdminGetUser(userID int64) (*User, error) {
 // Admin : ลบบัญชีผู้ใช้
 func AdminDeleteUser(userID int64) error {
 	return db.Delete(&User{}, userID).Error
+}
+
+// Admin : ปรับเปลี่ยน Role
+func AdminUpdateUserRole(userID int64, role string) (*User, error) {
+	if role != "user" && role != "admin" {
+		return nil, errors.New("role ไม่ถูกต้อง")
+	}
+
+	user, err := AdminGetUser(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if role == "user" && user.UserRole == "admin" {
+		var adminCount int64
+
+		if err := db.
+			Model(&User{}).
+			Where("user_role = ?", "admin").
+			Count(&adminCount).
+			Error; err != nil {
+			return nil, err
+		}
+
+		if adminCount <= 1 {
+			return nil, errors.New(
+				"ต้องมี Admin อย่างน้อย 1 คน",
+			)
+		}
+	}
+
+	user.UserRole = role
+
+	if err := db.
+		Model(user).
+		Update("user_role", role).
+		Error; err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

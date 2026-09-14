@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import {
-  getAdminUser,
-} from '../../api/users.js'
-
-import {
-  getAdminOrders,
-} from '../../api/orders.js'
+import { getAdminUser } from '../../api/users.js'
+import { getAdminOrders } from '../../api/orders.js'
 
 const statusMap = {
   pending: 'รอดำเนินการ',
@@ -31,7 +26,20 @@ const paymentMap = {
   cancelled: 'ยกเลิก',
 }
 
-function money(value) {
+function unwrapData(value) {
+  if (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    value.data !== undefined
+  ) {
+    return value.data
+  }
+
+  return value
+}
+
+function formatMoney(value) {
   return `฿${Number(value || 0).toLocaleString(
     'th-TH',
     {
@@ -41,88 +49,60 @@ function money(value) {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return 'ไม่ระบุ'
-  }
+  if (!value) return 'ไม่ระบุ'
 
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return String(value)
+    return 'ไม่ระบุ'
   }
 
-  return date.toLocaleDateString(
-    'th-TH',
-    {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    },
-  )
+  return date.toLocaleDateString('th-TH', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 function formatDateTime(value) {
-  if (!value) {
-    return 'ไม่ระบุ'
-  }
+  if (!value) return '—'
 
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return String(value)
+    return '—'
   }
 
-  return `${date.toLocaleDateString(
-    'th-TH',
-    {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    },
-  )} ${date.toLocaleTimeString(
-    'th-TH',
-    {
-      hour: '2-digit',
-      minute: '2-digit',
-    },
-  )} น.`
-}
-
-function normalizeResponse(data) {
-  if (
-    data &&
-    typeof data === 'object' &&
-    !Array.isArray(data) &&
-    data.data !== undefined
-  ) {
-    return data.data
-  }
-
-  return data
+  return `${date.toLocaleDateString('th-TH', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })} ${date.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })} น.`
 }
 
 function getUserName(user) {
   return (
     user?.username ||
     user?.name ||
-    `User #${user?.user_id ?? '—'}`
+    `User #${user?.user_id ?? '-'}`
   )
 }
 
-function getUserEmail(user) {
-  return user?.email || 'ไม่มีอีเมล'
-}
-
-function getUserPhone(user) {
-  return user?.phone || 'ไม่มีเบอร์โทร'
+function getUserRole(user) {
+  return (
+    user?.user_role ||
+    user?.role ||
+    'user'
+  )
 }
 
 function getOrderItems(order) {
-  if (Array.isArray(order?.items)) {
-    return order.items
-  }
-
-  return []
+  return Array.isArray(order?.items)
+    ? order.items
+    : []
 }
 
 function getOrderQuantity(order) {
@@ -137,19 +117,8 @@ function getOrderQuantity(order) {
   )
 }
 
-function getOrderProductName(order) {
-  const item = getOrderItems(order)[0]
-
-  return (
-    item?.product_name ||
-    'ไม่มีรายการสินค้า'
-  )
-}
-
-function getOrderProductImage(order) {
-  const item = getOrderItems(order)[0]
-
-  return item?.product_image || ''
+function getFirstProduct(order) {
+  return getOrderItems(order)[0] || null
 }
 
 function Stat({
@@ -160,18 +129,18 @@ function Stat({
   return (
     <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+        <div className="grid h-10 w-10 place-items-center rounded-lg bg-violet-50 text-violet-600">
           <i
             className={`fa-solid ${icon}`}
           />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <p className="text-[11px] text-gray-400">
             {label}
           </p>
 
-          <p className="text-xl font-bold text-gray-900">
+          <p className="truncate text-xl font-bold text-gray-900">
             {value}
           </p>
         </div>
@@ -197,17 +166,17 @@ function Info({
   )
 }
 
-function Empty({
+function EmptyState({
   icon,
   text,
 }) {
   return (
-    <div className="rounded-xl bg-gray-50 p-8 text-center">
+    <div className="p-10 text-center text-xs text-gray-400">
       <i
         className={`fa-solid ${icon} text-2xl text-gray-200`}
       />
 
-      <p className="mt-2 text-xs text-gray-400">
+      <p className="mt-2">
         {text}
       </p>
     </div>
@@ -229,37 +198,34 @@ export default function AdminCustomerDetail() {
       setLoading(true)
       setError('')
 
-      const [userData, orderData] =
+      const [userResponse, ordersResponse] =
         await Promise.all([
           getAdminUser(userId),
           getAdminOrders(),
         ])
 
-      const userResponse =
-        normalizeResponse(userData)
-
-      const orderResponse =
-        normalizeResponse(orderData)
-
       const customer =
-        userResponse &&
-          !Array.isArray(userResponse)
-          ? userResponse
-          : null
+        unwrapData(userResponse)
 
       const allOrders =
-        Array.isArray(orderResponse)
-          ? orderResponse
-          : []
+        unwrapData(ordersResponse)
 
       const customerOrders =
-        allOrders.filter(
-          (order) =>
-            Number(order?.user_id) ===
-            Number(userId),
-        )
+        Array.isArray(allOrders)
+          ? allOrders.filter(
+              (order) =>
+                Number(order?.user_id) ===
+                Number(userId),
+            )
+          : []
 
-      setUser(customer)
+      setUser(
+        customer &&
+          !Array.isArray(customer)
+          ? customer
+          : null,
+      )
+
       setOrders(customerOrders)
     } catch (err) {
       console.error(
@@ -269,7 +235,7 @@ export default function AdminCustomerDetail() {
 
       setError(
         err?.message ||
-        'ไม่สามารถโหลดข้อมูลลูกค้าได้',
+          'ไม่สามารถโหลดข้อมูลลูกค้าได้',
       )
     } finally {
       setLoading(false)
@@ -292,16 +258,17 @@ export default function AdminCustomerDetail() {
     return orders.reduce(
       (sum, order) =>
         sum +
-        Number(order?.total_amount || 0),
+        Number(
+          order?.total_amount || 0,
+        ),
       0,
     )
   }, [orders])
 
-  const totalItems = useMemo(() => {
+  const totalProducts = useMemo(() => {
     return orders.reduce(
       (sum, order) =>
-        sum +
-        getOrderQuantity(order),
+        sum + getOrderQuantity(order),
       0,
     )
   }, [orders])
@@ -350,10 +317,10 @@ export default function AdminCustomerDetail() {
 
   if (!user) {
     return (
-      <div className="rounded-xl border border-[#ececf2] bg-white p-12 text-center">
+      <div className="rounded-xl border border-[#ececf2] bg-white p-10 text-center">
         <i className="fa-solid fa-user-slash text-3xl text-gray-200" />
 
-        <p className="mt-3 font-bold text-gray-700">
+        <p className="mt-3 text-sm font-bold text-gray-700">
           ไม่พบผู้ใช้งาน
         </p>
 
@@ -371,6 +338,9 @@ export default function AdminCustomerDetail() {
       </div>
     )
   }
+
+  const role = getUserRole(user)
+  const isAdmin = role === 'admin'
 
   return (
     <div className="space-y-5 pb-20 md:pb-6">
@@ -420,9 +390,31 @@ export default function AdminCustomerDetail() {
             </button>
 
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-extrabold text-gray-900">
-                {getUserName(user)}
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-xl font-extrabold text-gray-900">
+                  {getUserName(user)}
+                </h1>
+
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                    isAdmin
+                      ? 'bg-violet-50 text-violet-600'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  <i
+                    className={`fa-solid ${
+                      isAdmin
+                        ? 'fa-user-shield'
+                        : 'fa-user'
+                    } mr-1.5`}
+                  />
+
+                  {isAdmin
+                    ? 'Admin'
+                    : 'User'}
+                </span>
+              </div>
 
               <p className="mt-1 text-[10px] text-gray-400 sm:text-[11px]">
                 Customer / User #
@@ -431,13 +423,9 @@ export default function AdminCustomerDetail() {
                 ).padStart(5, '0')}
               </p>
             </div>
+
           </div>
 
-          <span className="w-fit rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-600">
-            {user.user_role ||
-              user.role ||
-              'user'}
-          </span>
         </div>
       </div>
 
@@ -456,13 +444,15 @@ export default function AdminCustomerDetail() {
 
         <Stat
           label="ยอดซื้อรวม"
-          value={money(totalSpent)}
+          value={formatMoney(
+            totalSpent,
+          )}
           icon="fa-baht-sign"
         />
 
         <Stat
           label="สินค้าที่สั่งซื้อ"
-          value={totalItems.toLocaleString(
+          value={totalProducts.toLocaleString(
             'th-TH',
           )}
           icon="fa-box"
@@ -479,12 +469,12 @@ export default function AdminCustomerDetail() {
       </div>
 
       {/* =========================
-          Customer Info
+          Customer Information
       ========================= */}
       <section className="rounded-xl border border-[#ececf2] bg-white p-5 shadow-sm">
 
         <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+          <div className="grid size-9 place-items-center rounded-lg bg-violet-50 text-violet-600">
             <i className="fa-solid fa-user" />
           </div>
 
@@ -499,13 +489,17 @@ export default function AdminCustomerDetail() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 
           <Info
             label="User ID"
-            value={String(
-              user.user_id,
-            )}
+            value={
+              user.user_id
+                ? `#${String(
+                    user.user_id,
+                  ).padStart(5, '0')}`
+                : '—'
+            }
           />
 
           <Info
@@ -514,30 +508,25 @@ export default function AdminCustomerDetail() {
           />
 
           <Info
-            label="เบอร์โทร"
-            value={getUserPhone(user)}
-          />
-
-          <Info
-            label="อีเมล"
-            value={getUserEmail(user)}
-          />
-
-          <Info
-            label="LINE ID"
+            label="Role"
             value={
-              user.user_line_id
-                ? 'เชื่อมต่อ LINE แล้ว'
-                : 'ไม่ได้เชื่อมต่อ'
+              isAdmin
+                ? 'Admin'
+                : 'User'
             }
           />
 
           <Info
-            label="Role"
+            label="เบอร์โทร"
             value={
-              user.user_role ||
-              user.role ||
-              'user'
+              user.phone || 'ไม่มีเบอร์โทร'
+            }
+          />
+
+          <Info
+            label="อีเมล"
+            value={
+              user.email || 'ไม่มีอีเมล'
             }
           />
 
@@ -548,20 +537,16 @@ export default function AdminCustomerDetail() {
             )}
           />
 
-          <Info
-            label="เข้าสู่ระบบล่าสุด"
-            value="ไม่มีข้อมูล"
-          />
-
         </div>
       </section>
 
       {/* =========================
-          Orders
+          Order History
       ========================= */}
-      <section className="rounded-xl border border-[#ececf2] bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
 
         <div className="flex items-center justify-between border-b border-[#ececf2] px-5 py-4">
+
           <div>
             <h2 className="text-sm font-bold text-gray-900">
               ประวัติการสั่งซื้อ
@@ -578,10 +563,11 @@ export default function AdminCustomerDetail() {
           >
             ดูทั้งหมด
           </Link>
+
         </div>
 
         {orders.length === 0 ? (
-          <Empty
+          <EmptyState
             icon="fa-receipt"
             text="Customer ยังไม่มีคำสั่งซื้อ"
           />
@@ -589,18 +575,16 @@ export default function AdminCustomerDetail() {
           <div className="divide-y divide-[#f0f0f3]">
 
             {orders.map((order) => {
-              const items =
-                getOrderItems(order)
+              const firstItem =
+                getFirstProduct(order)
 
               const productName =
-                getOrderProductName(
-                  order,
-                )
+                firstItem?.product_name ||
+                'ไม่มีรายการสินค้า'
 
               const productImage =
-                getOrderProductImage(
-                  order,
-                )
+                firstItem?.product_image ||
+                ''
 
               const quantity =
                 getOrderQuantity(order)
@@ -608,19 +592,19 @@ export default function AdminCustomerDetail() {
               const rawStatus =
                 String(
                   order?.order_status ||
-                  '',
+                    '',
                 ).toLowerCase()
 
               const statusLabel =
                 statusMap[
-                rawStatus
+                  rawStatus
                 ] ||
                 rawStatus ||
                 'ไม่ทราบสถานะ'
 
               const paymentLabel =
                 paymentMap[
-                order?.payment_status
+                  order?.payment_status
                 ] ||
                 order?.payment_status ||
                 'รอตรวจสอบ'
@@ -633,10 +617,10 @@ export default function AdminCustomerDetail() {
                   className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center"
                 >
 
-                  {/* Product image */}
+                  {/* Product */}
                   <div className="flex min-w-0 flex-1 items-center gap-3">
 
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                    <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-gray-100">
 
                       {productImage ? (
                         <img
@@ -661,13 +645,15 @@ export default function AdminCustomerDetail() {
                       ) : null}
 
                       <div
-                        className={`h-full w-full items-center justify-center text-gray-300 ${productImage
+                        className={`h-full w-full items-center justify-center text-gray-300 ${
+                          productImage
                             ? 'hidden'
                             : 'flex'
-                          }`}
+                        }`}
                       >
                         <i className="fa-solid fa-box text-xl" />
                       </div>
+
                     </div>
 
                     <div className="min-w-0">
@@ -686,9 +672,10 @@ export default function AdminCustomerDetail() {
                       </p>
 
                       <p className="mt-1 text-[10px] text-gray-400">
-                        {items.length}{' '}
-                        รายการ ·{' '}
-                        {quantity}{' '}
+                        {getOrderItems(
+                          order,
+                        ).length}{' '}
+                        รายการ · {quantity}{' '}
                         ชิ้น
                       </p>
                     </div>
@@ -696,7 +683,7 @@ export default function AdminCustomerDetail() {
                   </div>
 
                   {/* Date */}
-                  <div className="lg:w-[150px]">
+                  <div className="lg:w-[145px]">
                     <p className="text-[10px] text-gray-400">
                       วันที่สั่งซื้อ
                     </p>
@@ -709,34 +696,35 @@ export default function AdminCustomerDetail() {
                   </div>
 
                   {/* Payment */}
-                  <div className="lg:w-[130px]">
+                  <div className="lg:w-[125px]">
                     <p className="text-[10px] text-gray-400">
                       การชำระเงิน
                     </p>
 
-                    <p className="mt-1 inline-flex rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold text-orange-600">
+                    <span className="mt-1 inline-flex rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold text-orange-600">
                       {paymentLabel}
-                    </p>
+                    </span>
                   </div>
 
                   {/* Status */}
-                  <div className="lg:w-[150px]">
+                  <div className="lg:w-[145px]">
                     <p className="text-[10px] text-gray-400">
                       สถานะ
                     </p>
 
-                    <p
-                      className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${statusTone[
-                        rawStatus
+                    <span
+                      className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        statusTone[
+                          rawStatus
                         ] ||
                         'bg-gray-50 text-gray-500'
-                        }`}
+                      }`}
                     >
                       {statusLabel}
-                    </p>
+                    </span>
                   </div>
 
-                  {/* Total + detail */}
+                  {/* Total */}
                   <div className="flex items-center justify-between gap-4 lg:w-[180px] lg:justify-end">
 
                     <div className="text-right">
@@ -745,7 +733,7 @@ export default function AdminCustomerDetail() {
                       </p>
 
                       <p className="mt-0.5 text-sm font-bold text-gray-900">
-                        {money(
+                        {formatMoney(
                           order.total_amount,
                         )}
                       </p>
@@ -755,8 +743,8 @@ export default function AdminCustomerDetail() {
                       to={`/home/admin/orders/${encodeURIComponent(
                         order.order_id,
                       )}`}
-                      className="grid size-8 shrink-0 place-items-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600"
                       title="ดูรายละเอียดคำสั่งซื้อ"
+                      className="grid size-8 shrink-0 place-items-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-600"
                     >
                       <i className="fa-regular fa-eye text-[10px]" />
                     </Link>

@@ -147,3 +147,52 @@ func AdminDelete(c *fiber.Ctx) error {
 		"message": "Delete User Successful",
 	})
 }
+
+func AdminUpdateRole(c *fiber.Ctx) error {
+	userID, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "รหัสผู้ใช้งานไม่ถูกต้อง",
+		})
+	}
+
+	// ป้องกัน Admin เปลี่ยน Role ของตัวเอง
+	currentUserID, ok := c.Locals("user_id").(int64)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "ไม่พบข้อมูลผู้ใช้งานปัจจุบัน",
+		})
+	}
+
+	if int64(userID) == currentUserID {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "ไม่สามารถเปลี่ยน Role ของบัญชีตัวเองได้",
+		})
+	}
+
+	req := struct {
+		Role string `json:"role"`
+	}{}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	user, err := AdminUpdateUserRole(
+		int64(userID),
+		req.Role,
+	)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Update User Role Successful",
+		"data":    user,
+	})
+}
