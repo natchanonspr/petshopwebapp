@@ -10,6 +10,7 @@ import (
 	"petshop-backend/internal/cart"
 	"petshop-backend/internal/category"
 	"petshop-backend/internal/middleware"
+	"petshop-backend/internal/notification"
 	"petshop-backend/internal/order"
 	"petshop-backend/internal/pet"
 	"petshop-backend/internal/product"
@@ -51,6 +52,7 @@ func main() {
 	cart.SetDB(db)
 	address.SetDB(db)
 	order.SetDB(db)
+	notification.SetDB(db)
 
 	// สร้าง/อัปเดตตารางอัตโนมัติตาม struct
 	if err := db.AutoMigrate(
@@ -62,6 +64,8 @@ func main() {
 		&product.Product{},
 		&address.Address{},
 		&cart.Cart{},
+		&notification.Notification{},
+		&notification.NotificationRecipient{},
 	); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
@@ -160,6 +164,18 @@ func main() {
 	adminOrders.Get("/", order.AdminList)
 	adminOrders.Get("/:id", order.AdminRead)
 	adminOrders.Patch("/:id/status", order.AdminUpdateStatus)
+
+	// Noti API
+	notifications := app.Group("/notifications", middleware.JWTProtected(jwtSecret))
+	notifications.Get("/", notification.List)
+	notifications.Get("/unread-count", notification.UnreadCount)
+	notifications.Patch("/:id/read", notification.MarkRead)
+	notifications.Patch("/read-all", notification.MarkAllRead)
+	//Admin Noti
+	adminNotifications := app.Group("/admin/notifications", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
+	adminNotifications.Get("/", notification.AdminList)
+	adminNotifications.Post("/", notification.AdminCreate)
+	adminNotifications.Delete("/", notification.AdminDelete)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))

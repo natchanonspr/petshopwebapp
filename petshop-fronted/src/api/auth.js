@@ -47,3 +47,43 @@ export async function loginWithLine({
 
   return body.token
 }
+
+export async function login({
+  userPhone,
+  userPassword,
+}) {
+  const res = await apiFetch(`${API_BASE}/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      user_phone: userPhone,
+      user_password: userPassword,
+    }),
+  })
+
+  const text = await res.text()
+
+  let body = null
+
+  try {
+    body = JSON.parse(text)
+  } catch {
+    body = null
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      body?.error ||
+      body?.message ||
+      'เข้าสู่ระบบไม่สำเร็จ'
+    )
+  }
+
+  if (!body?.token) {
+    throw new Error('ไม่พบ token จาก Backend')
+  }
+
+  return body.token
+}

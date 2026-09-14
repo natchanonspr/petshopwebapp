@@ -1,25 +1,30 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getUnreadCount, subscribeNotifications } from '../../lib/notifications.js'
-import { loadAdminData } from '../../admin/data.js'
-import { fuzzyProductScore } from '../../lib/fuzzySearch.js'
+import { getAdminOrders } from '../../api/orders.js'
+import { getAdminUsers } from '../../api/users.js'
+import { getProducts } from '../../api/products.js'
 
 const PROFILE_KEY = 'petshop_profile'
 
 const menus = [
-  { title: 'MENU', items: [
-    { to: '/home/admin', icon: 'fa-chart-pie', label: 'Dashboard', end: true },
-    { to: '/home/admin/orders', icon: 'fa-cart-shopping', label: 'คำสั่งซื้อ' },
-    { to: '/home/admin/products', icon: 'fa-box-open', label: 'สินค้า' },
-    { to: '/home/admin/customers', icon: 'fa-users', label: 'ผู้ใช้งาน' },
-  ]},
-  { title: 'MANAGEMENT', items: [
-    { to: '/home/admin/coupons', icon: 'fa-ticket', label: 'โปรโมชั่น' },
-    { to: '/home/admin/notifications', icon: 'fa-bell', label: 'การแจ้งเตือน' },
-    { to: '/home/admin/reports', icon: 'fa-chart-line', label: 'รายงานและสถิติ' },
-    { to: '/home/admin/settings', icon: 'fa-wand-magic-sparkles', label: 'จัดการ AI' },
-    { to: '/home/admin/store', icon: 'fa-store', label: 'ข้อมูลร้านค้า' },
-  ]},
+  {
+    title: 'MENU', items: [
+      { to: '/home/admin', icon: 'fa-chart-pie', label: 'Dashboard', end: true },
+      { to: '/home/admin/orders', icon: 'fa-cart-shopping', label: 'คำสั่งซื้อ' },
+      { to: '/home/admin/products', icon: 'fa-box-open', label: 'สินค้า' },
+      { to: '/home/admin/customers', icon: 'fa-users', label: 'ผู้ใช้งาน' },
+    ]
+  },
+  {
+    title: 'MANAGEMENT', items: [
+      { to: '/home/admin/coupons', icon: 'fa-ticket', label: 'โปรโมชั่น' },
+      { to: '/home/admin/notifications', icon: 'fa-bell', label: 'การแจ้งเตือน' },
+      { to: '/home/admin/reports', icon: 'fa-chart-line', label: 'รายงานและสถิติ' },
+      { to: '/home/admin/settings', icon: 'fa-wand-magic-sparkles', label: 'จัดการ AI' },
+      { to: '/home/admin/store', icon: 'fa-store', label: 'ข้อมูลร้านค้า' },
+    ]
+  },
 ]
 
 const normalizeSearch = (value = '') => String(value).toLowerCase().normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/[^\p{L}\p{N}]+/gu, '')
@@ -66,19 +71,154 @@ export default function AdminLayout() {
   const [unreadCount, setUnreadCount] = useState(() => getUnreadCount('admin'))
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [searchProducts, setSearchProducts] = useState([])
+  const [searchUsers, setSearchUsers] = useState([])
+  const [searchOrders, setSearchOrders] = useState([])
   const expanded = !collapsed || hovered
+  useEffect(() => {
+    let mounted = true
+
+    const unwrapData = (response) => {
+      if (Array.isArray(response)) return response
+      if (Array.isArray(response?.data)) return response.data
+      return []
+    }
+
+    const loadSearchData = async () => {
+      try {
+        const [productsResponse, usersResponse, ordersResponse] =
+          await Promise.all([
+            getProducts(),
+            getAdminUsers(),
+            getAdminOrders(),
+          ])
+
+        if (!mounted) return
+
+        setSearchProducts(unwrapData(productsResponse))
+        setSearchUsers(unwrapData(usersResponse))
+        setSearchOrders(unwrapData(ordersResponse))
+      } catch (error) {
+        console.error('Load admin search data error:', error)
+      }
+    }
+
+    loadSearchData()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const searchResults = (() => {
     const query = normalizeSearch(search)
+
     if (query.length < 2) return []
-    const data = loadAdminData()
-    const results = [
-      ...data.products.map(item => ({ type: 'สินค้า', icon: 'fa-box-open', title: item.name, meta: item.category, to: `/home/admin/products?search=${encodeURIComponent(item.name)}`, score: fuzzyProductScore(item, query) })),
-      ...data.users.map(item => ({ type: 'ลูกค้า', icon: 'fa-user', title: item.name, meta: item.phone || item.email || 'ข้อมูลลูกค้า', to: `/home/admin/customers/${item.id}`, score: Math.max(searchScore(query, item.name), searchScore(query, item.phone), searchScore(query, item.email)) * 0.96 })),
-      ...data.orders.map(item => ({ type: 'คำสั่งซื้อ', icon: 'fa-cart-shopping', title: item.id, meta: item.customer || item.status, to: `/home/admin/orders/${encodeURIComponent(item.id)}`, score: Math.max(searchScore(query, item.id), searchScore(query, item.customer)) * 0.94 })),
-      ...data.coupons.map(item => ({ type: 'คูปอง', icon: 'fa-ticket', title: item.code, meta: `${item.type} ${item.value}`, to: '/home/admin/coupons', score: searchScore(query, item.code) * 0.9 })),
-    ]
-    return results.filter(item => item.score >= (query.length <= 3 ? 0.5 : 0.38)).sort((a, b) => b.score - a.score).slice(0, 7)
+
+    const results = []
+
+    // =========================
+    // PRODUCTS
+    // =========================
+    for (const item of searchProducts) {
+      const productId = item?.product_id ?? item?.id
+      const productName =
+        item?.product_name ??
+        item?.name ??
+        `สินค้า #${productId ?? '-'}`
+
+      const category =
+        item?.category_name ??
+        item?.category ??
+        ''
+
+      const score = Math.max(
+        searchScore(query, productName),
+        searchScore(query, category),
+        searchScore(query, String(productId ?? '')),
+      )
+
+      if (score >= (query.length <= 3 ? 0.5 : 0.38)) {
+        results.push({
+          type: 'สินค้า',
+          icon: 'fa-box-open',
+          title: productName,
+          meta: category || `สินค้า #${productId}`,
+          to: `/home/admin/products?search=${encodeURIComponent(productName)}`,
+          score: score,
+        })
+      }
+    }
+
+    // =========================
+    // USERS
+    // =========================
+    for (const item of searchUsers) {
+      const userId = item?.user_id ?? item?.id
+
+      const name =
+        item?.username ??
+        item?.name ??
+        `User #${userId ?? '-'}`
+
+      const phone = item?.phone ?? ''
+      const email = item?.email ?? ''
+
+      const score = Math.max(
+        searchScore(query, name),
+        searchScore(query, phone),
+        searchScore(query, email),
+        searchScore(query, String(userId ?? '')),
+      ) * 0.96
+
+      if (score >= (query.length <= 3 ? 0.5 : 0.38)) {
+        results.push({
+          type: 'ผู้ใช้งาน',
+          icon: 'fa-user',
+          title: name,
+          meta: phone || email || `User #${userId}`,
+          to: `/home/admin/customers/${userId}`,
+          score,
+        })
+      }
+    }
+
+    // =========================
+    // ORDERS
+    // =========================
+    for (const item of searchOrders) {
+      const orderId = item?.order_id ?? item?.id
+
+      const customer =
+        item?.user?.username ??
+        item?.user?.name ??
+        item?.customer ??
+        `User #${item?.user_id ?? '-'}`
+
+      const status = item?.order_status ?? item?.status ?? ''
+
+      const score =
+        Math.max(
+          searchScore(query, String(orderId ?? '')),
+          searchScore(query, customer),
+          searchScore(query, status),
+        ) * 0.94
+
+      if (score >= (query.length <= 3 ? 0.5 : 0.38)) {
+        results.push({
+          type: 'คำสั่งซื้อ',
+          icon: 'fa-cart-shopping',
+          title: `#${orderId}`,
+          meta: customer,
+          to: `/home/admin/orders/${encodeURIComponent(orderId)}`,
+          score,
+        })
+      }
+    }
+
+    return results
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 7)
   })()
 
   const submitSearch = (result = searchResults[0]) => {
@@ -115,7 +255,7 @@ export default function AdminLayout() {
           <button onClick={() => setMobileOpen(true)} className="grid size-10 place-items-center rounded-xl border border-gray-200 text-gray-500 lg:hidden"><i className="fa-solid fa-bars" /></button>
           <button onClick={() => setCollapsed(v => !v)} className="hidden size-10 place-items-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 lg:grid"><i className={`fa-solid ${collapsed ? 'fa-angles-right' : 'fa-angles-left'} text-xs`} /></button>
           <div className="relative hidden sm:block w-[280px] md:w-[360px]">
-            <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"/>
+            <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400" />
             <input
               value={search}
               onChange={event => { setSearch(event.target.value); setSearchOpen(true) }}
@@ -125,33 +265,33 @@ export default function AdminLayout() {
               placeholder="ค้นหาในระบบ..."
               aria-label="ค้นหาในระบบ"
             />
-            {search && <button type="button" onClick={() => { setSearch(''); setSearchOpen(false) }} className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-gray-400 hover:bg-gray-100" aria-label="ล้างการค้นหา"><i className="fa-solid fa-xmark text-[10px]"/></button>}
+            {search && <button type="button" onClick={() => { setSearch(''); setSearchOpen(false) }} className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-gray-400 hover:bg-gray-100" aria-label="ล้างการค้นหา"><i className="fa-solid fa-xmark text-[10px]" /></button>}
             {searchOpen && search.trim().length >= 2 && (
               <div className="absolute left-0 right-0 top-12 z-[100] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
                 {searchResults.length ? searchResults.map((result, index) => (
                   <button key={`${result.type}-${result.title}-${index}`} type="button" onClick={() => submitSearch(result)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-violet-50 active:bg-violet-100">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-500"><i className={`fa-solid ${result.icon} text-xs`}/></span>
+                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-500"><i className={`fa-solid ${result.icon} text-xs`} /></span>
                     <span className="min-w-0 flex-1"><b className="block truncate text-xs text-gray-800">{result.title}</b><small className="mt-0.5 block truncate text-[10px] text-gray-400">{result.type} · {result.meta}</small></span>
-                    <i className="fa-solid fa-arrow-right text-[9px] text-gray-300"/>
+                    <i className="fa-solid fa-arrow-right text-[9px] text-gray-300" />
                   </button>
-                )) : <div className="px-4 py-5 text-center"><i className="fa-solid fa-magnifying-glass mb-2 text-gray-300"/><p className="m-0 text-xs font-semibold text-gray-500">ไม่พบข้อมูล</p><p className="m-0 mt-1 text-[10px] text-gray-400">ลองใช้คำค้นอื่นหรือสะกดให้ใกล้เคียงมากขึ้น</p></div>}
+                )) : <div className="px-4 py-5 text-center"><i className="fa-solid fa-magnifying-glass mb-2 text-gray-300" /><p className="m-0 text-xs font-semibold text-gray-500">ไม่พบข้อมูล</p><p className="m-0 mt-1 text-[10px] text-gray-400">ลองใช้คำค้นอื่นหรือสะกดให้ใกล้เคียงมากขึ้น</p></div>}
               </div>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <NavLink to="/home/admin/notifications" className="relative grid size-10 place-items-center rounded-xl text-gray-500 hover:bg-gray-50"><i className="fa-regular fa-bell text-[15px]"/>{unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-red-500 px-1 text-[9px] font-extrabold leading-4 text-white text-center ring-2 ring-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}</NavLink>
-          <div className="relative"><button onClick={() => setProfileOpen(v => !v)} className="flex items-center gap-2 rounded-xl p-1.5 hover:bg-gray-50"><span className="grid size-9 place-items-center rounded-full bg-violet-100 text-violet-600"><i className="fa-solid fa-user text-xs"/></span><span className="hidden text-left sm:block"><b className="block max-w-[150px] truncate text-xs">{profile.name || 'Admin'}</b><small className="block max-w-[150px] truncate text-[10px] text-gray-400">{profile.email || profile.phone || 'ผู้ดูแลระบบ'}</small></span><i className="fa-solid fa-chevron-down hidden text-[9px] text-gray-400 sm:block"/></button>
-            {profileOpen && <div className="absolute right-0 top-12 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl"><div className="border-b border-gray-100 px-3 py-2"><div className="text-[11px] font-extrabold text-gray-900">{profile.name || 'Admin'}</div><div className="mt-0.5 truncate text-[10px] text-gray-400">{profile.email || profile.phone || 'บัญชีผู้ดูแลระบบ'}</div></div><button onClick={logout} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50"><i className="fa-solid fa-right-from-bracket w-4"/> ออกจากระบบ</button></div>}
+          <NavLink to="/home/admin/notifications" className="relative grid size-10 place-items-center rounded-xl text-gray-500 hover:bg-gray-50"><i className="fa-regular fa-bell text-[15px]" />{unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-red-500 px-1 text-[9px] font-extrabold leading-4 text-white text-center ring-2 ring-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}</NavLink>
+          <div className="relative"><button onClick={() => setProfileOpen(v => !v)} className="flex items-center gap-2 rounded-xl p-1.5 hover:bg-gray-50"><span className="grid size-9 place-items-center rounded-full bg-violet-100 text-violet-600"><i className="fa-solid fa-user text-xs" /></span><span className="hidden text-left sm:block"><b className="block max-w-[150px] truncate text-xs">{profile.name || 'Admin'}</b><small className="block max-w-[150px] truncate text-[10px] text-gray-400">{profile.email || profile.phone || 'ผู้ดูแลระบบ'}</small></span><i className="fa-solid fa-chevron-down hidden text-[9px] text-gray-400 sm:block" /></button>
+            {profileOpen && <div className="absolute right-0 top-12 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl"><div className="border-b border-gray-100 px-3 py-2"><div className="text-[11px] font-extrabold text-gray-900">{profile.name || 'Admin'}</div><div className="mt-0.5 truncate text-[10px] text-gray-400">{profile.email || profile.phone || 'บัญชีผู้ดูแลระบบ'}</div></div><button onClick={logout} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50"><i className="fa-solid fa-right-from-bracket w-4" /> ออกจากระบบ</button></div>}
           </div>
         </div>
       </div>
     </header>
-    {mobileOpen && <button onClick={() => setMobileOpen(false)} aria-label="ปิดเมนู" className="fixed inset-0 z-[65] bg-black/30 lg:hidden"/>}
+    {mobileOpen && <button onClick={() => setMobileOpen(false)} aria-label="ปิดเมนู" className="fixed inset-0 z-[65] bg-black/30 lg:hidden" />}
     <aside onMouseEnter={() => collapsed && setHovered(true)} onMouseLeave={() => setHovered(false)} className={`fixed inset-y-0 left-0 z-[70] border-r border-gray-100 bg-white transition-all duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${expanded ? 'w-[290px]' : 'w-[90px]'}`}>
-      <div className={`flex h-[72px] items-center border-b border-gray-100 ${expanded ? 'px-6' : 'justify-center'}`}><div className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-white shadow-lg shadow-violet-200"><i className="fa-solid fa-paw text-sm"/></div>{expanded && <div className="ml-3"><b className="block text-[15px]">Pet Shop</b><small className="text-[8px] font-bold tracking-[.18em] text-gray-400">ADMIN PANEL</small></div>}<button onClick={() => setMobileOpen(false)} className="ml-auto grid size-8 place-items-center text-gray-400 lg:hidden"><i className="fa-solid fa-xmark"/></button></div>
-      <div className="h-[calc(100%-72px)] overflow-y-auto px-3 py-5">{menus.map(group => <div key={group.title} className="mb-6">{expanded && <p className="mb-2 px-3 text-[10px] font-bold tracking-wider text-gray-400">{group.title}</p>}<nav className="space-y-1">{group.items.map(item => <SidebarItem key={item.to} item={item} expanded={expanded} closeMobile={() => setMobileOpen(false)}/>)}</nav></div>)}</div>
+      <div className={`flex h-[72px] items-center border-b border-gray-100 ${expanded ? 'px-6' : 'justify-center'}`}><div className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-600 text-white shadow-lg shadow-violet-200"><i className="fa-solid fa-paw text-sm" /></div>{expanded && <div className="ml-3"><b className="block text-[15px]">Pet Shop</b><small className="text-[8px] font-bold tracking-[.18em] text-gray-400">ADMIN PANEL</small></div>}<button onClick={() => setMobileOpen(false)} className="ml-auto grid size-8 place-items-center text-gray-400 lg:hidden"><i className="fa-solid fa-xmark" /></button></div>
+      <div className="h-[calc(100%-72px)] overflow-y-auto px-3 py-5">{menus.map(group => <div key={group.title} className="mb-6">{expanded && <p className="mb-2 px-3 text-[10px] font-bold tracking-wider text-gray-400">{group.title}</p>}<nav className="space-y-1">{group.items.map(item => <SidebarItem key={item.to} item={item} expanded={expanded} closeMobile={() => setMobileOpen(false)} />)}</nav></div>)}</div>
     </aside>
-    <main className={`min-h-screen pt-[72px] transition-all duration-200 ${expanded ? 'lg:pl-[290px]' : 'lg:pl-[90px]'}`}><div className="mx-auto max-w-[1600px] p-4 pb-24 md:p-6 md:pb-8"><Outlet/></div></main>
+    <main className={`min-h-screen pt-[72px] transition-all duration-200 ${expanded ? 'lg:pl-[290px]' : 'lg:pl-[90px]'}`}><div className="mx-auto max-w-[1600px] p-4 pb-24 md:p-6 md:pb-8"><Outlet /></div></main>
   </div>
 }

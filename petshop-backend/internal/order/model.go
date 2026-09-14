@@ -1,8 +1,9 @@
 package order
 
 import (
-	"os/user"
 	"time"
+
+	"petshop-backend/internal/user"
 )
 
 type Order struct {

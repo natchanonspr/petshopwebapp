@@ -6,6 +6,7 @@ import FavoriteButton from '../../components/products/FavoriteButton.jsx'
 import { getProduct } from '../../api/products.js'
 import { addToCart } from '../../api/cart.js'
 import { logActivity } from '../../admin/activity.js'
+import ProductInfoCard from '../../components/product-detail/ProductInfoCard.jsx'
 
 export default function ProductDetail() {
   const { productId } = useParams()

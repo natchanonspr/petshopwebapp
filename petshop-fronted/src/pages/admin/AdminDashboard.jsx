@@ -91,7 +91,7 @@ function Card({ title, value, icon, description }) {
           )}
         </div>
 
-        <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-orange-50 text-orange-500">
+        <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#f1edff] text-[#6d3df5]">
           <i className={`fa-solid ${icon}`} />
         </div>
       </div>
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
       <div className="p-5">
         <div className="flex min-h-[400px] items-center justify-center">
           <div className="text-center">
-            <i className="fa-solid fa-spinner fa-spin text-2xl text-orange-500" />
+            <i className="fa-solid fa-spinner fa-spin text-2xl text-[#6d3df5]" />
             <p className="mt-3 text-sm text-gray-500">
               กำลังโหลด Dashboard...
             </p>
@@ -359,7 +359,7 @@ export default function AdminDashboard() {
           Header
       ====================================================== */}
       <div className="mb-6">
-        <p className="text-xs font-semibold text-orange-500">
+        <p className="text-xs font-semibold text-[#6d3df5]">
           ADMIN DASHBOARD
         </p>
 
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          <i className="fa-solid fa-chart-column text-orange-500" />
+          <i className="fa-solid fa-chart-column text-[#6d3df5]" />
         </div>
 
         <div className="mt-6 flex h-56 items-end gap-2 sm:gap-4">
@@ -450,7 +450,7 @@ export default function AdminDashboard() {
 
                 <div className="flex h-36 w-full items-end justify-center">
                   <div
-                    className="w-full max-w-10 rounded-t-xl bg-orange-400 transition-all"
+                    className="w-full max-w-10 rounded-t-xl bg-[#6d3df5] transition-all"
                     style={{
                       height: `${height}%`,
                     }}
@@ -489,7 +489,7 @@ export default function AdminDashboard() {
 
             <Link
               to="/home/admin/orders"
-              className="text-xs font-bold text-orange-500 hover:text-orange-600"
+              className="text-xs font-bold text-[#6d3df5] hover:text-violet-700"
             >
               ดูทั้งหมด
             </Link>
@@ -511,7 +511,7 @@ export default function AdminDashboard() {
                   to={`/home/admin/orders/${order.order_id}`}
                   className="flex items-center gap-3 border-b border-gray-100 px-5 py-4 transition hover:bg-gray-50 last:border-b-0"
                 >
-                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-orange-500">
+                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#f1edff] text-[#6d3df5]">
                     <i className="fa-solid fa-receipt text-sm" />
                   </div>
 
@@ -569,7 +569,7 @@ export default function AdminDashboard() {
 
             <Link
               to="/home/admin/products"
-              className="text-xs font-bold text-orange-500 hover:text-orange-600"
+              className="text-xs font-bold text-[#6d3df5] hover:text-violet-700"
             >
               ดูสินค้า
             </Link>
@@ -619,7 +619,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="shrink-0 text-right">
-                    <p className="text-sm font-extrabold text-orange-500">
+                    <p className="text-sm font-extrabold text-[#6d3df5]">
                       {product.quantity.toLocaleString('th-TH')}
                     </p>
 
