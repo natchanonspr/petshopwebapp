@@ -31,6 +31,11 @@ export default defineConfig({
       '/categories': { target: backend, changeOrigin: true },
       '/cart': { target: backend, changeOrigin: true },
       '/register': { target: backend, changeOrigin: true },
+      '/profile': { target: backend, changeOrigin: true },
+      '/addresses': { target: backend, changeOrigin: true },
+      '/orders': { target: backend, changeOrigin: true },
+      '/notifications': { target: backend, changeOrigin: true },
+      '/admin': { target: backend, changeOrigin: true },
     },
   },
 })
