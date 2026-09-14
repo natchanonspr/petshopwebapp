@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Cart struct {
+type Carts struct {
 	CartItemID   int64     `gorm:"primaryKey;autoIncrement" json:"cart_item_id"`
 	UserID       int64     `gorm:"not null" json:"user_id"`
 	ProductID    int64     `gorm:"not null" json:"product_id"`

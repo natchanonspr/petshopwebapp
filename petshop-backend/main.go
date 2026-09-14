@@ -65,7 +65,7 @@ func main() {
 		&category.Category{},
 		&product.Product{},
 		&address.Address{},
-		&cart.Cart{},
+		&cart.Carts{},
 		&notification.Notification{},
 		&notification.NotificationRecipient{},
 		&ai.AIRecommendation{},
@@ -147,8 +147,8 @@ func main() {
 	carts := app.Group("/cart", middleware.JWTProtected(jwtSecret))
 	carts.Get("/", cart.ReadCart)
 	carts.Post("/items", cart.AddItem)
-	carts.Put("/items/:itemId", cart.UpdateItem)
-	carts.Delete("/items/:itemId", cart.RemoveItem)
+	carts.Put("/items/:itemID", cart.UpdateItem)
+	carts.Delete("/items/:itemID", cart.RemoveItem)
 
 	// Address API
 	addresses := app.Group("/addresses", middleware.JWTProtected(jwtSecret))

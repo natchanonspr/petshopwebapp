@@ -12,7 +12,7 @@ var ErrOutOfStock = errors.New("สินค้าในสต็อกไม่
 var ErrNotOwner = errors.New("ไม่ใช่รายการในตะกร้าของคุณ")
 var ErrInvalidQuantity = errors.New("จำนวนต้องมากกว่า 0")
 
-func AddItemService(userID int64, req *AddItemRequest) ([]Cart, error) {
+func AddItemService(userID int64, req *AddItemRequest) ([]Carts, error) {
 	if req.CartQuantity <= 0 {
 		return nil, ErrInvalidQuantity
 	}
@@ -42,7 +42,7 @@ func AddItemService(userID int64, req *AddItemRequest) ([]Cart, error) {
 			return nil, ErrOutOfStock
 		}
 
-		item := &Cart{UserID: userID, ProductID: req.ProductID, CartQuantity: req.CartQuantity}
+		item := &Carts{UserID: userID, ProductID: req.ProductID, CartQuantity: req.CartQuantity}
 		if err := CreateCart(item); err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func AddItemService(userID int64, req *AddItemRequest) ([]Cart, error) {
 	return GetCart(userID)
 }
 
-func UpdateItemService(userID, cartID int64, req *UpdateItemRequest) ([]Cart, error) {
+func UpdateItemService(userID, cartID int64, req *UpdateItemRequest) ([]Carts, error) {
 	if req.CartQuantity <= 0 {
 		return nil, ErrInvalidQuantity
 	}
@@ -82,7 +82,7 @@ func UpdateItemService(userID, cartID int64, req *UpdateItemRequest) ([]Cart, er
 	return GetCart(userID)
 }
 
-func RemoveItemServices(userID, cartID int64) ([]Cart, error) {
+func RemoveItemServices(userID, cartID int64) ([]Carts, error) {
 	item, err := GetCartByID(cartID)
 	if err != nil {
 		return nil, err
@@ -99,6 +99,6 @@ func RemoveItemServices(userID, cartID int64) ([]Cart, error) {
 	return GetCart(userID)
 }
 
-func GetCartService(userID int64) ([]Cart, error) {
+func GetCartService(userID int64) ([]Carts, error) {
 	return GetCart(userID)
 }

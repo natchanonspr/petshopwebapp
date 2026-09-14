@@ -32,10 +32,6 @@ func AddItem(c *fiber.Ctx) error {
 		})
 	}
 
-	fmt.Println("AddItem userID:", userID)
-	fmt.Println("AddItem productID:", req.ProductID)
-	fmt.Println("AddItem quantity:", req.CartQuantity)
-
 	item, err := AddItemService(userID, req)
 	if err != nil {
 		fmt.Println("AddItemService ERROR:", err)
