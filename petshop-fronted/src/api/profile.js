@@ -13,6 +13,7 @@ export async function updateProfile({
   name,
   phone,
   email,
+  password = '',
   pictureUrl = '',
 }) {
   const res = await apiFetch(`${API_BASE}/profile/`, {
@@ -25,6 +26,7 @@ export async function updateProfile({
       username: name,
       phone,
       email,
+      password,
       picture_url: pictureUrl,
     }),
   })

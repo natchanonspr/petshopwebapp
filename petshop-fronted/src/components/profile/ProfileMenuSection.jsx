@@ -28,8 +28,29 @@ const sections = [
   },
 ]
 
+function getTokenRole() {
+  try {
+    const token = localStorage.getItem('petshop_token')
+    if (!token) return ''
+
+    const payload = token.split('.')[1]
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((char) => `%${(`00${char.charCodeAt(0).toString(16)}`).slice(-2)}`)
+        .join(''),
+    )
+
+    return String(JSON.parse(json)?.role || '').toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
 export default function ProfileMenuSection() {
   const navigate = useNavigate()
+  const [isAdmin, setIsAdmin] = useState(() => getTokenRole() === 'admin')
   const [addressCount, setAddressCount] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('petshop_addresses') || '[]')
@@ -40,6 +61,8 @@ export default function ProfileMenuSection() {
   })
 
   useEffect(() => {
+    const syncRole = () => setIsAdmin(getTokenRole() === 'admin')
+
     const syncAddresses = () => {
       try {
         const saved = JSON.parse(localStorage.getItem('petshop_addresses') || '[]')
@@ -50,9 +73,11 @@ export default function ProfileMenuSection() {
     }
     window.addEventListener('petshop-address-updated', syncAddresses)
     window.addEventListener('storage', syncAddresses)
+    window.addEventListener('petshop-auth-updated', syncRole)
     return () => {
       window.removeEventListener('petshop-address-updated', syncAddresses)
       window.removeEventListener('storage', syncAddresses)
+      window.removeEventListener('petshop-auth-updated', syncRole)
     }
   }, [])
 
@@ -110,6 +135,28 @@ export default function ProfileMenuSection() {
           </div>
         </section>
       ))}
+
+      {isAdmin && (
+        <section>
+          <h2 className="mb-3 text-base font-bold text-slate-800">ผู้ดูแลระบบ</h2>
+          <div className="overflow-hidden rounded-[22px] border border-orange-100 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">
+            <Link
+              to="/home/admin"
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-orange-50 active:bg-orange-100"
+              aria-label="เข้าสู่ระบบผู้ดูแล"
+            >
+              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-orange-500 text-white shadow-sm">
+                <i className="fa-solid fa-shield-halved text-[17px]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-slate-700">จัดการระบบ</span>
+                <span className="mt-0.5 block text-xs text-slate-400">เข้าสู่หน้าผู้ดูแลระบบ</span>
+              </span>
+              <i className="fa-solid fa-chevron-right shrink-0 text-xs text-slate-300" />
+            </Link>
+          </div>
+        </section>
+      )}
 
       <button
         type="button"

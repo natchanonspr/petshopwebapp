@@ -15,6 +15,7 @@ type Pet struct {
 	PetDisease   string    `json:"pet_disease"`
 	PetHealth    string    `json:"pet_health"`
 	Description  string    `json:"description"`
+	PetImage     string    `json:"image"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -29,4 +30,5 @@ type PetRequest struct {
 	PetDisease   string  `json:"pet_disease"`
 	PetHealth    string  `json:"pet_health"`
 	Description  string  `json:"description"`
+	PetImage     string  `json:"image"`
 }

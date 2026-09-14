@@ -24,7 +24,18 @@ export default function PetCard({ pet, variant = 'compact', onEdit, onDelete, is
   }
 
   const icon = pet.pet_species === 'สุนัข' ? 'fa-dog' : 'fa-cat'
-  const image = <i className={`fa-solid ${icon} text-orange-300`} />
+  const image = pet.image ? (
+    <img
+      src={pet.image}
+      alt={pet.pet_name || 'สัตว์เลี้ยง'}
+      className="h-full w-full object-cover"
+      onError={(event) => {
+        event.currentTarget.style.display = 'none'
+        event.currentTarget.nextElementSibling?.classList.remove('hidden')
+      }}
+    />
+  ) : null
+  const fallbackIcon = <i className={`fa-solid ${icon} text-orange-300`} />
 
   if (variant === 'full') {
     return (
@@ -32,8 +43,9 @@ export default function PetCard({ pet, variant = 'compact', onEdit, onDelete, is
         <div className="p-3">
           <div className="flex gap-3">
             <div className="relative flex h-[142px] w-[128px] shrink-0 items-center justify-center overflow-hidden rounded-[19px] bg-orange-50">
-              <div className="h-full w-full flex items-center justify-center text-[82px]">{image}</div>
-            </div>
+              {pet.image ? image : null}
+                <div className={pet.image ? 'hidden h-full w-full items-center justify-center text-[82px]' : 'flex h-full w-full items-center justify-center text-[82px]'}>{fallbackIcon}</div>
+              </div>
 
             <div className="min-w-0 flex-1 py-2 pl-3 pr-10">
               <div className="min-w-0">
@@ -74,7 +86,7 @@ export default function PetCard({ pet, variant = 'compact', onEdit, onDelete, is
     <div className="relative h-[142px] w-[121px] shrink-0 rounded-[24px] border border-slate-100 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.07)] transition-transform active:scale-[0.98]">
       <Link to={`/pets/${pet.pet_id}`} className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-[24px] px-2 py-3">
         <span className="grid size-14 place-items-center overflow-hidden rounded-full bg-orange-50 text-[23px]">
-          {image}
+          {pet.image ? image : fallbackIcon}
         </span>
         <span className="text-center">
           <strong className="block text-sm font-bold leading-tight text-slate-800">{pet.pet_name}</strong>

@@ -24,18 +24,11 @@ export default defineConfig({
         : undefined,
 
     proxy: {
-      '/health': { target: backend, changeOrigin: true },
-      '/auth': { target: backend, changeOrigin: true },
-      '/pets': { target: backend, changeOrigin: true },
-      '/products': { target: backend, changeOrigin: true },
-      '/categories': { target: backend, changeOrigin: true },
-      '/cart': { target: backend, changeOrigin: true },
-      '/register': { target: backend, changeOrigin: true },
-      '/profile': { target: backend, changeOrigin: true },
-      '/addresses': { target: backend, changeOrigin: true },
-      '/orders': { target: backend, changeOrigin: true },
-      '/notifications': { target: backend, changeOrigin: true },
-      '/admin': { target: backend, changeOrigin: true },
+      '/api': {
+        target: backend,
+        changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
     },
   },
 })

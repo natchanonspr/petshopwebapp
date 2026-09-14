@@ -33,7 +33,7 @@ func GetPet(petID int64) (*Pet, error) {
 }
 
 func UpdatePet(pet *Pet) error {
-	return db.Model(pet).Updates(*pet).Error
+	return db.Save(pet).Error
 }
 
 func DeletePet(petID int64) error {

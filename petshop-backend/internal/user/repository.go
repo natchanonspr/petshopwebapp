@@ -25,12 +25,18 @@ func GetUserByID(userID int64) (*User, error) {
 }
 
 func UpdateUser(user *User) error {
-	return db.Model(user).Updates(map[string]interface{}{
+	updates := map[string]interface{}{
 		"username":         user.Username,
 		"user_email":       user.UserEmail,
 		"user_phone":       user.UserPhone,
 		"user_picture_url": user.UserPictureURL,
-	}).Error
+	}
+
+	if user.UserPassword != "" {
+		updates["user_password"] = user.UserPassword
+	}
+
+	return db.Model(user).Updates(updates).Error
 }
 
 func DeleteUser(userID int64) error {

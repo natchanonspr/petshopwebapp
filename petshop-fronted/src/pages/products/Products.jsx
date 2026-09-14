@@ -8,6 +8,7 @@ import ErrorState from '../../components/ErrorState.jsx'
 import { fuzzyFilterProducts } from '../../lib/fuzzySearch.js'
 import { getProducts } from '../../api/products.js'
 import { addToCart } from '../../api/cart.js'
+import { addNotification } from '../../lib/notifications.js'
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -42,6 +43,9 @@ export default function Products() {
         productId: product.id,
         cartQuantity: 1,
       })
+
+      window.dispatchEvent(new Event('petshop-cart-updated'))
+
     } catch (error) {
       console.error('Add to cart error:', error)
       setCartError(error.message || 'ไม่สามารถเพิ่มสินค้าลงตะกร้าได้')
