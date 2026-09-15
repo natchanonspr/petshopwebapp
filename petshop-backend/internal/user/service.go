@@ -115,23 +115,11 @@ func LoginUser(req *UserLogin) (string, error) {
 }
 
 // ส่วน Profile
-type UpdateProfileRequest struct {
-	Username       string `json:"username"`
-	UserEmail      string `json:"email"`
-	UserPhone      string `json:"phone"`
-	UserPassword   string `json:"password"`
-	UserPictureURL string `json:"picture_url"`
-}
-
 func GetProfileService(userID int64) (*User, error) {
 	return GetUserByID(userID)
 }
 
-func UpdateProfileService(
-	userID int64,
-	req *UpdateProfileRequest,
-) (*User, error) {
-
+func UpdateProfileService(userID int64, req *UpdateProfileRequest) (*User, error) {
 	user, err := GetUserByID(userID)
 	if err != nil {
 		return nil, err
@@ -145,23 +133,17 @@ func UpdateProfileService(
 		return nil, errors.New("กรุณากรอกเบอร์โทร")
 	}
 
-	// LINE account ไม่จำเป็นต้องมีรหัสผ่าน
-	// ถ้าเป็นบัญชีปกติที่ยังไม่มีรหัสผ่าน จึงค่อยบังคับกรอก
-	if req.UserPassword == "" && user.UserPassword == "" && user.UserLineID == nil {
-		return nil, errors.New("กรุณากรอกรหัสผ่าน")
-	}
-
-	if req.UserPassword != "" && len(req.UserPassword) < 6 {
-		return nil, errors.New("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
-	}
-
 	var existing User
-	if result := db.Where("user_phone = ? AND user_id <> ?", req.UserPhone, userID).First(&existing); result.Error == nil {
-		return nil, errors.New("เบอร์โทรนี้ถูกใช้งานแล้ว")
-	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, result.Error
+	//ตรวจเบอร์ซ้ำ
+	if req.UserPhone != "" {
+		if result := db.Where("user_phone = ? AND user_id <> ?", req.UserPhone, userID).First(&existing); result.Error == nil {
+			return nil, errors.New("เบอร์โทรนี้ถูกใช้งานแล้ว")
+		} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, result.Error
+		}
 	}
 
+	//ตรวจอีเมลซ่้ำ
 	if result := db.Where("LOWER(user_email) = LOWER(?) AND user_id <> ?", req.UserEmail, userID).First(&existing); result.Error == nil {
 		return nil, errors.New("อีเมลนี้ถูกใช้งานแล้ว")
 	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -170,17 +152,9 @@ func UpdateProfileService(
 
 	user.Username = req.Username
 	user.UserEmail = req.UserEmail
+	user.UserPictureURL = req.UserPictureURL
 	if req.UserPhone != "" {
 		user.UserPhone = req.UserPhone
-	}
-	user.UserPictureURL = req.UserPictureURL
-
-	if req.UserPassword != "" {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.UserPassword), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, err
-		}
-		user.UserPassword = string(hashedPassword)
 	}
 
 	if err := UpdateUser(user); err != nil {
@@ -188,6 +162,35 @@ func UpdateProfileService(
 	}
 
 	return user, nil
+}
+
+func ChangePasswordService(userID int64, req *ChangePasswordRequest) error {
+	user, err := GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	if user.UserPassword == "" {
+		return errors.New("บัญชีนี้ยังไม่มีรหัสผ่าน")
+	}
+
+	// เช็ครหัสเดิม
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.UserPassword),
+		[]byte(req.OldPassword),
+	); err != nil {
+		return errors.New("รหัสผ่านเดิมไม่ถูกต้อง")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(req.NewPassword),
+		bcrypt.DefaultCost,
+	)
+	if err != nil {
+		return err
+	}
+
+	return UpdatePassword(userID, string(hashedPassword))
 }
 
 // Admin : ดูผู้ใช้งานทั้งหมด
