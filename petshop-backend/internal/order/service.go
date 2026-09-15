@@ -166,6 +166,18 @@ func GetOrderService(orderID, userID int64) (*Order, error) {
 	return order, nil
 }
 
+// คืน Stock สินค้าเมื่อโดน Cancel
+func restoreStock(tx *gorm.DB, items []OrderItem) error {
+	for _, item := range items {
+		if err := tx.Model(&product.Product{}).
+			Where("product_id = ?", item.ProductID).
+			UpdateColumn("product_stock", gorm.Expr("product_stock + ?", item.OrderQuantity)).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ยกเลิกคำสั่งซื้อ
 func CancelOrderService(orderID, userID int64) error {
 	order, err := GetOrder(orderID, userID)
@@ -177,9 +189,12 @@ func CancelOrderService(orderID, userID int64) error {
 		return ErrCannotCancel
 	}
 
-	order.OrderStatus = "cancelled"
-
-	return UpdateOrder(order)
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := restoreStock(tx, order.Items); err != nil {
+			return err
+		}
+		return tx.Model(order).Update("order_status", "cancelled").Error
+	})
 }
 
 // Admin : ดูคำสั่งซื้อทั้งหมด
@@ -218,6 +233,15 @@ func UpdateOrderStatusService(orderID int64, status string) error {
 
 	if order.OrderStatus == "deliveried" {
 		return errors.New("คำสั่งซื้อนี้จัดส่งเรียบร้อยแล้ว")
+	}
+
+	if status == "cancelled" {
+		return db.Transaction(func(tx *gorm.DB) error {
+			if err := restoreStock(tx, order.Items); err != nil {
+				return err
+			}
+			return tx.Model(order).Update("order_status", status).Error
+		})
 	}
 
 	order.OrderStatus = status
