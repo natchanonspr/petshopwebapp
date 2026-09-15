@@ -101,7 +101,7 @@ func callAI(prompt string) ([]Recommendation, error) {
 			},
 		},
 		GenerationConfig: AIGenerationConfig{
-			MaxOutputTokens: 1200,
+			MaxOutputTokens: 500,
 		},
 	}
 	payload, err := json.Marshal(requestBody)
