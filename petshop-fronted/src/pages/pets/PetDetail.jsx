@@ -12,7 +12,7 @@ function Section({ icon, title, children }) { return <section className="mb-5"><
 export default function PetDetail() {
   const navigate = useNavigate(); const { petId } = useParams()
   const [pet, setPet] = useState(null)
-  const [menuOpen, setMenuOpen] = useState(false); const [isEditing, setIsEditing] = useState(false); const [editForm, setEditForm] = useState(null); const [cropSrc, setCropSrc] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false); const [isEditing, setIsEditing] = useState(false); const [editForm, setEditForm] = useState(null); const [cropSrc, setCropSrc] = useState(''); const [showSaveConfirm, setShowSaveConfirm] = useState(false); const [saving, setSaving] = useState(false)
   const updateEdit = (key, value) => setEditForm((current) => ({ ...current, [key]: value }))
   useEffect(() => {
     async function loadPet() {
@@ -25,7 +25,7 @@ export default function PetDetail() {
         setEditForm(petData)
       } catch (error) {
         console.error("Load pet error:", error)
-        alert("ไม่สามารถโหลดข้อมูลสัตว์เลี้ยงได้")
+        console.error("ไม่สามารถโหลดข้อมูลสัตว์เลี้ยงได้", error)
       }
     }
 
@@ -42,6 +42,12 @@ export default function PetDetail() {
       return
     }
 
+    setShowSaveConfirm(true)
+  }
+
+  const confirmSaveEdit = async () => {
+    setShowSaveConfirm(false)
+    setSaving(true)
     try {
       const petData = {
         pet_name: editForm.pet_name.trim(),
@@ -49,11 +55,16 @@ export default function PetDetail() {
         pet_breed: editForm.pet_breed || "",
         pet_weight: Number(editForm.pet_weight) || 0,
         pet_gender: editForm.pet_gender || "",
-        pet_birthdate: editForm.pet_birthdate || null,
+        pet_birthdate: editForm.pet_birthdate
+          ? String(editForm.pet_birthdate).slice(0, 10)
+          : '',
         pet_neutered: Boolean(editForm.pet_neutered),
         pet_disease: editForm.pet_disease || "",
         pet_health: editForm.pet_health || "",
+        pet_appearance: editForm.pet_appearance || "",
+        pet_personality: editForm.pet_personality || "",
         description: editForm.description || "",
+        image: editForm.image || "",
       }
 
       console.log("กำลังส่งข้อมูลไป Backend:", petData)
@@ -67,11 +78,11 @@ export default function PetDetail() {
       setIsEditing(false)
       setMenuOpen(false)
 
-      alert("บันทึกข้อมูลสำเร็จ")
-
     } catch (error) {
       console.error("Update pet error:", error)
-      alert("ไม่สามารถบันทึกข้อมูลได้")
+      console.error("ไม่สามารถบันทึกข้อมูลได้", error)
+    } finally {
+      setSaving(false)
     }
   }
   const isFemale = pet?.pet_gender === 'ตัวเมีย'
@@ -126,11 +137,9 @@ export default function PetDetail() {
                       try {
                         await deletePet(petId)
 
-                        alert('ลบข้อมูลสำเร็จ')
                         navigate('/pets')
                       } catch (error) {
-                        console.error('Delete pet error:', error)
-                        alert('ไม่สามารถลบข้อมูลได้')
+                        console.error('ลบข้อมูลสัตว์เลี้ยงไม่ได้', error)
                       }
                     }}
                     className="flex h-12 w-full items-center gap-3 border-t border-gray-100 px-4 text-sm font-bold text-red-500"
@@ -381,17 +390,42 @@ export default function PetDetail() {
                 />
               </label>
 
+              {/* ลักษณะ */}
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold">
+                  ลักษณะของสัตว์เลี้ยง
+                </span>
+                <textarea
+                  value={editForm?.pet_appearance ?? ''}
+                  onChange={(e) => updateEdit('pet_appearance', e.target.value)}
+                  rows="3"
+                  className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm"
+                  placeholder="เช่น ขนสั้น สีเทา ตัวกลม ดวงตากลมโต"
+                />
+              </label>
+
+              {/* นิสัย */}
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold">
+                  นิสัยของสัตว์เลี้ยง
+                </span>
+                <textarea
+                  value={editForm?.pet_personality ?? ''}
+                  onChange={(e) => updateEdit('pet_personality', e.target.value)}
+                  rows="3"
+                  className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm"
+                  placeholder="เช่น ขี้อ้อน ร่าเริง ชอบเล่นกับคน รักสงบ"
+                />
+              </label>
+
               {/* หมายเหตุ */}
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold">
                   หมายเหตุ
                 </span>
-
                 <textarea
                   value={editForm?.description ?? ''}
-                  onChange={(e) =>
-                    updateEdit('description', e.target.value)
-                  }
+                  onChange={(e) => updateEdit('description', e.target.value)}
                   rows="3"
                   className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm"
                   placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับน้อง"
@@ -416,9 +450,10 @@ export default function PetDetail() {
 
             <button
               type="submit"
-              className="h-12 rounded-2xl bg-orange-500 text-sm font-bold text-white"
+              disabled={saving}
+              className="h-12 rounded-2xl bg-orange-500 text-sm font-bold text-white disabled:opacity-60"
             >
-              บันทึกการแก้ไข
+              {saving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
             </button>
 
           </div>
@@ -484,6 +519,18 @@ export default function PetDetail() {
             <InfoRow icon="fa-heart-pulse" label="ปัญหาสุขภาพ" value={pet?.pet_health || '-'} />
           </Section>
 
+          <Section icon="fa-eye" title="ลักษณะ">
+            <div className="px-4 py-4 text-sm leading-6 text-gray-700">
+              {pet?.pet_appearance || 'ไม่มีข้อมูล'}
+            </div>
+          </Section>
+
+          <Section icon="fa-heart" title="นิสัย">
+            <div className="px-4 py-4 text-sm leading-6 text-gray-700">
+              {pet?.pet_personality || 'ไม่มีข้อมูล'}
+            </div>
+          </Section>
+
           <Section icon="fa-note-sticky" title="หมายเหตุ">
             <div className="px-4 py-4 text-sm leading-6 text-gray-700">
               {pet?.description || 'ไม่มีข้อมูล'}
@@ -493,6 +540,19 @@ export default function PetDetail() {
       )}
     </main>
     <BottomNavigation />
+    {showSaveConfirm && (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/45 px-5">
+        <div className="w-full max-w-[360px] rounded-[26px] bg-white p-5 text-center shadow-2xl">
+          <div className="mx-auto grid size-14 place-items-center rounded-full bg-orange-50 text-2xl text-orange-500"><i className="fa-solid fa-paw" /></div>
+          <h3 className="mt-3 text-lg font-bold text-gray-900">ยืนยันการบันทึก</h3>
+          <p className="mt-1 text-sm text-gray-500">ต้องการบันทึกข้อมูลสัตว์เลี้ยงใช่หรือไม่?</p>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button type="button" onClick={() => setShowSaveConfirm(false)} className="h-11 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700">ยกเลิก</button>
+            <button type="button" onClick={confirmSaveEdit} disabled={saving} className="h-11 rounded-xl bg-orange-500 text-sm font-bold text-white disabled:opacity-60">ยืนยัน</button>
+          </div>
+        </div>
+      </div>
+    )}
     {cropSrc && <ImageCropper src={cropSrc} onCancel={() => setCropSrc('')} onCrop={(image) => { updateEdit('image', image); setCropSrc('') }} />}
   </div>
 }

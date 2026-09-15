@@ -11,6 +11,27 @@ import (
 )
 
 func RegisterUser(req *UserRegister) error {
+	if req.Username == "" || req.UserEmail == "" || req.UserPhone == "" || req.UserPassword == "" {
+		return errors.New("กรุณากรอกข้อมูลให้ครบถ้วน")
+	}
+
+	if len(req.UserPassword) < 6 {
+		return errors.New("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
+	}
+
+	var existing User
+	if result := db.Where("user_phone = ?", req.UserPhone).First(&existing); result.Error == nil {
+		return errors.New("เบอร์โทรนี้ถูกใช้งานแล้ว")
+	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return result.Error
+	}
+
+	if result := db.Where("LOWER(user_email) = LOWER(?)", req.UserEmail).First(&existing); result.Error == nil {
+		return errors.New("อีเมลนี้ถูกใช้งานแล้ว")
+	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return result.Error
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(req.UserPassword),
 		bcrypt.DefaultCost,
@@ -98,6 +119,7 @@ type UpdateProfileRequest struct {
 	Username       string `json:"username"`
 	UserEmail      string `json:"email"`
 	UserPhone      string `json:"phone"`
+	UserPassword   string `json:"password"`
 	UserPictureURL string `json:"picture_url"`
 }
 
@@ -115,10 +137,51 @@ func UpdateProfileService(
 		return nil, err
 	}
 
+	if req.UserEmail == "" {
+		return nil, errors.New("กรุณากรอกอีเมล")
+	}
+
+	if req.UserPhone == "" && user.UserPhone == "" {
+		return nil, errors.New("กรุณากรอกเบอร์โทร")
+	}
+
+	// LINE account ไม่จำเป็นต้องมีรหัสผ่าน
+	// ถ้าเป็นบัญชีปกติที่ยังไม่มีรหัสผ่าน จึงค่อยบังคับกรอก
+	if req.UserPassword == "" && user.UserPassword == "" && user.UserLineID == nil {
+		return nil, errors.New("กรุณากรอกรหัสผ่าน")
+	}
+
+	if req.UserPassword != "" && len(req.UserPassword) < 6 {
+		return nil, errors.New("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
+	}
+
+	var existing User
+	if result := db.Where("user_phone = ? AND user_id <> ?", req.UserPhone, userID).First(&existing); result.Error == nil {
+		return nil, errors.New("เบอร์โทรนี้ถูกใช้งานแล้ว")
+	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, result.Error
+	}
+
+	if result := db.Where("LOWER(user_email) = LOWER(?) AND user_id <> ?", req.UserEmail, userID).First(&existing); result.Error == nil {
+		return nil, errors.New("อีเมลนี้ถูกใช้งานแล้ว")
+	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, result.Error
+	}
+
 	user.Username = req.Username
 	user.UserEmail = req.UserEmail
-	user.UserPhone = req.UserPhone
+	if req.UserPhone != "" {
+		user.UserPhone = req.UserPhone
+	}
 	user.UserPictureURL = req.UserPictureURL
+
+	if req.UserPassword != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.UserPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		user.UserPassword = string(hashedPassword)
+	}
 
 	if err := UpdateUser(user); err != nil {
 		return nil, err

@@ -48,6 +48,28 @@ export async function loginWithLine({
   return body.token
 }
 
+export async function register({
+  username,
+  email,
+  phone,
+  password,
+}) {
+  const res = await apiFetch(`${API_BASE}/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      username,
+      email,
+      phone,
+      password,
+    }),
+  })
+
+  return unwrap(res, 'สมัครสมาชิกไม่สำเร็จ')
+}
+
 export async function login({
   userPhone,
   userPassword,
@@ -58,8 +80,8 @@ export async function login({
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      user_phone: userPhone,
-      user_password: userPassword,
+      phone: userPhone,
+      password: userPassword,
     }),
   })
 
@@ -74,10 +96,15 @@ export async function login({
   }
 
   if (!res.ok) {
+    console.error('LOGIN API ERROR')
+    console.error('URL:', res.url)
+    console.error('STATUS:', res.status)
+    console.error('RESPONSE:', body || text)
+
     throw new Error(
       body?.error ||
       body?.message ||
-      'เข้าสู่ระบบไม่สำเร็จ'
+      `เข้าสู่ระบบไม่สำเร็จ (${res.status})`
     )
   }
 

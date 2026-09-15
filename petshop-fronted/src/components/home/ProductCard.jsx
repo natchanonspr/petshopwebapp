@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import FavoriteButton from '../products/FavoriteButton.jsx'
 import { addToCart } from '../../api/cart.js'
+import { addNotification } from '../../lib/notifications.js'
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate()
@@ -22,6 +23,9 @@ export default function ProductCard({ product }) {
         productId: product.id,
         cartQuantity: 1,
       })
+
+      window.dispatchEvent(new Event('petshop-cart-updated'))
+
 
       setAdded(true)
 

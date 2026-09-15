@@ -42,6 +42,7 @@ import AdminStore from './pages/admin/AdminStore.jsx'
 
 import Login from './pages/auth/Login.jsx'
 import AuthMock from './pages/auth/AuthMock.jsx'
+import ForgotPassword from './pages/auth/ForgotPassword.jsx'
 import PasswordLoginMock from './pages/auth/PasswordLoginMock.jsx'
 
 function ProtectedRoute({ children }) {
@@ -68,7 +69,7 @@ export default function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/login/password" element={<PasswordLoginMock />} />
                 <Route path="/register" element={<AuthMock mode="register" />} />
-                <Route path="/forgot-password" element={<AuthMock mode="forgot" />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
 
 
                 {/* =========================

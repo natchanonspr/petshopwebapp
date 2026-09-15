@@ -5,6 +5,7 @@ import ProductDescription from '../../components/product-detail/ProductDescripti
 import FavoriteButton from '../../components/products/FavoriteButton.jsx'
 import { getProduct } from '../../api/products.js'
 import { addToCart } from '../../api/cart.js'
+import { addNotification } from '../../lib/notifications.js'
 import { logActivity } from '../../admin/activity.js'
 import ProductInfoCard from '../../components/product-detail/ProductInfoCard.jsx'
 
@@ -58,6 +59,9 @@ export default function ProductDetail() {
       setAddError('')
 
       await addToCart({ productId: product.id, cartQuantity: quantity })
+
+      window.dispatchEvent(new Event('petshop-cart-updated'))
+
 
       setAdded(true)
       logActivity('cart', `เพิ่ม ${product.name} ลงตะกร้า`, {

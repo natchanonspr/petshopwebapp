@@ -28,7 +28,10 @@ const emptyForm = {
   pet_neutered: false,
   pet_disease: '',
   pet_health: '',
+  pet_appearance: '',
+  pet_personality: '',
   description: '',
+  image: '',
 }
 
 export default function Pets() {
@@ -40,6 +43,7 @@ export default function Pets() {
   const [errors, setErrors] = useState({})
   const [shakeFields, setShakeFields] = useState({})
   const [saving, setSaving] = useState(false)
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false)
 
   useEffect(() => {
     if (document.getElementById('petshop-error-shake')) return
@@ -88,7 +92,10 @@ export default function Pets() {
       pet_neutered: Boolean(pet.pet_neutered),
       pet_disease: pet.pet_disease || '',
       pet_health: pet.pet_health || '',
+      pet_appearance: pet.pet_appearance || '',
+      pet_personality: pet.pet_personality || '',
       description: pet.description || '',
+      image: pet.image || '',
     })
     setIsOpen(true)
   }
@@ -124,6 +131,11 @@ export default function Pets() {
       return
     }
 
+    setShowSaveConfirm(true)
+  }
+
+  const confirmSavePet = async () => {
+    setShowSaveConfirm(false)
     const petData = {
       pet_name: form.pet_name.trim(),
       pet_species: form.pet_species,
@@ -134,7 +146,10 @@ export default function Pets() {
       pet_neutered: Boolean(form.pet_neutered),
       pet_disease: form.pet_disease.trim(),
       pet_health: form.pet_health.trim(),
+      pet_appearance: form.pet_appearance.trim(),
+      pet_personality: form.pet_personality.trim(),
       description: form.description.trim(),
+      image: form.image || '',
     }
 
     setSaving(true)
@@ -201,12 +216,38 @@ export default function Pets() {
       </main>
       <BottomNavigation />
 
+      {showSaveConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/45 px-5">
+          <div className="w-full max-w-[360px] rounded-[26px] bg-white p-5 text-center shadow-2xl">
+            <div className="mx-auto grid size-14 place-items-center rounded-full bg-orange-50 text-2xl text-orange-500">
+              <i className="fa-solid fa-paw" />
+            </div>
+            <h3 className="mt-3 text-lg font-bold text-gray-900">ยืนยันการบันทึก</h3>
+            <p className="mt-1 text-sm text-gray-500">ต้องการบันทึกข้อมูลสัตว์เลี้ยงใช่หรือไม่?</p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => setShowSaveConfirm(false)} className="h-11 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700">ยกเลิก</button>
+              <button type="button" onClick={confirmSavePet} disabled={saving} className="h-11 rounded-xl bg-orange-500 text-sm font-bold text-white disabled:opacity-60">ยืนยัน</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 p-3 min-[431px]:items-center">
           <form noValidate onSubmit={savePet} className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-[28px] bg-white p-5 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="m-0 mt-1 text-lg font-bold">{editingId ? 'แก้ไขข้อมูลน้อง' : 'เพิ่มสัตว์เลี้ยง'}</h2>
               <button type="button" onClick={closeForm} className="grid size-9 place-items-center rounded-full bg-gray-100"><i className="fa-solid fa-xmark" /></button>
+            </div>
+
+            <div className="mb-4 flex justify-center">
+              <label className="relative cursor-pointer">
+                <div className="grid size-24 place-items-center overflow-hidden rounded-full border-4 border-orange-100 bg-orange-50 text-3xl text-orange-300">
+                  {form.image ? <img src={form.image} alt={form.pet_name || 'สัตว์เลี้ยง'} className="h-full w-full object-cover" /> : <i className={`fa-solid ${form.pet_species === 'สุนัข' ? 'fa-dog' : 'fa-cat'}`} />}
+                </div>
+                <span className="absolute bottom-0 right-0 grid size-8 place-items-center rounded-full border-2 border-white bg-orange-500 text-white"><i className="fa-solid fa-camera text-xs" /></span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; const reader = new FileReader(); reader.onload = () => setField('image', reader.result); reader.readAsDataURL(file) }} />
+              </label>
             </div>
 
             <div className="space-y-3">
@@ -307,6 +348,16 @@ export default function Pets() {
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold">ปัญหาสุขภาพ</span>
                 <input value={form.pet_health} onChange={(e) => setField('pet_health', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm" placeholder="เช่น ไม่มี, แพ้อาหาร" />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold">ลักษณะของสัตว์เลี้ยง</span>
+                <textarea value={form.pet_appearance} onChange={(e) => setField('pet_appearance', e.target.value)} rows="3" className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm" placeholder="เช่น ขนสั้น สีเทา ตัวกลม ดวงตากลมโต" />
+              </label>
+
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold">นิสัยของสัตว์เลี้ยง</span>
+                <textarea value={form.pet_personality} onChange={(e) => setField('pet_personality', e.target.value)} rows="3" className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm" placeholder="เช่น ขี้อ้อน ร่าเริง ชอบเล่นกับคน รักสงบ" />
               </label>
 
               <label className="block">

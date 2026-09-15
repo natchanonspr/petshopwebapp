@@ -48,7 +48,7 @@ export default function PasswordLoginMock() {
             <div className="mt-7 rounded-2xl border border-green-100 bg-green-50 p-5 text-center">
               <div className="mx-auto grid size-12 place-items-center rounded-full bg-white text-green-500 shadow-sm"><i className="fa-solid fa-check" /></div>
               <h2 className="mt-4 font-extrabold">เข้าสู่ระบบสำเร็จ</h2>
-              <p className="mt-1 text-sm text-gray-500">นี่เป็นระบบ Mock สำหรับการนำเสนอโปรเจกต์</p>
+      
               <button type="button" onClick={goHome} className="mt-5 h-11 w-full rounded-xl bg-orange-500 text-sm font-bold text-white transition hover:bg-orange-600">เข้าสู่หน้าหลัก</button>
             </div>
           ) : (
@@ -81,9 +81,10 @@ export default function PasswordLoginMock() {
             </form>
           )}
 
-          {!submitted && <p className="mt-6 text-center text-xs text-gray-400">ยังไม่มีบัญชี? <button onClick={() => navigate('/register')} className="font-bold text-orange-500 hover:underline">สมัครสมาชิก</button></p>}
+          {!submitted && <p className="mt-6 text-center text-xs text-gray-400">
+               <button onClick={() => navigate('/register')} className="font-bold text-orange-500 hover:underline">สมัครสมาชิก</button></p>}
           <p className="mt-6 text-center text-[10px] leading-5 text-gray-300">การเข้าสู่ระบบถือว่ายอมรับเงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว</p>
-          <p className="mt-1 text-center text-[10px] text-gray-300">Pet Shop • Mock Authentication</p>
+        
         </section>
       </div>
     </main>

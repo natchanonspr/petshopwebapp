@@ -13,8 +13,11 @@ type Pet struct {
 	PetBirthdate time.Time `gorm:"type:date;not null" json:"pet_birthdate"`
 	PetNeutered  bool      `gorm:"not null" json:"pet_neutered"`
 	PetDisease   string    `json:"pet_disease"`
-	PetHealth    string    `json:"pet_health"`
-	Description  string    `json:"description"`
+	PetHealth      string    `json:"pet_health"`
+	PetAppearance  string    `json:"pet_appearance"`
+	PetPersonality string    `json:"pet_personality"`
+	Description    string    `json:"description"`
+	PetImage       string    `json:"image"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -27,6 +30,9 @@ type PetRequest struct {
 	PetBirthdate string  `json:"pet_birthdate"`
 	PetNeutered  bool    `json:"pet_neutered"`
 	PetDisease   string  `json:"pet_disease"`
-	PetHealth    string  `json:"pet_health"`
-	Description  string  `json:"description"`
+	PetHealth      string  `json:"pet_health"`
+	PetAppearance  string  `json:"pet_appearance"`
+	PetPersonality string  `json:"pet_personality"`
+	Description    string  `json:"description"`
+	PetImage       string  `json:"image"`
 }

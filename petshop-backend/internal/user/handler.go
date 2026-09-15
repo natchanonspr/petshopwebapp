@@ -14,11 +14,13 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	if err := RegisterUser(req); err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Register Successful",
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "สมัครสมาชิกสำเร็จ",
 	})
 }
 
@@ -52,7 +54,9 @@ func Login(c *fiber.Ctx) error {
 
 	token, err := LoginUser(u)
 	if err != nil {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "เบอร์โทรหรือรหัสผ่านไม่ถูกต้อง",
+		})
 	}
 
 	return c.JSON(fiber.Map{
@@ -71,7 +75,16 @@ func GetProfile(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"data": user,
+		"data": fiber.Map{
+			"user_id":          user.UserID,
+			"username":         user.Username,
+			"email":            user.UserEmail,
+			"phone":            user.UserPhone,
+			"picture_url":      user.UserPictureURL,
+			"role":             user.UserRole,
+			"profile_complete": user.UserEmail != "" && user.UserPhone != "" && (user.UserPassword != "" || user.UserLineID != nil),
+			"is_line_account":   user.UserLineID != nil,
+		},
 	})
 }
 
@@ -86,7 +99,10 @@ func UpdateProfile(c *fiber.Ctx) error {
 
 	user, err := UpdateProfileService(userID, req)
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		log.Printf("Update profile error: %v", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return c.JSON(fiber.Map{

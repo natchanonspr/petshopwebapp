@@ -185,7 +185,7 @@ export default function EditProfile() {
     event.preventDefault()
 
     if (!form.name.trim()) {
-      setError('กรุณากรอกชื่อ-นามสกุล')
+      setError('กรุณากรอกชื่อผู้ใช้งาน')
       return
     }
 
@@ -399,7 +399,7 @@ export default function EditProfile() {
               <label className="mt-4 block">
 
                 <span className="text-sm font-bold text-slate-800">
-                  ชื่อ-นามสกุล
+                  ชื่อผู้ใช้งาน
                 </span>
 
                 <input
@@ -409,7 +409,7 @@ export default function EditProfile() {
                     update('name', e.target.value)
                   }
                   className={inputClass}
-                  placeholder="ชื่อ-นามสกุล"
+                  placeholder="ชื่อผู้ใช้งาน"
                 />
 
               </label>
