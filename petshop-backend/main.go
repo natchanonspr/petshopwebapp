@@ -10,6 +10,7 @@ import (
 	"petshop-backend/internal/ai"
 	"petshop-backend/internal/cart"
 	"petshop-backend/internal/category"
+	"petshop-backend/internal/coupon"
 	"petshop-backend/internal/middleware"
 	"petshop-backend/internal/notification"
 	"petshop-backend/internal/order"
@@ -51,6 +52,7 @@ func main() {
 	product.SetDB(db)
 	category.SetDB(db)
 	cart.SetDB(db)
+	coupon.SetDB(db)
 	address.SetDB(db)
 	order.SetDB(db)
 	notification.SetDB(db)
@@ -69,6 +71,7 @@ func main() {
 		&notification.Notification{},
 		&notification.NotificationRecipient{},
 		&ai.AIRecommendation{},
+		&coupon.Coupon{},
 	); err != nil {
 		log.Fatalf("AutoMigrate fail: %v", err)
 	}
@@ -149,6 +152,14 @@ func main() {
 	carts.Post("/items", cart.AddItem)
 	carts.Put("/items/:itemID", cart.UpdateItem)
 	carts.Delete("/items/:itemID", cart.RemoveItem)
+
+	// Coupon Admin
+	adminCoupons := app.Group("/coupons", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
+	adminCoupons.Get("/", coupon.List)
+	adminCoupons.Get("/:id", coupon.Read)
+	adminCoupons.Post("/", coupon.Create)
+	adminCoupons.Put("/:id", coupon.Update)
+	adminCoupons.Delete("/:id", coupon.Delete)
 
 	// Address API
 	addresses := app.Group("/addresses", middleware.JWTProtected(jwtSecret))
