@@ -49,6 +49,19 @@ func ListPet(userID int64) ([]Pet, error) {
 	return pets, nil
 }
 
+func GetPetService(userID, petID int64) (*Pet, error) {
+	pet, err := GetPet(petID)
+	if err != nil {
+		return nil, err
+	}
+
+	if pet.UserID != userID {
+		return nil, ErrPet
+	}
+
+	return pet, nil
+}
+
 func UpdatePetService(userID, petID int64, req *PetRequest) (*Pet, error) {
 	pet, err := GetPet(petID)
 	if err != nil {

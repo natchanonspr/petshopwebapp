@@ -12,7 +12,7 @@ func CreateNotificationService(adminUserID int64, req *CreateNotificationRequest
 
 	req.Type = strings.TrimSpace(req.Type)
 	req.Title = strings.TrimSpace(req.Title)
-	req.Detail = strings.TrimSpace(req.Audience)
+	req.Detail = strings.TrimSpace(req.Detail)
 	req.Audience = strings.TrimSpace(req.Audience)
 
 	if req.Type == "" {
@@ -43,20 +43,17 @@ func CreateNotificationService(adminUserID int64, req *CreateNotificationRequest
 	var userIDs []int64
 
 	switch req.Audience {
-
 	case "all":
 		ids, err := GetAllUsers()
 		if err != nil {
 			return err
 		}
-
 		userIDs = ids
 
 	case "user":
 		if req.UserID == nil || *req.UserID <= 0 {
 			return errors.New("user_id is required")
 		}
-
 		userIDs = []int64{*req.UserID}
 
 	default:
@@ -64,7 +61,6 @@ func CreateNotificationService(adminUserID int64, req *CreateNotificationRequest
 	}
 
 	recipients := make([]NotificationRecipient, 0, len(userIDs))
-
 	for _, userID := range userIDs {
 		recipients = append(recipients, NotificationRecipient{UserID: userID, IsRead: false})
 	}
@@ -79,7 +75,6 @@ func GetCustomerNotificationsService(userID int64) ([]NotificationResponse, erro
 	}
 
 	result := make([]NotificationResponse, 0, len(recipients))
-
 	for _, recipient := range recipients {
 		result = append(result, NotificationResponse{
 			NotificationID: recipient.Notification.NotificationID,
@@ -108,20 +103,14 @@ func MarkAllNotificationsReadService(userID int64) error {
 	return MarkAllNotificationsRead(userID)
 }
 
-func GetAdminNotificationsService(
-	adminUserID int64,
-) ([]AdminNotificationResponse, error) {
-
+func GetAdminNotificationsService(adminUserID int64) ([]AdminNotificationResponse, error) {
 	notifications, err := GetAdminNotifications(adminUserID)
-
 	if err != nil {
 		return nil, err
 	}
 
 	result := make([]AdminNotificationResponse, 0, len(notifications))
-
 	for _, notification := range notifications {
-
 		result = append(result, AdminNotificationResponse{
 			NotificationID: notification.NotificationID,
 			Type:           notification.Type,
@@ -138,9 +127,6 @@ func GetAdminNotificationsService(
 	return result, nil
 }
 
-func DeleteAdminNotificationsService(
-	adminUserID int64,
-) error {
-
+func DeleteAdminNotificationsService(adminUserID int64) error {
 	return DeleteAdminNotifications(adminUserID)
 }

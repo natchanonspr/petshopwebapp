@@ -25,14 +25,16 @@ func Create(c *fiber.Ctx) error {
 }
 
 func Read(c *fiber.Ctx) error {
+	userID, _ := c.Locals("user_id").(int64)
+
 	petID, err := c.ParamsInt("id")
 	if err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	pet, err := GetPet(int64(petID))
+	pet, err := GetPetService(userID, int64(petID))
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		return c.SendStatus(fiber.StatusNotFound)
 	}
 
 	return c.JSON(fiber.Map{
