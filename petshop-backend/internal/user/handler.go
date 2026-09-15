@@ -14,9 +14,7 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	if err := RegisterUser(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
@@ -83,7 +81,7 @@ func GetProfile(c *fiber.Ctx) error {
 			"picture_url":      user.UserPictureURL,
 			"role":             user.UserRole,
 			"profile_complete": user.UserEmail != "" && user.UserPhone != "" && (user.UserPassword != "" || user.UserLineID != nil),
-			"is_line_account":   user.UserLineID != nil,
+			"is_line_account":  user.UserLineID != nil,
 		},
 	})
 }

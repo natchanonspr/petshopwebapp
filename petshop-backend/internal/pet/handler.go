@@ -9,12 +9,12 @@ func Create(c *fiber.Ctx) error {
 
 	req := new(PetRequest)
 	if err := c.BodyParser(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
 	pet, err := CreatePetService(userID, req)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
 	return c.JSON(fiber.Map{
@@ -32,7 +32,7 @@ func Read(c *fiber.Ctx) error {
 
 	pet, err := GetPet(int64(petID))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
 	return c.JSON(fiber.Map{
@@ -49,7 +49,7 @@ func Delete(c *fiber.Ctx) error {
 	}
 
 	if err := DeletePetService(userID, int64(petID)); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
 	return c.JSON(fiber.Map{
@@ -71,7 +71,7 @@ func Update(c *fiber.Ctx) error {
 
 	pet, err := UpdatePetService(userID, int64(petID), req)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
 	return c.JSON(fiber.Map{
