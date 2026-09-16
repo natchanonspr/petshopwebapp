@@ -8,6 +8,7 @@ import (
 	"petshop-backend/internal/address"
 	"petshop-backend/internal/cart"
 	"petshop-backend/internal/coupon"
+	"petshop-backend/internal/notification"
 	"petshop-backend/internal/product"
 
 	"gorm.io/gorm"
@@ -289,7 +290,7 @@ func GetOrderAdminService(orderID int64) (*Order, error) {
 }
 
 // Admin : เปลี่ยนสเตตัสของออเดอร์ลูกค้า
-func UpdateOrderStatusService(orderID int64, status string) error {
+func UpdateOrderStatusService(orderID int64, adminUserID int64, status string) error {
 
 	// สถานะ
 	validStatus := map[string]bool{
@@ -317,22 +318,109 @@ func UpdateOrderStatusService(orderID int64, status string) error {
 		return errors.New("คำสั่งซื้อนี้จัดส่งเรียบร้อยแล้ว")
 	}
 
+	oldStatus := order.OrderStatus
+	if oldStatus == status {
+		return nil
+	}
+
+	// ยกเลิกคำสั่งซื้อ
 	if status == "cancelled" {
-		return db.Transaction(func(tx *gorm.DB) error {
+
+		err := db.Transaction(func(tx *gorm.DB) error {
+
 			if err := restoreStock(tx, order.Items); err != nil {
 				return err
 			}
-			return tx.Model(order).Update("order_status", status).Error
+
+			if err := tx.
+				Model(order).
+				Update(
+					"order_status",
+					"cancelled",
+				).
+				Error; err != nil {
+				return err
+			}
+
+			return nil
 		})
+
+		if err != nil {
+			return err
+		}
+
+		orderIDValue := order.OrderID
+
+		req := &notification.CreateNotificationRequest{
+			Audience: "user",
+			UserID:   &order.UserID,
+			Type:     "order",
+			Title:    "คำสั่งซื้อถูกยกเลิก",
+			Detail:   "คำสั่งซื้อของคุณถูกยกเลิก",
+			Icon:     "fa-circle-xmark",
+			OrderID:  &orderIDValue,
+		}
+
+		return notification.CreateNotificationService(
+			adminUserID,
+			req,
+		)
 	}
 
+	// เปลี่ยนสถานะปกติ
 	order.OrderStatus = status
 
-	return UpdateOrder(order)
+	if err := UpdateOrder(order); err != nil {
+		return err
+	}
+
+	// สร้างข้อความ Notification
+	orderIDValue := order.OrderID
+
+	var title string
+	var detail string
+	var icon string
+
+	switch status {
+
+	case "confirmed":
+		title = "ร้านยืนยันคำสั่งซื้อแล้ว"
+		detail = "คำสั่งซื้อของคุณได้รับการยืนยันและกำลังเตรียมสินค้า"
+		icon = "fa-circle-check"
+
+	case "shipped":
+		title = "คำสั่งซื้อกำลังจัดส่ง"
+		detail = "สินค้าของคุณถูกส่งออกจากร้านและกำลังเดินทางไปหาคุณ"
+		icon = "fa-truck-fast"
+
+	case "deliveried":
+		title = "จัดส่งสำเร็จแล้ว"
+		detail = "คำสั่งซื้อของคุณจัดส่งสำเร็จแล้ว ขอบคุณที่ใช้บริการ"
+		icon = "fa-box-open"
+
+	default:
+		// pending ไม่ต้องสร้าง notification
+		return nil
+	}
+
+	req := &notification.CreateNotificationRequest{
+		Audience: "user",
+		UserID:   &order.UserID,
+		Type:     "order",
+		Title:    title,
+		Detail:   detail,
+		Icon:     icon,
+		OrderID:  &orderIDValue,
+	}
+
+	return notification.CreateNotificationService(
+		adminUserID,
+		req,
+	)
 }
 
 // Update status การจ่ายเงิน
-func UpdateOrderPaymentStatusService(orderID int64, status string) error {
+func UpdateOrderPaymentStatusService(orderID int64, adminUserID int64, status string) error {
 	validStatus := map[string]bool{
 		PaymentPaid:     true,
 		PaymentRejected: true,
@@ -347,6 +435,84 @@ func UpdateOrderPaymentStatusService(orderID int64, status string) error {
 		return err
 	}
 
-	order.PaymentStatus = status
-	return db.Save(&order).Error
+	if order.PaymentStatus == status {
+		return nil
+	}
+
+	//อนุมัติการชำระเงิน
+	if status == PaymentPaid {
+
+		err := db.Transaction(func(tx *gorm.DB) error {
+
+			if err := tx.
+				Model(order).
+				Updates(map[string]interface{}{
+					"payment_status": "paid",
+					"order_status":   "confirmed",
+				}).
+				Error; err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+
+		orderIDValue := order.OrderID
+
+		req := &notification.CreateNotificationRequest{
+			Audience: "user",
+			UserID:   &order.UserID,
+			Type:     "order",
+			Title:    "ยืนยันการชำระเงินแล้ว",
+			Detail:   "คำสั่งซื้อของคุณได้รับการยืนยันการชำระเงินเรียบร้อยแล้ว",
+			Icon:     "fa-circle-check",
+			OrderID:  &orderIDValue,
+		}
+
+		return notification.CreateNotificationService(
+			adminUserID,
+			req,
+		)
+	}
+
+	//ปฎิเสธชำระเงิน
+	if status == PaymentRejected {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			if err := restoreStock(tx, order.Items); err != nil {
+				return err
+			}
+
+			if err := tx.Model(order).Updates(map[string]interface{}{"payment_status": "rejected", "order_status": "cancelled"}).Error; err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+
+		orderIDValue := order.OrderID
+
+		req := &notification.CreateNotificationRequest{
+			Audience: "user",
+			UserID:   &order.UserID,
+			Type:     "order",
+			Title:    "ไม่สามารถยืนยันการชำระเงินได้",
+			Detail:   "สลิปการชำระเงินถูกปฏิเสธ และคำสั่งซื้อถูกยกเลิก",
+			Icon:     "fa-circle-xmark",
+			OrderID:  &orderIDValue,
+		}
+
+		return notification.CreateNotificationService(
+			adminUserID,
+			req,
+		)
+	}
+	return nil
 }

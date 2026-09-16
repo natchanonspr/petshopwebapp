@@ -223,6 +223,8 @@ func AdminUpdateStatus(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
+	adminUserID := c.Locals("user_id").(int64)
+
 	req := struct {
 		Status string `json:"status"`
 	}{}
@@ -231,7 +233,7 @@ func AdminUpdateStatus(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	if err := UpdateOrderStatusService(int64(orderID), req.Status); err != nil {
+	if err := UpdateOrderStatusService(int64(orderID), adminUserID, req.Status); err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
@@ -247,6 +249,8 @@ func AdminUpdatePaymentStatus(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
+	adminUserID := c.Locals("user_id").(int64)
+
 	req := struct {
 		Status string `json:"status"`
 	}{}
@@ -255,7 +259,7 @@ func AdminUpdatePaymentStatus(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	if err := UpdateOrderPaymentStatusService(int64(orderID), req.Status); err != nil {
+	if err := UpdateOrderPaymentStatusService(int64(orderID), adminUserID, req.Status); err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 

@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
-import { getNotifications, markAllNotificationsRead, markNotificationRead, subscribeNotifications } from '../../lib/notifications.js'
-
-const initialNotifications = [
-  { id: 1, type: 'order', icon: 'fa-box-open', title: 'คำสั่งซื้อของคุณกำลังจัดส่ง', detail: 'Royal Canin Adult 3kg กำลังเดินทางมาหาคุณ', time: '10 นาทีที่แล้ว', unread: true },
-  { id: 2, type: 'promo', icon: 'fa-tag', title: 'คูปองส่วนลด 10% รอคุณอยู่', detail: 'ใช้โค้ด PAWPAL10 ลดสูงสุด 100 บาท', time: '1 ชั่วโมงที่แล้ว', unread: true },
-  { id: 3, type: 'pet', icon: 'fa-heart', title: 'ถึงเวลาดูแลน้องแล้ว 🐾', detail: 'อย่าลืมเตรียมอาหารมื้อถัดไปให้น้องนะ', time: '3 ชั่วโมงที่แล้ว', unread: true },
-  { id: 4, type: 'order', icon: 'fa-circle-check', title: 'คำสั่งซื้อสำเร็จแล้ว', detail: 'ขอบคุณที่ใช้บริการ Pet Shop ของเรา', time: 'เมื่อวาน', unread: false },
-  { id: 5, type: 'system', icon: 'fa-wand-magic-sparkles', title: 'ลองใช้ AI แนะนำอาหาร', detail: 'ให้ AI ช่วยเลือกอาหารที่เหมาะกับสัตว์เลี้ยงของคุณ', time: '2 วันที่แล้ว', unread: false },
-]
+import { getNotifications, markAllNotificationsRead, markNotificationRead, } from '../../api/notifications.js'
 
 const tone = {
   order: 'bg-blue-50 text-blue-500',
@@ -18,13 +10,106 @@ const tone = {
   system: 'bg-purple-50 text-purple-500',
 }
 
+function formatNotificationTime(dateString) {
+  if (!dateString) {
+    return '-'
+  }
+
+  const date = new Date(dateString)
+
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+
+  const now = new Date()
+  const diffMs =
+    now.getTime() - date.getTime()
+
+  const diffMinutes = Math.floor(
+    diffMs / 60000
+  )
+
+  if (diffMinutes < 1) {
+    return 'เมื่อสักครู่นี้'
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} นาทีที่แล้ว`
+  }
+
+  const diffHours = Math.floor(
+    diffMinutes / 60
+  )
+
+  if (diffHours < 24) {
+    return `${diffHours} ชั่วโมงที่แล้ว`
+  }
+
+  const diffDays = Math.floor(
+    diffHours / 24
+  )
+
+  if (diffDays === 1) {
+    return 'เมื่อวาน'
+  }
+
+  if (diffDays < 7) {
+    return `${diffDays} วันที่แล้ว`
+  }
+
+  return date.toLocaleDateString(
+    'th-TH',
+    {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }
+  )
+}
+
+function normalizeNotification(item) {
+  return {
+    id: item.notification_id,
+
+    type:
+      item.type ||
+      'system',
+
+    icon:
+      item.icon ||
+      'fa-bell',
+
+    title:
+      item.title ||
+      'การแจ้งเตือน',
+
+    detail:
+      item.detail ||
+      '',
+
+    time:
+      formatNotificationTime(
+        item.created_at
+      ),
+
+    unread:
+      !item.is_read,
+
+    orderId:
+      item.order_id || null,
+  }
+}
+
 export default function Notifications() {
-  const [notifications, setNotifications] = useState(() => getNotifications(initialNotifications, 'customer'))
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+
   const [filter, setFilter] = useState('ทั้งหมด')
   const [selectedNotification, setSelectedNotification] = useState(null)
+
   const navigate = useNavigate()
 
-  useEffect(() => subscribeNotifications(setNotifications, 'customer'), [])
   const filters = [
     ['ทั้งหมด', null],
     ['ยังไม่ได้อ่าน', 'unread'],
@@ -32,6 +117,50 @@ export default function Notifications() {
     ['โปรโมชั่น', 'promo'],
     ['ระบบ', 'system'],
   ]
+
+  useEffect(() => {
+    let active = true
+
+    const loadNotifications = async () => {
+      try {
+        setLoading(true)
+        setErrorMessage('')
+
+        const data = await getNotifications()
+
+        const normalized = (
+          Array.isArray(data) ? data : []
+        ).map(normalizeNotification)
+
+        if (active) {
+          setNotifications(normalized)
+        }
+      } catch (error) {
+        console.error(
+          'Load notifications error:',
+          error
+        )
+
+        if (active) {
+          setNotifications([])
+          setErrorMessage(
+            error.message ||
+            'ไม่สามารถโหลดการแจ้งเตือนได้'
+          )
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadNotifications()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const unreadCount = notifications.filter((item) => item.unread).length
   const visible = useMemo(() => {
@@ -41,14 +170,60 @@ export default function Notifications() {
     return notifications
   }, [filter, notifications])
 
-  const markAllRead = () => markAllNotificationsRead('customer')
-  const markRead = (id) => {
-    markNotificationRead(id)
-    setNotifications((current) => current.map((item) => item.id === id ? { ...item, unread: false } : item))
+  const markAllRead = async () => {
+    try {
+      await markAllNotificationsRead()
+
+      setNotifications((current) =>
+        current.map((item) => ({
+          ...item,
+          unread: false,
+        }))
+      )
+    } catch (error) {
+      console.error(
+        'Mark all notifications read error:',
+        error
+      )
+
+      setErrorMessage(
+        error.message ||
+        'ไม่สามารถอ่านการแจ้งเตือนทั้งหมดได้'
+      )
+    }
   }
-  const openNotification = (item) => {
-    markRead(item.id)
-    setSelectedNotification(item)
+  const markRead = async (id) => {
+    try {
+      await markNotificationRead(id)
+
+      setNotifications((current) =>
+        current.map((item) =>
+          item.id === id
+            ? {
+              ...item,
+              unread: false,
+            }
+            : item
+        )
+      )
+    } catch (error) {
+      console.error(
+        'Mark notification read error:',
+        error
+      )
+
+      setErrorMessage(
+        error.message ||
+        'ไม่สามารถอ่านการแจ้งเตือนได้'
+      )
+    }
+  }
+  const openNotification = async (item) => {
+    await markRead(item.id)
+    setSelectedNotification({
+      ...item,
+      unread: false,
+    })
   }
   const goToNotificationTarget = () => {
     if (!selectedNotification) return
@@ -59,6 +234,20 @@ export default function Notifications() {
       return
     }
     setSelectedNotification(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="mx-auto mb-3 size-10 animate-spin rounded-full border-4 border-slate-200 border-t-orange-500" />
+
+          <p className="text-sm text-slate-400">
+            กำลังโหลดการแจ้งเตือน...
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -87,6 +276,12 @@ export default function Notifications() {
       </header>
 
       <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 pb-5 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {errorMessage && (
+          <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            <i className="fa-solid fa-circle-exclamation mr-2" />
+            {errorMessage}
+          </div>
+        )}
         {visible.length > 0 ? (
           <div className="overflow-hidden rounded-[24px] border border-slate-100 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">
             {visible.map((item, index) => (

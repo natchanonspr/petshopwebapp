@@ -130,3 +130,34 @@ func GetAdminNotificationsService(adminUserID int64) ([]AdminNotificationRespons
 func DeleteAdminNotificationsService(adminUserID int64) error {
 	return DeleteAdminNotifications(adminUserID)
 }
+
+func CreateUserNotification(
+	createdByUserID int64,
+	userID int64,
+	notificationType string,
+	title string,
+	detail string,
+	icon string,
+	orderID *int64,
+) error {
+	notification := &Notification{
+		CreatedByUserID: createdByUserID,
+		Type:            notificationType,
+		Title:           title,
+		Detail:          detail,
+		Icon:            icon,
+		OrderID:         orderID,
+	}
+
+	recipients := []NotificationRecipient{
+		{
+			UserID: userID,
+			IsRead: false,
+		},
+	}
+
+	return CreateNotification(
+		notification,
+		recipients,
+	)
+}

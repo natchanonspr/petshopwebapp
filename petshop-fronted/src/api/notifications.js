@@ -1,72 +1,42 @@
-import { API_BASE, apiFetch } from './api'
+import {
+  API_BASE,
+  apiFetch,
+  authHeaders,
+  unwrap,
+} from './api.js'
 
-async function parseResponse(res) {
-  const text = await res.text()
-
-  let body = null
-
-  try {
-    body = JSON.parse(text)
-  } catch {
-    body = null
-  }
-
-  return { body, text }
-}
-
-// CUSTOMER
 export async function getNotifications() {
-  const res = await apiFetch(`${API_BASE}/notifications`)
-  const { body } = await parseResponse(res)
-
-  if (!res.ok) {
-    throw new Error(
-      body?.error ||
-      body?.message ||
-      'ไม่สามารถโหลดการแจ้งเตือนได้'
-    )
-  }
-
-  return body
-}
-
-export async function getUnreadNotificationCount() {
   const res = await apiFetch(
-    `${API_BASE}/notifications/unread-count`
-  )
-
-  const { body } = await parseResponse(res)
-
-  if (!res.ok) {
-    throw new Error(
-      body?.error ||
-      body?.message ||
-      'ไม่สามารถโหลดจำนวนแจ้งเตือนได้'
-    )
-  }
-
-  return body
-}
-
-export async function markNotificationRead(id) {
-  const res = await apiFetch(
-    `${API_BASE}/notifications/${id}/read`,
+    `${API_BASE}/notifications`,
     {
-      method: 'PATCH',
+      method: 'GET',
+      headers: {
+        ...authHeaders(),
+      },
     }
   )
 
-  const { body } = await parseResponse(res)
+  return unwrap(
+    res,
+    'ไม่สามารถโหลดการแจ้งเตือนได้'
+  )
+}
 
-  if (!res.ok) {
-    throw new Error(
-      body?.error ||
-      body?.message ||
-      'ไม่สามารถอ่านการแจ้งเตือนได้'
-    )
-  }
+export async function markNotificationRead(notificationId) {
+  const res = await apiFetch(
+    `${API_BASE}/notifications/${notificationId}/read`,
+    {
+      method: 'PATCH',
+      headers: {
+        ...authHeaders(),
+      },
+    }
+  )
 
-  return body
+  return unwrap(
+    res,
+    'ไม่สามารถอ่านการแจ้งเตือนได้'
+  )
 }
 
 export async function markAllNotificationsRead() {
@@ -74,99 +44,92 @@ export async function markAllNotificationsRead() {
     `${API_BASE}/notifications/read-all`,
     {
       method: 'PATCH',
+      headers: {
+        ...authHeaders(),
+      },
     }
   )
 
-  const { body } = await parseResponse(res)
-
-  if (!res.ok) {
-    throw new Error(
-      body?.error ||
-      body?.message ||
-      'ไม่สามารถอ่านการแจ้งเตือนทั้งหมดได้'
-    )
-  }
-
-  return body
+  return unwrap(
+    res,
+    'ไม่สามารถอ่านการแจ้งเตือนทั้งหมดได้'
+  )
 }
 
-// ADMIN
-export async function getAdminNotifications() {
+export async function getUnreadNotificationCount() {
   const res = await apiFetch(
-    `${API_BASE}/admin/notifications`
+    `${API_BASE}/notifications/unread-count`,
+    {
+      method: 'GET',
+      headers: {
+        ...authHeaders(),
+      },
+    }
   )
 
-  const { body } = await parseResponse(res)
-
   if (!res.ok) {
     throw new Error(
-      body?.error ||
-      body?.message ||
-      'ไม่สามารถโหลดประวัติการแจ้งเตือนได้'
+      'ไม่สามารถโหลดจำนวนการแจ้งเตือนได้'
     )
   }
 
-  return body
+  const body = await res.json()
+
+  return Number(body?.count || 0)
 }
 
-export async function createAdminNotification({
-  audience = 'all',
-  userId = null,
-  type,
-  title,
-  detail,
-  icon = '',
-  orderId = null,
-}) {
+// Admin: สร้างการแจ้งเตือน
+export async function createAdminNotification(data) {
   const res = await apiFetch(
     `${API_BASE}/admin/notifications`,
     {
       method: 'POST',
       headers: {
+        ...authHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        audience,
-        user_id: userId,
-        type,
-        title,
-        detail,
-        icon,
-        order_id: orderId,
-      }),
+      body: JSON.stringify(data),
     }
   )
 
-  const { body } = await parseResponse(res)
-
-  if (!res.ok) {
-    throw new Error(
-      body?.error ||
-      body?.message ||
-      'ไม่สามารถส่งการแจ้งเตือนได้'
-    )
-  }
-
-  return body
+  return unwrap(
+    res,
+    'ไม่สามารถสร้างการแจ้งเตือนได้'
+  )
 }
 
+// Admin: ดูประวัติการแจ้งเตือนที่ตัวเองสร้าง
+export async function getAdminNotifications() {
+  const res = await apiFetch(
+    `${API_BASE}/admin/notifications`,
+    {
+      method: 'GET',
+      headers: {
+        ...authHeaders(),
+      },
+    }
+  )
+
+  return unwrap(
+    res,
+    'ไม่สามารถโหลดประวัติการแจ้งเตือนได้'
+  )
+}
+
+// Admin: ล้างประวัติการแจ้งเตือน
 export async function deleteAdminNotifications() {
   const res = await apiFetch(
     `${API_BASE}/admin/notifications`,
     {
       method: 'DELETE',
+      headers: {
+        ...authHeaders(),
+      },
     }
   )
 
-  const { body } = await parseResponse(res)
-
-  if (!res.ok) {
-    throw new Error(
-      body?.error ||
-      body?.message ||
-      'ไม่สามารถล้างประวัติการแจ้งเตือนได้'
-    )
-  }
-
-  return body
+  return unwrap(
+    res,
+    'ไม่สามารถล้างประวัติการแจ้งเตือนได้'
+  )
 }
