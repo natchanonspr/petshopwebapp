@@ -2,7 +2,9 @@ package coupon
 
 import (
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -152,4 +154,58 @@ func GetAllCouponsService() ([]Coupon, error) {
 
 func GetCouponService(couponID int64) (*Coupon, error) {
 	return GetCoupon(couponID)
+}
+
+// ตรวจสอบเงื่อนไข + คำนวณส่วนลด (ไม่ได้บันทึกการใช้งาน/used_count ในรอบนี้)
+func ApplyCouponService(code string, subtotal float64) *ApplyResult {
+	normalized := strings.ToUpper(strings.TrimSpace(code))
+	if normalized == "" {
+		return &ApplyResult{OK: false, Reason: "กรุณากรอกรหัสโปรโมชั่น"}
+	}
+
+	c, err := GetCouponByCode(normalized)
+	if err != nil {
+		return &ApplyResult{OK: false, Reason: "ไม่พบโค้ดส่วนลดนี้"}
+	}
+
+	if !c.Active {
+		return &ApplyResult{OK: false, Reason: "โปรโมชั่นนี้ปิดใช้งานอยู่"}
+	}
+
+	now := time.Now()
+	if now.Before(c.StartAt) {
+		return &ApplyResult{OK: false, Reason: "โปรโมชั่นนี้ยังไม่เริ่ม"}
+	}
+	if now.After(c.ExpireAt) {
+		return &ApplyResult{OK: false, Reason: "โปรโมชั่นนี้หมดอายุแล้ว"}
+	}
+	if c.UsageLimit > 0 && c.UsedCount >= c.UsageLimit {
+		return &ApplyResult{OK: false, Reason: "สิทธิ์โปรโมชั่นถูกใช้ครบแล้ว"}
+	}
+	if subtotal < c.MinOrder {
+		return &ApplyResult{OK: false, Reason: fmt.Sprintf("ยอดสั่งซื้อขั้นต่ำ %.0f บาท สำหรับโค้ด %s", c.MinOrder, normalized)}
+	}
+
+	var amount float64
+	if c.CouponType == TypePercentage {
+		amount = subtotal * c.CouponValue / 100
+		if c.MaxDiscount > 0 && amount > c.MaxDiscount {
+			amount = c.MaxDiscount
+		}
+	} else {
+		amount = c.CouponValue
+	}
+	if amount > subtotal {
+		amount = subtotal
+	}
+
+	return &ApplyResult{
+		OK:           true,
+		Code:         normalized,
+		Amount:       amount,
+		FreeShipping: c.CouponType == TypeFreeShipping,
+		Min:          c.MinOrder,
+		MaxDiscount:  c.MaxDiscount,
+		PerUser:      c.PerUserLimit,
+	}
 }

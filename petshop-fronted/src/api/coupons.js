@@ -13,7 +13,7 @@ function mapCoupon(c) {
     code: c.coupon_code,
     title: c.coupon_title,
     type: c.coupon_type,
-    value: c.coupon_value,
+    value: c.couponvalue,
     min: c.min_order,
     maxDiscount: c.max_discount,
     limit: c.usage_limit,
@@ -30,7 +30,7 @@ function toRequestPayload(form) {
     code: form.coupon_code,
     title: form.coupon_title,
     coupon_type: form.coupon_type,
-    value: Number(form.coupon_value) || 0,
+    value: Number(form.value) || 0,
     min_order: Number(form.min) || 0,
     max_discount: form.maxDiscount === '' ? 0 : Number(form.maxDiscount) || 0,
     usage_limit: Number(form.limit) || 1,
@@ -43,6 +43,15 @@ function toRequestPayload(form) {
 
 export async function getCoupons() {
   const res = await apiFetch(`${API_BASE}/coupons/`, {
+    headers: { ...authHeaders() },
+  })
+  const data = await unwrap(res, 'โหลดข้อมูลโปรโมชั่นไม่สำเร็จ')
+  return Array.isArray(data) ? data.map(mapCoupon) : []
+}
+
+// รายการคูปองที่เปิดใช้งาน ใช้โดย user ทั่วไป (เช่น แจ้งเตือนโปรโมชั่นเริ่ม/ใกล้หมดอายุ)
+export async function getActiveCoupons() {
+  const res = await apiFetch(`${API_BASE}/coupons/active`, {
     headers: { ...authHeaders() },
   })
   const data = await unwrap(res, 'โหลดข้อมูลโปรโมชั่นไม่สำเร็จ')
@@ -83,4 +92,32 @@ export async function deleteCoupon(id) {
     }),
     'ลบโปรโมชั่นไม่สำเร็จ',
   )
+}
+
+// ตรวจสอบ/คำนวณส่วนลดของโค้ด ใช้ตอน checkout (ไม่ต้องเป็น admin)
+export async function applyCoupon(code, subtotal) {
+  const res = await apiFetch(`${API_BASE}/coupons/apply`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ code, subtotal }),
+  })
+
+  if (!res.ok) {
+    return { ok: false, reason: 'ตรวจสอบโค้ดส่วนลดไม่สำเร็จ' }
+  }
+
+  const result = await res.json()
+  return {
+    ok: result.ok,
+    reason: result.reason || '',
+    code: result.code || '',
+    amount: result.amount || 0,
+    freeShipping: Boolean(result.free_shipping),
+    min: result.min || 0,
+    maxDiscount: result.max_discount || 0,
+    perUser: result.per_user || 1,
+  }
 }

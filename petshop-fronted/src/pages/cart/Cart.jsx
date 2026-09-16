@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getCoupon } from '../../admin/coupons.js'
+import { applyCoupon } from '../../api/coupons.js'
 import { logActivity } from '../../admin/activity.js'
 import {
   getCart,
@@ -190,11 +190,10 @@ export default function Cart() {
 
   // =========================
   // Coupon
-  // ยังเป็น Mock ตามที่กำหนด
   // =========================
-  const handleApplyCode = () => {
+  const handleApplyCode = async () => {
     const code = promoCode.trim().toUpperCase()
-    const result = getCoupon(code, subtotal)
+    const result = await applyCoupon(code, subtotal)
 
     if (!result.ok) {
       setDiscount(0)
@@ -224,7 +223,7 @@ export default function Cart() {
       JSON.stringify({
         code,
         amount: result.amount,
-        min: Number(result.coupon.min || 0),
+        min: Number(result.min || 0),
         freeShipping: result.freeShipping,
       }),
     )

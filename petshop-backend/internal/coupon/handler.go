@@ -87,3 +87,13 @@ func Delete(c *fiber.Ctx) error {
 		"message": "Delete Coupon Successful",
 	})
 }
+
+func Apply(c *fiber.Ctx) error {
+	req := new(ApplyRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	result := ApplyCouponService(req.CouponCode, req.Subtotal)
+	return c.JSON(result)
+}

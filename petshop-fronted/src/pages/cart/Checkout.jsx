@@ -5,7 +5,7 @@ import { getCart } from '../../api/cart.js'
 import { getAddresses } from '../../api/address.js'
 import { createOrder } from '../../api/orders.js'
 
-import { getCoupon } from '../../admin/coupons.js'
+import { applyCoupon } from '../../api/coupons.js'
 import { calculateOrderPricing } from '../../lib/orderPricing.js'
 
 const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
@@ -205,10 +205,30 @@ export default function Checkout() {
 
   // =========================
   // Coupon
+  // ตรวจสอบซ้ำกับ backend ทุกครั้งที่ subtotal หรือโค้ดเปลี่ยน
+  // เริ่มด้วย ok:true ไปก่อน (ตอนบันทึกจาก Cart ก็ผ่านการเช็คมาแล้ว)
+  // เพื่อไม่ให้ส่วนลดกระพริบหายระหว่างรอผล แล้วค่อยแก้ไขถ้าผลจริงไม่ผ่าน
   // =========================
-  const activePromoResult = discountInfo.code
-    ? getCoupon(discountInfo.code, subtotal)
-    : null
+  const [activePromoResult, setActivePromoResult] = useState(
+    () => (discountInfo.code ? { ok: true } : null),
+  )
+
+  useEffect(() => {
+    if (!discountInfo.code) {
+      setActivePromoResult(null)
+      return
+    }
+
+    let cancelled = false
+
+    applyCoupon(discountInfo.code, subtotal).then((result) => {
+      if (!cancelled) setActivePromoResult(result)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [discountInfo.code, subtotal])
 
   const promoEligible =
     !discountInfo.code ||
@@ -249,7 +269,7 @@ export default function Checkout() {
   // =========================
   // Coupon
   // =========================
-  const handleApplyPromo = () => {
+  const handleApplyPromo = async () => {
     const code = promoCode.trim().toUpperCase()
 
     if (!code) {
@@ -257,7 +277,7 @@ export default function Checkout() {
       return
     }
 
-    const result = getCoupon(
+    const result = await applyCoupon(
       code,
       subtotal,
     )
@@ -270,7 +290,7 @@ export default function Checkout() {
     const nextDiscount = {
       code: result.code,
       amount: result.amount,
-      min: Number(result.coupon?.min || 0),
+      min: Number(result.min || 0),
       freeShipping: result.freeShipping,
     }
 

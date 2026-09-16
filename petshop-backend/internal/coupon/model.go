@@ -39,3 +39,19 @@ type CouponRequest struct {
 	ExpireAt     time.Time `json:"expire_at"`
 	Active       bool      `json:"active"`
 }
+
+type ApplyRequest struct {
+	CouponCode string  `json:"coupon_code"`
+	Subtotal   float64 `json:"subtotal"`
+}
+
+type ApplyResult struct {
+	OK           bool    `json:"ok"`
+	Reason       string  `json:"reason,omitempty"`
+	Code         string  `json:"code,omitempty"`
+	Amount       float64 `json:"amount"`
+	FreeShipping bool    `json:"free_shipping"`
+	Min          float64 `json:"min"`
+	MaxDiscount  float64 `json:"max_discount"`
+	PerUser      int64   `json:"per_user"`
+}
