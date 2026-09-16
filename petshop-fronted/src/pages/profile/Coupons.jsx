@@ -198,7 +198,7 @@ export default function Coupons() {
     }
     setCopied(coupon.code)
     window.setTimeout(() => setCopied(''), 1400)
-  }
+  } 
   if (loading) {
     return (
       <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] items-center justify-center bg-slate-50">
