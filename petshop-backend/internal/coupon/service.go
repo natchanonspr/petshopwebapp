@@ -35,11 +35,11 @@ func validdateAndBuild(req *CouponRequest) (*Coupon, error) {
 		return nil, ErrInvalidType
 	}
 
-	if req.CouponType == TypePercentage && (req.CouponValue <= 0 || req.CouponValue > 100) {
+	if req.CouponType == TypePercentage && (req.CouponValue < 0 || req.CouponValue > 100) {
 		return nil, ErrInvalidValue
 	}
 
-	if req.CouponType != TypeFreeShipping && req.CouponValue <= 0 {
+	if req.CouponType != TypeFreeShipping && req.CouponValue < 0 {
 		return nil, ErrInvalidValue
 	}
 
@@ -91,7 +91,7 @@ func CreateCouponService(req *CouponRequest) (*Coupon, error) {
 		return nil, err
 	}
 
-	if _, err := GetCouponByCode(coupon.CouponCode); err != nil {
+	if _, err := GetCouponByCode(coupon.CouponCode); err == nil {
 		return nil, ErrDuplicateCode
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -156,6 +156,10 @@ func GetCouponService(couponID int64) (*Coupon, error) {
 	return GetCoupon(couponID)
 }
 
+func GetActiveCouponsService() ([]Coupon, error) {
+	return GetActiveCoupons()
+}
+
 // ตรวจสอบเงื่อนไข + คำนวณส่วนลด (ไม่ได้บันทึกการใช้งาน/used_count ในรอบนี้)
 func ApplyCouponService(code string, subtotal float64) *ApplyResult {
 	normalized := strings.ToUpper(strings.TrimSpace(code))
@@ -202,6 +206,7 @@ func ApplyCouponService(code string, subtotal float64) *ApplyResult {
 	return &ApplyResult{
 		OK:           true,
 		Code:         normalized,
+		CouponID:     c.CouponID,
 		Amount:       amount,
 		FreeShipping: c.CouponType == TypeFreeShipping,
 		Min:          c.MinOrder,

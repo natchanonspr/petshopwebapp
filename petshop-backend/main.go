@@ -153,6 +153,11 @@ func main() {
 	carts.Put("/items/:itemID", cart.UpdateItem)
 	carts.Delete("/items/:itemID", cart.RemoveItem)
 
+	// Coupon ใช้ตอน checkout (login แล้วพอ ไม่ต้อง admin)
+	coupons := app.Group("/coupons", middleware.JWTProtected(jwtSecret))
+	coupons.Post("/apply", coupon.Apply)
+	coupons.Get("/active", coupon.Active)
+
 	// Coupon Admin
 	adminCoupons := app.Group("/coupons", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
 	adminCoupons.Get("/", coupon.List)
@@ -169,11 +174,13 @@ func main() {
 	addresses.Delete("/:id", address.Delete)
 
 	// Order API
-	orderGroup := app.Group("/orders", middleware.JWTProtected(jwtSecret))
-	orderGroup.Post("/", order.Create)
-	orderGroup.Get("/", order.List)
-	orderGroup.Get("/:id", order.Read)
-	orderGroup.Patch("/:id/cancel", order.Cancel)
+	orders := app.Group("/orders", middleware.JWTProtected(jwtSecret))
+	orders.Post("/", order.Create)
+	orders.Get("/", order.List)
+	orders.Get("/:id", order.Read)
+	orders.Patch("/:id/cancel", order.Cancel)
+	orders.Post("/:id/payment-slip", order.UploadPaymentSlip)
+	orders.Get("/:id/payment-slip", order.GetPaymentSlip)
 	// Admin Order API
 	adminOrders := app.Group("/admin/orders", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
 	adminOrders.Get("/", order.AdminList)

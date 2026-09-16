@@ -49,6 +49,7 @@ type ApplyResult struct {
 	OK           bool    `json:"ok"`
 	Reason       string  `json:"reason,omitempty"`
 	Code         string  `json:"code,omitempty"`
+	CouponID     int64   `json:"coupon_id"`
 	Amount       float64 `json:"amount"`
 	FreeShipping bool    `json:"free_shipping"`
 	Min          float64 `json:"min"`

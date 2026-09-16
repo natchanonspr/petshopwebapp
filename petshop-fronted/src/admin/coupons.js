@@ -45,11 +45,12 @@ export function consumeCoupon(code) {
   saveCoupons(getCoupons().map(item => String(item.code).toUpperCase() === normalized ? { ...item, used: Number(item.used || 0) + 1 } : item))
 }
 
-export function processScheduledCouponNotifications(now = new Date()) {
+export function processScheduledCouponNotifications(now = new Date(), coupons = null) {
   let markers = {}
   try { markers = JSON.parse(localStorage.getItem(NOTICE_KEY) || '{}') || {} } catch {}
   let changed = false
-  getCoupons().forEach(coupon => {
+  const list = coupons || getCoupons()
+  list.forEach(coupon => {
     if (!coupon.active || !coupon.id) return
     const start = coupon.start ? new Date(coupon.start) : null
     const end = coupon.expire ? new Date(coupon.expire) : null

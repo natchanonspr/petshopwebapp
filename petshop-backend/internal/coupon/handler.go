@@ -88,6 +88,18 @@ func Delete(c *fiber.Ctx) error {
 	})
 }
 
+// Active คืนเฉพาะคูปองที่เปิดใช้งาน สำหรับ user
+func Active(c *fiber.Ctx) error {
+	coupons, err := GetActiveCouponsService()
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": coupons,
+	})
+}
+
 func Apply(c *fiber.Ctx) error {
 	req := new(ApplyRequest)
 	if err := c.BodyParser(req); err != nil {

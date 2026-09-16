@@ -13,7 +13,7 @@ function mapCoupon(c) {
     code: c.coupon_code,
     title: c.coupon_title,
     type: c.coupon_type,
-    value: c.couponvalue,
+    value: c.coupon_value,
     min: c.min_order,
     maxDiscount: c.max_discount,
     limit: c.usage_limit,
@@ -25,21 +25,32 @@ function mapCoupon(c) {
   }
 }
 
+function toISODateTime(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return date.toISOString()
+}
+
 function toRequestPayload(form) {
   return {
-    code: form.coupon_code,
-    title: form.coupon_title,
-    coupon_type: form.coupon_type,
-    value: Number(form.value) || 0,
+    coupon_code: form.code, 
+    coupon_title: form.title, 
+    coupon_type: form.type,
+    coupon_value: Number(form.coupon_value) || 0,
     min_order: Number(form.min) || 0,
     max_discount: form.maxDiscount === '' ? 0 : Number(form.maxDiscount) || 0,
     usage_limit: Number(form.limit) || 1,
     per_user_limit: Number(form.perUser) || 1,
-    start_at: form.start,
-    expire_at: form.expire,
+    start_at: toISODateTime(form.start),
+    expire_at: toISODateTime(form.expire),
     active: form.active !== undefined ? form.active : true,
   }
 }
+
 
 export async function getCoupons() {
   const res = await apiFetch(`${API_BASE}/coupons/`, {
@@ -94,7 +105,7 @@ export async function deleteCoupon(id) {
   )
 }
 
-// ตรวจสอบ/คำนวณส่วนลดของโค้ด ใช้ตอน checkout (ไม่ต้องเป็น admin)
+// ตรวจสอบ/คำนวณส่วนลดของโค้ด ใช้ตอน checkout
 export async function applyCoupon(code, subtotal) {
   const res = await apiFetch(`${API_BASE}/coupons/apply`, {
     method: 'POST',
@@ -102,7 +113,7 @@ export async function applyCoupon(code, subtotal) {
       'Content-Type': 'application/json',
       ...authHeaders(),
     },
-    body: JSON.stringify({ code, subtotal }),
+    body: JSON.stringify({ coupon_code: code, subtotal }),
   })
 
   if (!res.ok) {

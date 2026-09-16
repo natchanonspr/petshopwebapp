@@ -420,6 +420,21 @@ export default function AdminOrderDetail() {
           </div>
         </div>
 
+        {/* Payment Slip */}
+        {order.payment_status === 'reviewing' && (
+          <div className="rounded-xl border border-[#ececf2] bg-white p-5">
+            <h2 className="mb-4 text-sm font-bold text-gray-900">
+              หลักฐานการชำระเงิน
+            </h2>
+
+            <img
+              src={`${API_BASE}/orders/${order.order_id}/payment-slip`}
+              alt="Payment slip"
+              className="max-w-md rounded-lg border"
+            />
+          </div>
+        )}
+
         {/* Total */}
         <div className="rounded-xl border border-[#ececf2] bg-white p-5">
           <p className="mb-4 text-xs text-gray-400">

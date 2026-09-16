@@ -6,7 +6,6 @@ import { getAddresses } from '../../api/address.js'
 import { createOrder } from '../../api/orders.js'
 
 import { applyCoupon } from '../../api/coupons.js'
-import { calculateOrderPricing } from '../../lib/orderPricing.js'
 
 const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
 
@@ -29,10 +28,10 @@ const readDiscount = () => {
     return saved && typeof saved === 'object'
       ? saved
       : {
-          code: '',
-          amount: 0,
-          freeShipping: false,
-        }
+        code: '',
+        amount: 0,
+        freeShipping: false,
+      }
   } catch {
     return {
       code: '',
@@ -58,14 +57,14 @@ const mapAddressToDisplay = (savedAddress) => {
       '',
     detail: [
       savedAddress?.address_line ||
-        savedAddress?.address ||
-        savedAddress?.detail,
+      savedAddress?.address ||
+      savedAddress?.detail,
       savedAddress?.subdistrict &&
-        `ต.${savedAddress.subdistrict}`,
+      `ต.${savedAddress.subdistrict}`,
       savedAddress?.district &&
-        `อ.${savedAddress.district}`,
+      `อ.${savedAddress.district}`,
       savedAddress?.province &&
-        `จ.${savedAddress.province}`,
+      `จ.${savedAddress.province}`,
       savedAddress?.postal_code,
     ]
       .filter(Boolean)
@@ -87,10 +86,8 @@ export default function Checkout() {
   const [promoCode, setPromoCode] = useState(
     discountInfo.code || '',
   )
-  const [promoError, setPromoError] = useState('')
-
-  const [selectedAddressId, setSelectedAddressId] =
-    useState(null)
+  const [selectedAddressId, setSelectedAddressId] = useState(null)
+  const [paymentMethod, setPaymentMethod] = useState('promptpay')
 
   const [address, setAddress] = useState({
     name: '',
@@ -155,7 +152,7 @@ export default function Checkout() {
 
         setErrorMessage(
           error?.message ||
-            'ไม่สามารถโหลดข้อมูล Checkout ได้',
+          'ไม่สามารถโหลดข้อมูล Checkout ได้',
         )
       } finally {
         setLoading(false)
@@ -210,7 +207,15 @@ export default function Checkout() {
   // เพื่อไม่ให้ส่วนลดกระพริบหายระหว่างรอผล แล้วค่อยแก้ไขถ้าผลจริงไม่ผ่าน
   // =========================
   const [activePromoResult, setActivePromoResult] = useState(
-    () => (discountInfo.code ? { ok: true } : null),
+    () =>
+      discountInfo.code
+        ? {
+          ok: true,
+          code: discountInfo.code,
+          amount: Number(discountInfo.amount) || 0,
+          freeShipping: Boolean(discountInfo.freeShipping),
+        }
+        : null,
   )
 
   useEffect(() => {
@@ -221,9 +226,44 @@ export default function Checkout() {
 
     let cancelled = false
 
-    applyCoupon(discountInfo.code, subtotal).then((result) => {
-      if (!cancelled) setActivePromoResult(result)
-    })
+    const checkCoupon = async () => {
+      try {
+        const result = await applyCoupon(
+          discountInfo.code,
+          subtotal,
+        )
+
+        if (cancelled) return
+
+        if (!result?.ok) {
+          setActivePromoResult({
+            ok: false,
+            amount: 0,
+            freeShipping: false,
+          })
+          return
+        }
+
+        setActivePromoResult(result)
+      } catch (error) {
+        console.error('Check coupon error:', error)
+
+        if (!cancelled) {
+          // ถ้า backend ตรวจซ้ำไม่ได้
+          // ให้ใช้ค่าที่บันทึกไว้ก่อน
+          setActivePromoResult({
+            ok: true,
+            code: discountInfo.code,
+            amount: Number(discountInfo.amount) || 0,
+            freeShipping: Boolean(
+              discountInfo.freeShipping,
+            ),
+          })
+        }
+      }
+    }
+
+    checkCoupon()
 
     return () => {
       cancelled = true
@@ -236,35 +276,33 @@ export default function Checkout() {
 
   const discount = promoEligible
     ? Math.min(
-        Math.max(
-          Number(discountInfo.amount) || 0,
-          0,
-        ),
-        subtotal,
-      )
+      Math.max(
+        Number(activePromoResult?.amount ?? discountInfo.amount) || 0,
+        0,
+      ),
+      subtotal,
+    )
     : 0
 
-  const afterDiscount =
-    subtotal - discount
+  const afterDiscount = subtotal - discount
+
+  const freeShipping =
+    promoEligible &&
+    Boolean(
+      activePromoResult?.freeShipping ??
+      discountInfo.freeShipping,
+    )
 
   const delivery =
-    (promoEligible &&
-      discountInfo.freeShipping) ||
-    afterDiscount >= 1000
+    freeShipping || afterDiscount >= 500
       ? 0
       : 40
 
-  const pricing = useMemo(
-    () =>
-      calculateOrderPricing({
-        subtotal,
-        discount,
-        delivery,
-      }),
-    [subtotal, discount, delivery],
-  )
+  const beforeTax = afterDiscount + delivery
 
-  const total = pricing.total
+  const taxAmount = beforeTax * 0.07
+
+  const total = beforeTax + taxAmount
 
   // =========================
   // Coupon
@@ -295,6 +333,7 @@ export default function Checkout() {
     }
 
     setDiscountInfo(nextDiscount)
+    setActivePromoResult(result)
     setPromoCode(code)
     setPromoError('')
 
@@ -312,12 +351,11 @@ export default function Checkout() {
     }
 
     setDiscountInfo(cleared)
+    setActivePromoResult(null)
     setPromoCode('')
     setPromoError('')
 
-    localStorage.removeItem(
-      CHECKOUT_DISCOUNT_KEY,
-    )
+    localStorage.removeItem(CHECKOUT_DISCOUNT_KEY)
   }
 
   // =========================
@@ -377,15 +415,15 @@ export default function Checkout() {
       // Backend ตอนนี้รับ address_id
       const order = await createOrder({
         addressId: selectedAddressId,
+        paymentMethod,
+        couponCode: discountInfo.code || '',
       })
+
+      navigate(`/payment/${order.order_id}`)
 
       console.log(
         'Create order successful:',
         order,
-      )
-
-      localStorage.removeItem(
-        CHECKOUT_DISCOUNT_KEY,
       )
 
       window.dispatchEvent(
@@ -395,8 +433,8 @@ export default function Checkout() {
       navigate(
         `/orders/success?id=${encodeURIComponent(
           order?.order_id ||
-            order?.id ||
-            '',
+          order?.id ||
+          '',
         )}`,
       )
     } catch (error) {
@@ -407,7 +445,7 @@ export default function Checkout() {
 
       setErrorMessage(
         error?.message ||
-          'ไม่สามารถสร้างคำสั่งซื้อได้',
+        'ไม่สามารถสร้างคำสั่งซื้อได้',
       )
     } finally {
       setSubmitting(false)
@@ -571,25 +609,23 @@ export default function Checkout() {
                             savedAddress,
                           )
                         }
-                        className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left ${
-                          selectedAddressId ===
+                        className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left ${selectedAddressId ===
                           addressId
-                            ? 'border-orange-500 bg-orange-50'
-                            : 'border-gray-100 bg-white'
-                        }`}
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-100 bg-white'
+                          }`}
                       >
                         <span
-                          className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${
-                            selectedAddressId ===
+                          className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${selectedAddressId ===
                             addressId
-                              ? 'border-orange-500'
-                              : 'border-gray-300'
-                          }`}
+                            ? 'border-orange-500'
+                            : 'border-gray-300'
+                            }`}
                         >
                           {selectedAddressId ===
                             addressId && (
-                            <span className="size-2.5 rounded-full bg-orange-500" />
-                          )}
+                              <span className="size-2.5 rounded-full bg-orange-500" />
+                            )}
                         </span>
 
                         <span className="min-w-0 flex-1">
@@ -639,8 +675,88 @@ export default function Checkout() {
             วิธีการชำระเงิน
           </h2>
 
-          <div className="mt-3 rounded-2xl bg-orange-50 px-4 py-3 text-sm text-orange-700">
-            ระบบชำระเงินยังเป็นโหมดทดลอง
+          <div className="mt-4 space-y-2">
+
+            {/* พร้อมเพย์ */}
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('promptpay')}
+              className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${paymentMethod === 'promptpay'
+                ? 'border-orange-500 bg-orange-50'
+                : 'border-gray-100 bg-white'
+                }`}
+            >
+              <span
+                className={`grid size-10 shrink-0 place-items-center rounded-full ${paymentMethod === 'promptpay'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-400'
+                  }`}
+              >
+                <i className="fa-solid fa-mobile-screen-button" />
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <strong className="block text-sm">
+                  พร้อมเพย์
+                </strong>
+
+                <small className="text-xs text-gray-400">
+                  ชำระเงินผ่านหมายเลขพร้อมเพย์
+                </small>
+              </span>
+
+              <span
+                className={`grid size-5 place-items-center rounded-full border-2 ${paymentMethod === 'promptpay'
+                  ? 'border-orange-500'
+                  : 'border-gray-300'
+                  }`}
+              >
+                {paymentMethod === 'promptpay' && (
+                  <span className="size-2.5 rounded-full bg-orange-500" />
+                )}
+              </span>
+            </button>
+
+            {/* QR Code */}
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('qr')}
+              className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${paymentMethod === 'qr'
+                ? 'border-orange-500 bg-orange-50'
+                : 'border-gray-100 bg-white'
+                }`}
+            >
+              <span
+                className={`grid size-10 shrink-0 place-items-center rounded-full ${paymentMethod === 'qr'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-400'
+                  }`}
+              >
+                <i className="fa-solid fa-qrcode" />
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <strong className="block text-sm">
+                  สแกน QR
+                </strong>
+
+                <small className="text-xs text-gray-400">
+                  สแกน QR Code เพื่อชำระเงิน
+                </small>
+              </span>
+
+              <span
+                className={`grid size-5 place-items-center rounded-full border-2 ${paymentMethod === 'qr'
+                  ? 'border-orange-500'
+                  : 'border-gray-300'
+                  }`}
+              >
+                {paymentMethod === 'qr' && (
+                  <span className="size-2.5 rounded-full bg-orange-500" />
+                )}
+              </span>
+            </button>
+
           </div>
         </section>
 
@@ -656,14 +772,11 @@ export default function Checkout() {
                 โค้ดส่วนลด
               </h2>
 
-              <p className="text-xs text-gray-400">
-                โค้ดส่วนลดยังเป็นระบบทดลอง
-              </p>
             </div>
           </div>
 
           {discountInfo.code &&
-          promoEligible ? (
+            promoEligible ? (
             <div className="mt-4 flex items-center justify-between rounded-2xl border border-green-100 bg-green-50 px-4 py-3">
               <div>
                 <p className="text-sm font-bold text-green-700">
@@ -672,7 +785,7 @@ export default function Checkout() {
 
                 <p className="text-xs text-green-600">
                   ลด ฿{discount.toLocaleString()}
-                  {discountInfo.freeShipping
+                  {freeShipping
                     ? ' + ส่งฟรี'
                     : ''}
                 </p>
@@ -755,6 +868,14 @@ export default function Checkout() {
                 {delivery
                   ? `฿${delivery}`
                   : 'ฟรี'}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>VAT 7%</span>
+
+              <span>
+                ฿{taxAmount.toLocaleString()}
               </span>
             </div>
 

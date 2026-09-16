@@ -1,6 +1,10 @@
 package coupon
 
-import "gorm.io/gorm"
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
 
 var db *gorm.DB
 
@@ -48,4 +52,32 @@ func UpdateCoupon(coupon *Coupon) error {
 
 func DeleteCoupon(couponID int64) error {
 	return db.Delete(&Coupon{}, couponID).Error
+}
+
+func GetActiveCoupons() ([]Coupon, error) {
+	var coupons []Coupon
+	err := db.Where("active = ?", true).Find(&coupons).Error
+	return coupons, err
+}
+
+func IncrementUsedCount(tx *gorm.DB, couponID int64) error {
+	result := tx.Model(&Coupon{}).
+		Where(
+			"coupon_id = ? AND (usage_limit = 0 OR used_count < usage_limit)",
+			couponID,
+		).
+		UpdateColumn(
+			"used_count",
+			gorm.Expr("used_count + 1"),
+		)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("โปรโมชั่นนี้ถูกใช้ครบจำนวนแล้ว")
+	}
+
+	return nil
 }

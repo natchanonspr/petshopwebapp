@@ -3,9 +3,11 @@ package order
 import (
 	"encoding/json"
 	"errors"
+	"time"
 
 	"petshop-backend/internal/address"
 	"petshop-backend/internal/cart"
+	"petshop-backend/internal/coupon"
 	"petshop-backend/internal/product"
 
 	"gorm.io/gorm"
@@ -48,8 +50,8 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 	}
 
 	var (
-		totalAmount float64
-		orderItems  []OrderItem
+		subtotalAmount float64
+		orderItems     []OrderItem
 	)
 
 	// 4. ตรวจสอบสินค้า + Stock + คำนวณราคา
@@ -68,7 +70,7 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 			return nil, ErrOutOfStock
 		}
 
-		totalAmount += product.ProductPrice * float64(cartItem.CartQuantity)
+		subtotalAmount += product.ProductPrice * float64(cartItem.CartQuantity)
 
 		orderItems = append(orderItems, OrderItem{
 			ProductID:     product.ProductID,
@@ -79,6 +81,49 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 		})
 	}
 
+	var (
+		discountAmount float64
+		shippingAmount float64 = 40
+		couponID       int64
+	)
+
+	couponCode := req.CouponCode
+
+	if couponCode != "" {
+		result := coupon.ApplyCouponService(
+			couponCode,
+			subtotalAmount,
+		)
+
+		if !result.OK {
+			return nil, errors.New(result.Reason)
+		}
+
+		discountAmount = result.Amount
+		couponID = result.CouponID
+
+		if result.FreeShipping {
+			shippingAmount = 0
+		}
+	}
+
+	// คำนวณยอดหลังหักส่วนลด
+	afterDiscount := subtotalAmount - discountAmount
+
+	// ถ้ายอดหลังส่วนลดถึง 500 บาท ให้ส่งฟรี
+	if afterDiscount >= 500 {
+		shippingAmount = 0
+	}
+
+	// คำนวณ VAT 7% จากยอดหลังส่วนลด + ค่าส่ง
+	beforeTax := afterDiscount + shippingAmount
+
+	// VAT 7%
+	taxAmount := beforeTax * 0.07
+
+	// ยอดรวมสุดท้าย
+	totalAmount := beforeTax + taxAmount
+
 	// สร้าง คำสั่งซื้อ และ สินค้าในคำสั่งซื้อ
 	var createdOrder *Order
 
@@ -86,12 +131,17 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 
 		// สร้าง คำสั่งซื้อ
 		order := &Order{
-			UserID:        userID,
-			OrderAddress:  string(snapshot),
-			TotalAmount:   totalAmount,
-			OrderStatus:   "pending",
-			PaymentMethod: req.PaymentMethod,
-			PaymentStatus: "unpaid",
+			UserID:         userID,
+			OrderAddress:   string(snapshot),
+			SubtotalAmount: subtotalAmount,
+			DiscountAmount: discountAmount,
+			ShippingAmount: shippingAmount,
+			TaxAmount:      taxAmount,
+			CouponCode:     couponCode,
+			TotalAmount:    totalAmount,
+			OrderStatus:    "pending",
+			PaymentMethod:  req.PaymentMethod,
+			PaymentStatus:  "unpaid",
 		}
 
 		if err := tx.Create(order).Error; err != nil {
@@ -132,6 +182,12 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 
 			if result.RowsAffected == 0 {
 				return ErrOutOfStock
+			}
+		}
+
+		if couponID != 0 {
+			if err := coupon.IncrementUsedCount(tx, couponID); err != nil {
+				return err
 			}
 		}
 
@@ -178,6 +234,31 @@ func restoreStock(tx *gorm.DB, items []OrderItem) error {
 	return nil
 }
 
+func UploadPaymentSlipService(orderID int64, userID int64, slipData []byte, contentType string) (*Order, error) {
+	var order Order
+	result := db.Where("order_id = ? AND user_id = ?", orderID, userID).First(&order)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if order.PaymentStatus == PaymentPaid {
+		return nil, errors.New("ออเดอร์นี้ชำระเงินแล้ว")
+	}
+
+	now := time.Now()
+
+	order.PaymentSlip = slipData
+	order.PaymentSlipContentType = contentType
+	order.PaymentSubmittedAt = &now
+	order.PaymentStatus = PaymentReviewing
+
+	if err := db.Save(&order).Error; err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
 // ยกเลิกคำสั่งซื้อ
 func CancelOrderService(orderID, userID int64) error {
 	order, err := GetOrder(orderID, userID)
@@ -207,6 +288,7 @@ func GetOrderAdminService(orderID int64) (*Order, error) {
 	return GetOrderAdmin(orderID)
 }
 
+// Admin : เปลี่ยนสเตตัสของออเดอร์ลูกค้า
 func UpdateOrderStatusService(orderID int64, status string) error {
 
 	// สถานะ
