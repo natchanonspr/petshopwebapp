@@ -31,6 +31,8 @@ export default function AdminCoupons() {
   const [form, setForm] = useState(blankForm)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   const refresh = () => {
     setLoading(true)
@@ -106,18 +108,25 @@ export default function AdminCoupons() {
     }
   }
 
-  const remove = async (id) => {
+  const remove = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
     try {
-      await deleteCoupon(id)
+      await deleteCoupon(deleteTarget.id)
+      setDeleteTarget(null)
       refresh()
     } catch (err) {
       setLoadError(err.message || 'ลบโปรโมชั่นไม่สำเร็จ')
+    } finally {
+      setDeleting(false)
     }
   }
 
   return <div className="space-y-4 pb-20 md:pb-6">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><div className="text-[10px] text-gray-400"><Link to="/home/admin">หน้าหลัก</Link> <i className="fa-solid fa-chevron-right mx-1 text-[8px]"/>โปรโมชั่น</div><h1 className="mt-1 text-[22px] font-extrabold">จัดการโปรโมชั่น </h1><p className="mt-0.5 text-[11px] text-gray-400">สร้าง แก้ไข และตั้งเวลาเปิด–ปิดโปรโมชั่นอัตโนมัติ</p></div>
+      <div><div className="text-[10px] text-gray-400"><Link to="/home/admin">หน้าหลัก</Link> 
+      <i className="fa-solid fa-chevron-right mx-1 text-[8px]"/>โปรโมชั่น</div><h1 className="mt-1 text-[22px] font-extrabold">จัดการโปรโมชั่น </h1>
+      </div>
       <button onClick={openCreate} className="rounded-lg bg-[#6d3df5] px-4 py-2.5 text-[11px] font-bold text-white"><i className="fa-solid fa-plus mr-2"/>สร้างโปรโมชั่น</button>
     </div>
 
@@ -126,8 +135,26 @@ export default function AdminCoupons() {
     {loadError && <div className="rounded-lg bg-red-50 px-3 py-2 text-[10px] font-bold text-red-500"><i className="fa-solid fa-circle-exclamation mr-1"/>{loadError}</div>}
 
     <section className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm"><div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left text-[11px]"><thead className="bg-[#fafafa] text-[9px] font-bold text-gray-400"><tr><th className="px-4 py-3">โปรโมชั่น</th><th>ประเภท</th><th>ส่วนลด</th><th>การใช้งาน</th><th>เริ่ม</th><th>สิ้นสุด</th><th>สถานะ</th><th/></tr></thead><tbody>{loading ? <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400">กำลังโหลด...</td></tr> : items.map(x => { const status = scheduleStatus(x); return <tr key={x.id} className="border-t border-gray-50 hover:bg-violet-50/30">
-      <td className="px-4 py-3"><div className="font-extrabold text-[#6d3df5]">{x.code}</div><div className="mt-0.5 text-[9px] text-gray-500">{x.title}</div></td><td>{x.type}</td><td className="font-extrabold">{x.type === 'เปอร์เซ็นต์' ? `${x.value}%` : x.type === 'ค่าส่ง' ? 'ฟรี' : `฿${x.value}`}<div className="mt-0.5 text-[8px] font-normal text-gray-400">ขั้นต่ำ ฿{Number(x.min || 0).toLocaleString()}</div></td><td>{x.used} / {x.limit}<div className="mt-0.5 text-[8px] text-gray-400">ต่อคน {x.perUser || 1} ครั้ง</div></td><td>{formatDate(x.start)}</td><td>{formatDate(x.expire)}</td><td><button onClick={() => toggleActive(x)} className={`rounded-full px-2 py-1 text-[9px] font-bold ${status.cls}`}>{status.label}</button></td><td className="pr-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => openEdit(x)} title="แก้ไข" className="grid size-7 place-items-center rounded-lg bg-violet-50 text-violet-600"><i className="fa-solid fa-pen text-[9px]"/></button><button onClick={() => remove(x.id)} title="ลบ" className="grid size-7 place-items-center rounded-lg bg-red-50 text-red-500"><i className="fa-solid fa-trash text-[9px]"/></button></div></td>
+      <td className="px-4 py-3"><div className="font-extrabold text-[#6d3df5]">{x.code}</div><div className="mt-0.5 text-[9px] text-gray-500">{x.title}</div></td><td>{x.type}</td><td className="font-extrabold">{x.type === 'เปอร์เซ็นต์' ? `${x.value}%` : x.type === 'ค่าส่ง' ? 'ฟรี' : `฿${x.value}`}<div className="mt-0.5 text-[8px] font-normal text-gray-400">ขั้นต่ำ ฿{Number(x.min || 0).toLocaleString()}</div></td><td>{x.used} / {x.limit}<div className="mt-0.5 text-[8px] text-gray-400">ต่อคน {x.perUser || 1} ครั้ง</div></td><td>{formatDate(x.start)}</td><td>{formatDate(x.expire)}</td><td><button onClick={() => toggleActive(x)} className={`rounded-full px-2 py-1 text-[9px] font-bold ${status.cls}`}>{status.label}</button></td><td className="pr-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => openEdit(x)} title="แก้ไข" className="grid size-7 place-items-center rounded-lg bg-violet-50 text-violet-600"><i className="fa-solid fa-pen text-[9px]"/></button><button onClick={() => setDeleteTarget(x)} title="ลบ" className="grid size-7 place-items-center rounded-lg bg-red-50 text-red-500"><i className="fa-solid fa-trash text-[9px]"/></button></div></td>
     </tr>})}</tbody></table></div></section>
+
+    {deleteTarget && <div className="fixed inset-0 z-[110] grid place-items-center bg-gray-950/45 p-4 backdrop-blur-sm" onMouseDown={e => e.target === e.currentTarget && !deleting && setDeleteTarget(null)}><div className="w-full max-w-sm overflow-hidden rounded-[24px] bg-white shadow-2xl">
+      <div className="h-1.5 bg-red-500" />
+      <div className="p-6 text-center">
+        <span className="mx-auto grid size-16 place-items-center rounded-full bg-red-50 text-red-500">
+          <i className="fa-solid fa-trash text-xl" />
+        </span>
+        <h2 className="mt-4 text-lg font-extrabold">ลบโปรโมชั่น?</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          โปรโมชั่น <span className="font-bold text-gray-700">{deleteTarget.code}</span> จะถูกลบออกจากระบบ
+        </p>
+        <p className="text-[10px] text-gray-400">การลบโปรโมชั่นนี้ไม่สามารถย้อนกลับได้</p>
+        <div className="mt-6 flex gap-2">
+          <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} className="h-11 flex-1 rounded-xl border border-gray-200 text-xs font-bold text-gray-500 disabled:opacity-60">ยกเลิก</button>
+          <button type="button" onClick={remove} disabled={deleting} className="h-11 flex-1 rounded-xl bg-red-500 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-60">{deleting ? 'กำลังลบ...' : 'ยืนยันลบ'}</button>
+        </div>
+      </div>
+    </div></div>}
 
     {modal && <div className="fixed inset-0 z-[100] grid place-items-center bg-black/30 p-4" onMouseDown={e => e.target === e.currentTarget && setModal(false)}><div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
       <div className="flex justify-between"><div><h2 className="text-base font-extrabold">{editingId ? 'แก้ไขโปรโมชั่น' : 'สร้างโปรโมชั่น'}</h2><p className="mt-0.5 text-[10px] text-gray-400">กำหนดช่วงเวลาให้ระบบจัดการสถานะให้อัตโนมัติ</p></div><button onClick={() => setModal(false)} className="text-gray-400"><i className="fa-solid fa-xmark"/></button></div>
@@ -152,4 +179,4 @@ export default function AdminCoupons() {
   </div>
 }
 
-function Stat({label,value,icon}){return <div className="rounded-xl border border-[#ececf2] bg-white p-3 shadow-sm"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#f1edff] text-[#6d3df5]"><i className={`fa-solid ${icon} text-[11px]`}/></span><div><div className="text-[9px] text-gray-400">{label}</div><div className="text-lg font-extrabold">{value}</div></div></div></div>}
+function Stat({label,value,icon}){return <div className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-[#f1edff] text-[#6d3df5]"><i className={`fa-solid ${icon} text-[11px]`}/></span><div><div className="text-[9px] text-gray-400">{label}</div><div className="text-lg font-extrabold">{value}</div></div></div></div>}

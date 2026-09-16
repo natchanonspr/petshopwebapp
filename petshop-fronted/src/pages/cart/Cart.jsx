@@ -29,9 +29,6 @@ export default function Cart() {
   const [isFreeShipping, setIsFreeShipping] = useState(false)
   const [isError, setIsError] = useState(false)
 
-  // =========================
-  // โหลด Cart จาก Backend
-  // =========================
   const loadCart = async () => {
     try {
       setLoading(true)
@@ -48,9 +45,7 @@ export default function Cart() {
       setCartItems(items)
     } catch (error) {
       console.error('Load cart error:', error)
-      setErrorMessage(
-        error.message || 'ไม่สามารถโหลดตะกร้าสินค้าได้',
-      )
+      setErrorMessage(error.message || 'ไม่สามารถโหลดตะกร้าสินค้าได้')
       setCartItems([])
     } finally {
       setLoading(false)
@@ -61,9 +56,6 @@ export default function Cart() {
     loadCart()
   }, [])
 
-  // =========================
-  // เพิ่ม / ลด จำนวน
-  // =========================
   const updateQuantity = async (item, change) => {
     const currentQty = Number(item.cart_quantity) || 1
     const nextQty = currentQty + change
@@ -92,15 +84,10 @@ export default function Cart() {
       window.dispatchEvent(new Event('petshop-cart-updated'))
     } catch (error) {
       console.error('Update cart error:', error)
-      setErrorMessage(
-        error.message || 'ไม่สามารถแก้ไขจำนวนสินค้าได้',
-      )
+      setErrorMessage(error.message || 'ไม่สามารถแก้ไขจำนวนสินค้าได้')
     }
   }
 
-  // =========================
-  // ลบสินค้า
-  // =========================
   const removeItem = async (item) => {
     try {
       setErrorMessage('')
@@ -122,75 +109,40 @@ export default function Cart() {
       window.dispatchEvent(new Event('petshop-cart-updated'))
     } catch (error) {
       console.error('Remove cart item error:', error)
-      setErrorMessage(
-        error.message || 'ไม่สามารถลบสินค้าได้',
-      )
+      setErrorMessage(error.message || 'ไม่สามารถลบสินค้าได้')
     }
   }
 
-  // =========================
-  // เตรียมข้อมูลสำหรับแสดงผล
-  // Backend ส่ง Product มาด้วย
-  // =========================
   const normalizedItems = cartItems.map((item) => {
     const product = item.product || {}
 
     return {
       ...item,
-
-      qty: Math.max(
-        1,
-        Number(item.cart_quantity) || 1,
-      ),
-
-      name:
-        product.product_name ||
-        `สินค้า #${item.product_id}`,
-
+      qty: Math.max(1, Number(item.cart_quantity) || 1),
+      name: product.product_name || `สินค้า #${item.product_id}`,
       detail: product.description || '',
-
       image: product.product_image || '',
-
       icon: 'fa-box',
-
-      price: Math.max(
-        0,
-        parsePrice(product.product_price),
-      ),
-
+      price: Math.max(0, parsePrice(product.product_price)),
       stock: Number(product.product_stock) || 0,
-
       status: Boolean(product.product_status),
     }
   })
 
-  const itemCount = normalizedItems.reduce(
-    (sum, item) => sum + item.qty,
-    0,
-  )
+  const itemCount = normalizedItems.reduce((sum, item) => sum + item.qty, 0)
 
   const subtotal = normalizedItems.reduce(
     (sum, item) => sum + item.price * item.qty,
     0,
   )
 
-  const afterDiscount = Math.max(
-    0,
-    subtotal - discount,
-  )
+  const afterDiscount = Math.max(0, subtotal - discount)
 
   const delivery =
-    subtotal === 0 ||
-      isFreeShipping ||
-      afterDiscount >= 1000
-      ? 0
-      : 40
+    subtotal === 0 || isFreeShipping || afterDiscount >= 1000 ? 0 : 40
 
   const total = afterDiscount + delivery
 
-  // =========================
-  // Coupon
-  // =========================
   const handleApplyCode = async () => {
     const code = promoCode.trim().toUpperCase()
     const result = await applyCoupon(code, subtotal)
@@ -207,14 +159,10 @@ export default function Cart() {
     setDiscount(result.amount)
     setIsFreeShipping(result.freeShipping)
 
-    logActivity(
-      'coupon',
-      `ใช้โค้ด ${code}`,
-      {
-        couponCode: code,
-        amount: result.amount,
-      },
-    )
+    logActivity('coupon', `ใช้โค้ด ${code}`, {
+      couponCode: code,
+      amount: result.amount,
+    })
 
     setIsError(false)
 
@@ -237,18 +185,12 @@ export default function Cart() {
     localStorage.removeItem(CHECKOUT_DISCOUNT_KEY)
   }
 
-  // =========================
-  // Loading
-  // =========================
   if (loading) {
     return (
       <main className="mx-auto flex h-screen w-full max-w-[430px] items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="mx-auto mb-3 size-10 animate-spin rounded-full border-4 border-gray-200 border-t-orange-500" />
-
-          <p className="text-sm text-gray-400">
-            กำลังโหลดตะกร้าสินค้า...
-          </p>
+          <p className="text-sm text-gray-400">กำลังโหลดตะกร้าสินค้า...</p>
         </div>
       </main>
     )
@@ -256,8 +198,6 @@ export default function Cart() {
 
   return (
     <main className="relative mx-auto flex h-screen w-full max-w-[430px] flex-col overflow-hidden bg-gray-50 text-gray-900 shadow-[0_0_40px_rgba(17,24,39,0.10)]">
-
-      {/* ================= HEADER ================= */}
       <header className="z-10 shrink-0 space-y-5 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-5 pt-3 shadow-md">
         <div className="flex items-center justify-between">
           <Link
@@ -269,9 +209,7 @@ export default function Cart() {
           </Link>
 
           <div className="text-center">
-            <h1 className="mt-0.5 text-xl font-bold">
-              ตะกร้าสินค้า
-            </h1>
+            <h1 className="mt-0.5 text-xl font-bold">ตะกร้าสินค้า</h1>
           </div>
 
           <span className="grid size-10 place-items-center rounded-full bg-orange-50 text-orange-500">
@@ -280,24 +218,17 @@ export default function Cart() {
         </div>
 
         <div className="flex items-center justify-between px-1 pt-1">
-          <h2 className="text-base font-bold text-gray-800">
-            สินค้าในตะกร้า
-          </h2>
-
-          <span className="text-sm text-gray-400">
-            {itemCount} ชิ้น
-          </span>
+          <h2 className="text-base font-bold text-gray-800">สินค้าในตะกร้า</h2>
+          <span className="text-sm text-gray-400">{itemCount} ชิ้น</span>
         </div>
       </header>
 
-      {/* ================= ERROR ================= */}
       {errorMessage && (
         <div className="mx-5 mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
           {errorMessage}
         </div>
       )}
 
-      {/* ================= CART LIST ================= */}
       <section className="flex-1 space-y-4 overflow-y-auto px-5 pb-36 pt-4">
         {normalizedItems.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-gray-200 bg-white px-5 py-12 text-center shadow-sm">
@@ -305,9 +236,7 @@ export default function Cart() {
               <i className="fa-solid fa-cart-shopping text-2xl" />
             </div>
 
-            <h3 className="mt-4 text-base font-bold">
-              ยังไม่มีสินค้าในตะกร้า
-            </h3>
+            <h3 className="mt-4 text-base font-bold">ยังไม่มีสินค้าในตะกร้า</h3>
 
             <p className="mt-1 text-sm text-gray-400">
               เลือกสินค้าที่ต้องการแล้วกดใส่ตะกร้าได้เลย
@@ -327,10 +256,7 @@ export default function Cart() {
               className="rounded-[24px] border border-gray-100 bg-white p-4 shadow-sm"
             >
               <div className="flex gap-3">
-
-                {/* IMAGE */}
                 <div className="size-[82px] shrink-0 overflow-hidden rounded-[20px] bg-gray-100">
-
                   {item.image ? (
                     <img
                       src={item.image}
@@ -338,36 +264,24 @@ export default function Cart() {
                       className="size-full object-cover"
                       onError={(event) => {
                         event.currentTarget.style.display = 'none'
-                        event.currentTarget.nextElementSibling?.classList.remove(
-                          'hidden',
-                        )
+                        event.currentTarget.nextElementSibling?.classList.remove('hidden')
                       }}
                     />
                   ) : null}
 
                   <div
-                    className={`size-full place-items-center text-3xl text-gray-400 ${item.image ? 'hidden' : 'grid'
-                      }`}
+                    className={`size-full place-items-center text-3xl text-gray-400 ${item.image ? 'hidden' : 'grid'}`}
                   >
-                    <i
-                      className={`fa-solid ${item.icon}`}
-                    />
+                    <i className={`fa-solid ${item.icon}`} />
                   </div>
                 </div>
 
-                {/* CONTENT */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-
                     <div>
-                      <h3 className="text-sm font-bold leading-5">
-                        {item.name}
-                      </h3>
-
+                      <h3 className="text-sm font-bold leading-5">{item.name}</h3>
                       {item.detail && (
-                        <p className="mt-1 text-xs text-gray-400">
-                          {item.detail}
-                        </p>
+                        <p className="mt-1 text-xs text-gray-400">{item.detail}</p>
                       )}
                     </div>
 
@@ -382,15 +296,11 @@ export default function Cart() {
                   </div>
 
                   <div className="mt-3 flex items-center justify-between">
-
                     <div>
                       <strong className="text-lg text-orange-500">
                         ฿{(item.price * item.qty).toLocaleString()}
                       </strong>
-
-                      <span className="ml-1 text-xs text-gray-400">
-                        / {item.qty} ชิ้น
-                      </span>
+                      <span className="ml-1 text-xs text-gray-400">/ {item.qty} ชิ้น</span>
                     </div>
 
                     <div className="flex items-center gap-3 rounded-full bg-gray-100 p-1">
@@ -403,23 +313,17 @@ export default function Cart() {
                         −
                       </button>
 
-                      <span className="min-w-4 text-center text-sm font-bold">
-                        {item.qty}
-                      </span>
+                      <span className="min-w-4 text-center text-sm font-bold">{item.qty}</span>
 
                       <button
                         type="button"
                         onClick={() => updateQuantity(item, 1)}
-                        disabled={
-                          item.stock > 0 ||
-                          item.qty >= item.stock
-                        }
+                        disabled={item.stock <= 0 || item.qty >= item.stock}
                         className="grid size-7 place-items-center rounded-full bg-black text-sm text-white transition hover:bg-gray-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         +
                       </button>
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -428,7 +332,6 @@ export default function Cart() {
         )}
       </section>
 
-      {/* ================= OVERLAY ================= */}
       {isOpenSummary && (
         <div
           className="absolute inset-0 z-20 bg-black/40 transition-opacity duration-300"
@@ -436,12 +339,8 @@ export default function Cart() {
         />
       )}
 
-      {/* ================= SUMMARY ================= */}
       <div
-        className={`absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] rounded-t-[28px] border-t border-gray-100 bg-white px-5 pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out pb-[calc(16px+env(safe-area-inset-bottom))] ${isOpenSummary
-            ? 'translate-y-0'
-            : 'translate-y-[calc(100%-124px-env(safe-area-inset-bottom))]'
-          }`}
+        className={`absolute inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[430px] rounded-t-[28px] border-t border-gray-100 bg-white px-5 pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out pb-[calc(16px+env(safe-area-inset-bottom))] ${isOpenSummary ? 'translate-y-0' : 'translate-y-[calc(100%-124px-env(safe-area-inset-bottom))]'}`}
       >
         <button
           type="button"
@@ -455,23 +354,15 @@ export default function Cart() {
             className="flex cursor-pointer items-center justify-between pb-3"
             onClick={() => setIsOpenSummary(!isOpenSummary)}
           >
-            <h2 className="text-base font-bold">
-              สรุปคำสั่งซื้อ
-            </h2>
-
+            <h2 className="text-base font-bold">สรุปคำสั่งซื้อ</h2>
             <i
-              className={`fa-solid fa-chevron-up text-gray-400 transition-transform duration-300 ${isOpenSummary ? 'rotate-180' : ''
-                }`}
+              className={`fa-solid fa-chevron-up text-gray-400 transition-transform duration-300 ${isOpenSummary ? 'rotate-180' : ''}`}
             />
           </div>
 
           <div
-            className={`space-y-3 text-sm transition-all duration-300 ${isOpenSummary
-                ? 'mb-3 max-h-[500px] opacity-100'
-                : 'max-h-0 overflow-hidden opacity-0'
-              }`}
+            className={`space-y-3 text-sm transition-all duration-300 ${isOpenSummary ? 'mb-3 max-h-[500px] opacity-100' : 'max-h-0 overflow-hidden opacity-0'}`}
           >
-            {/* COUPON */}
             <div className="rounded-[22px] border border-dashed border-orange-400 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-50 text-orange-500">
@@ -479,13 +370,8 @@ export default function Cart() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold">
-                    มีโค้ดส่วนลดไหม?
-                  </p>
-
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    กรอกโค้ดเพื่อรับส่วนลด
-                  </p>
+                  <p className="text-sm font-bold">มีโค้ดส่วนลดไหม?</p>
+                  <p className="mt-0.5 text-xs text-gray-400">กรอกโค้ดเพื่อรับส่วนลด</p>
                 </div>
               </div>
 
@@ -493,23 +379,13 @@ export default function Cart() {
                 <div className="relative flex-1">
                   <input
                     aria-label="โค้ดส่วนลด"
-                    placeholder={
-                      isError
-                        ? 'ไม่พบโค้ดส่วนลดนี้'
-                        : 'กรอกโค้ดส่วนลด'
-                    }
+                    placeholder={isError ? 'ไม่พบโค้ดส่วนลดนี้' : 'กรอกโค้ดส่วนลด'}
                     value={promoCode}
                     onChange={(e) => {
                       setPromoCode(e.target.value)
-
-                      if (isError) {
-                        setIsError(false)
-                      }
+                      if (isError) setIsError(false)
                     }}
-                    className={`h-10 w-full rounded-full pl-4 pr-10 text-sm outline-none transition-all duration-200 ${isError
-                        ? 'border-2 border-red-400 bg-red-50 font-medium text-red-600 placeholder:text-red-400'
-                        : 'bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-200'
-                      }`}
+                    className={`h-10 w-full rounded-full pl-4 pr-10 text-sm outline-none transition-all duration-200 ${isError ? 'border-2 border-red-400 bg-red-50 font-medium text-red-600 placeholder:text-red-400' : 'bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-200'}`}
                   />
 
                   {(promoCode || discount > 0 || isError) && (
@@ -541,69 +417,42 @@ export default function Cart() {
               )}
             </div>
 
-            {/* PRICE */}
             <div className="flex justify-between pt-1 text-gray-500">
               <span>ค่าสินค้า</span>
-              <span>
-                ฿{subtotal.toLocaleString()}
-              </span>
+              <span>฿{subtotal.toLocaleString()}</span>
             </div>
 
             {discount > 0 && (
               <>
                 <div className="flex justify-between text-red-500">
-                  <span>
-                    ส่วนลด {promoCode ? `(${promoCode})` : ''}
-                  </span>
-
-                  <span>
-                    -฿{discount.toLocaleString()}
-                  </span>
+                  <span>ส่วนลด {promoCode ? `(${promoCode})` : ''}</span>
+                  <span>-฿{discount.toLocaleString()}</span>
                 </div>
 
                 <div className="flex justify-between font-medium text-gray-800">
-                  <span>
-                    ค่าสินค้าหลังหักส่วนลด
-                  </span>
-
-                  <span>
-                    ฿{afterDiscount.toLocaleString()}
-                  </span>
+                  <span>ค่าสินค้าหลังหักส่วนลด</span>
+                  <span>฿{afterDiscount.toLocaleString()}</span>
                 </div>
               </>
             )}
 
             <div className="flex justify-between text-gray-500">
               <span>ค่าจัดส่ง</span>
-
-              <span>
-                {delivery === 0
-                  ? 'ฟรี'
-                  : `฿${delivery}`}
-              </span>
+              <span>{delivery === 0 ? 'ฟรี' : `฿${delivery}`}</span>
             </div>
 
             <div className="my-2 border-t border-dashed border-gray-200" />
 
             <div className="flex items-center justify-between pb-2">
-              <span className="font-bold">
-                ยอดรวมทั้งหมด
-              </span>
-
-              <strong className="text-2xl text-orange-500">
-                ฿{total.toLocaleString()}
-              </strong>
+              <span className="font-bold">ยอดรวมทั้งหมด</span>
+              <strong className="text-2xl text-orange-500">฿{total.toLocaleString()}</strong>
             </div>
           </div>
         </div>
 
-        {/* CHECKOUT */}
         <Link
           to={cartItems.length ? '/checkout' : '/products'}
-          className={`flex min-h-12 w-full items-center justify-center rounded-full text-sm font-bold !text-white shadow-lg transition-all duration-200 active:scale-[0.99] ${cartItems.length
-              ? 'bg-orange-500 !text-white shadow-orange-500/30 hover:-translate-y-0.5 hover:bg-orange-600'
-              : 'pointer-events-none bg-gray-300'
-            }`}
+          className={`flex min-h-12 w-full items-center justify-center rounded-full text-sm font-bold !text-white shadow-lg transition-all duration-200 active:scale-[0.99] ${cartItems.length ? 'bg-orange-500 !text-white shadow-orange-500/30 hover:-translate-y-0.5 hover:bg-orange-600' : 'pointer-events-none bg-gray-300'}`}
           aria-disabled={!cartItems.length}
         >
           ไปชำระเงิน • ฿{total.toLocaleString()}

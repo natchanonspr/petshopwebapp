@@ -343,7 +343,7 @@ export default function AdminCustomerDetail() {
   const isAdmin = role === 'admin'
 
   return (
-    <div className="space-y-5 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
 
       {/* =========================
           Header
@@ -471,7 +471,7 @@ export default function AdminCustomerDetail() {
       {/* =========================
           Customer Information
       ========================= */}
-      <section className="rounded-xl border border-[#ececf2] bg-white p-5 shadow-sm">
+      <section className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
 
         <div className="mb-4 flex items-center gap-2">
           <div className="grid size-9 place-items-center rounded-lg bg-violet-50 text-violet-600">
@@ -543,7 +543,7 @@ export default function AdminCustomerDetail() {
       {/* =========================
           Order History
       ========================= */}
-      <section className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
+      <section className="h-full overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
 
         <div className="flex items-center justify-between border-b border-[#ececf2] px-5 py-4">
 

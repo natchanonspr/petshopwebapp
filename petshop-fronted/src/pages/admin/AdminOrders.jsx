@@ -279,9 +279,7 @@ export default function AdminOrders() {
             จัดการคำสั่งซื้อ
           </h1>
 
-          <p className="mt-1 text-xs text-gray-400">
-            ตรวจสอบคำสั่งซื้อ การชำระเงิน และข้อมูลจัดส่ง
-          </p>
+    
         </div>
 
         <button

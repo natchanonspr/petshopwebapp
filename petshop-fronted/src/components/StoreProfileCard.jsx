@@ -9,6 +9,8 @@ const DEMO_ITEMS = [
 export default function StoreProfileCard() {
   const [store, setStore] = useState(getStoreProfile)
   const [saved, setSaved] = useState(false)
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const refresh = () => setStore(getStoreProfile())
@@ -31,7 +33,10 @@ export default function StoreProfileCard() {
   }
 
   const handleSave = () => {
+    setSaving(true)
     saveStoreProfile(store)
+    setSaving(false)
+    setShowSaveConfirm(false)
     setSaved(true)
     window.setTimeout(() => setSaved(false), 2200)
   }
@@ -41,7 +46,7 @@ export default function StoreProfileCard() {
   const total = subtotal + vat
 
   return <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.15fr)_420px]">
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_2px_12px_rgba(30,30,50,0.04)] md:p-6">
+    <section className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm md:p-4">
       <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-4">
         <div>
           <div className="flex items-center gap-2">
@@ -83,16 +88,71 @@ export default function StoreProfileCard() {
 
       <div className="mt-5 flex flex-col-reverse gap-2 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
         <button type="button" onClick={() => setStore(getStoreProfile())} className="h-11 rounded-xl border border-gray-200 bg-white px-5 text-xs font-bold text-gray-500 transition hover:bg-gray-50">คืนค่าเดิม</button>
-        <button type="button" onClick={handleSave} className="h-11 rounded-xl bg-violet-600 px-6 text-xs font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-700 active:scale-[.98]"><i className="fa-solid fa-floppy-disk mr-2"/>บันทึกข้อมูลร้านค้า</button>
+        <button type="button" onClick={() => setShowSaveConfirm(true)} className="h-11 rounded-xl bg-violet-600 px-6 text-xs font-bold text-white shadow-lg shadow-violet-200 transition hover:bg-violet-700 active:scale-[.98]"><i className="fa-solid fa-floppy-disk mr-2"/>บันทึกข้อมูลร้านค้า</button>
       </div>
     </section>
 
     <ReceiptPreview store={store} items={DEMO_ITEMS} subtotal={subtotal} vat={vat} total={total} />
+
+    {showSaveConfirm && (
+      <div
+        className="fixed inset-0 z-[110] grid place-items-center bg-gray-950/45 p-4 backdrop-blur-[2px]"
+        onMouseDown={e => {
+          if (e.target === e.currentTarget && !saving) {
+            setShowSaveConfirm(false)
+          }
+        }}
+      >
+        <div className="w-full max-w-sm overflow-hidden rounded-[24px] bg-white shadow-2xl">
+          <div className="h-1.5 bg-violet-600" />
+
+          <div className="p-5">
+            <div className="flex flex-col items-center text-center">
+              <div className="grid size-16 place-items-center rounded-full bg-violet-50 text-violet-600">
+                <i className="fa-solid fa-floppy-disk text-xl" />
+              </div>
+
+              <h2 className="mt-4 text-base font-extrabold text-gray-800">
+                ยืนยันการบันทึกข้อมูลร้านค้า
+              </h2>
+
+              <p className="mt-2 text-[11px] leading-5 text-gray-500">
+                คุณต้องการบันทึกข้อมูลร้านค้าที่แก้ไขไว้ใช่หรือไม่?
+              </p>
+
+              <p className="mt-1 text-[10px] text-gray-400">
+                ข้อมูลจะถูกนำไปใช้แสดงบนใบเสร็จของระบบ
+              </p>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSaveConfirm(false)}
+                disabled={saving}
+                className="h-10 flex-1 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 disabled:opacity-60"
+              >
+                ยกเลิก
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="h-10 flex-1 rounded-lg bg-violet-600 text-xs font-bold text-white disabled:opacity-60"
+              >
+                {saving ? 'กำลังบันทึก...' : 'ยืนยันบันทึก'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
 }
 
 function ReceiptPreview({ store, items, subtotal, vat, total }) {
-  return <section className="sticky top-[92px] rounded-2xl border border-gray-200 bg-white p-4 shadow-[0_2px_12px_rgba(30,30,50,0.04)] md:p-5">
+  return <section className="sticky top-[92px] h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
     <div className="flex items-center justify-between border-b border-gray-100 pb-4">
       <div>
         <div className="flex items-center gap-2"><span className="grid size-8 place-items-center rounded-lg bg-violet-50 text-violet-600"><i className="fa-solid fa-receipt text-xs"/></span><h2 className="text-sm font-extrabold">Preview ใบเสร็จ</h2></div>

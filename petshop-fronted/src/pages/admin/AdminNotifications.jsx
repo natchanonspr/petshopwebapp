@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getAdminNotifications, createAdminNotification, deleteAdminNotifications, } from '../../api/notifications.js'
+import {
+  getAdminNotifications,
+  createAdminNotification,
+  deleteAdminNotifications,
+} from '../../api/notifications.js'
 
 const templates = [
   {
@@ -21,42 +25,7 @@ const templates = [
     title: 'ลดราคาพิเศษ',
     detail: 'สินค้าสุดคุ้ม ลดพิเศษในช่วงเวลาจำกัด',
   },
-  {
-    type: 'promo',
-    icon: 'fa-clock',
-    title: 'คูปองใกล้หมดอายุ',
-    detail: 'รีบใช้คูปองก่อนสิทธิ์ของคุณจะหมดอายุ',
-  },
-  {
-    type: 'promo',
-    icon: 'fa-truck-fast',
-    title: 'ส่งฟรีวันนี้',
-    detail: 'รับสิทธิ์ส่งฟรีเมื่อสั่งซื้อตามเงื่อนไขที่กำหนด',
-  },
-  {
-    type: 'promo',
-    icon: 'fa-gift',
-    title: 'สิทธิพิเศษสำหรับสมาชิก',
-    detail: 'ข้อเสนอพิเศษสำหรับสมาชิก PetShop เท่านั้น',
-  },
-  {
-    type: 'promo',
-    icon: 'fa-user-plus',
-    title: 'โปรโมชั่นสมาชิกใหม่',
-    detail: 'สมาชิกใหม่รับส่วนลดพิเศษสำหรับคำสั่งซื้อแรก',
-  },
-  {
-    type: 'system',
-    icon: 'fa-bullhorn',
-    title: 'แจ้งข่าวสารจาก PetShop',
-    detail: 'มีข้อมูล ข่าวสาร และสิทธิพิเศษใหม่จากร้าน PetShop',
-  },
-  {
-    type: 'order',
-    icon: 'fa-truck',
-    title: 'อัปเดตสถานะการจัดส่ง',
-    detail: 'คำสั่งซื้อของคุณกำลังเดินทางไปหาคุณ',
-  },
+  
 ]
 
 function unwrapData(response) {
@@ -245,9 +214,7 @@ export default function AdminNotifications() {
             จัดการการแจ้งเตือน
           </h1>
 
-          <p className="mt-0.5 text-[11px] text-gray-400">
-            ส่งข่าวสาร โปรโมชั่น และข้อมูลต่าง ๆ ให้ Customer
-          </p>
+        
         </div>
 
         <button
@@ -269,10 +236,10 @@ export default function AdminNotifications() {
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+      <div className="grid items-stretch gap-4 xl:grid-cols-2">
 
         {/* Send */}
-        <section className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+        <section className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
           <h2 className="text-sm font-extrabold">
             ส่งการแจ้งเตือน
           </h2>
@@ -367,14 +334,19 @@ export default function AdminNotifications() {
         </section>
 
         {/* Templates */}
-        <section className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-extrabold">
-            ข้อความสำเร็จรูป
-          </h2>
+        <section className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-extrabold">
+                ข้อความสำเร็จรูป
+              </h2>
 
-          <p className="mt-1 text-[10px] text-gray-400">
-            เลือกข้อความแล้วปรับแก้ก่อนส่งได้
-          </p>
+              <p className="mt-1 text-[10px] text-gray-400">
+                เลือกข้อความแล้วปรับแก้ก่อนส่งได้
+              </p>
+            </div>
+
+          </div>
 
           <div className="mt-4 space-y-2">
             {templates.map((item) => (

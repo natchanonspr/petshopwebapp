@@ -112,12 +112,12 @@ export default function AdminReports() {
   const topAIProducts = [...aiProducts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="mb-1 text-[11px] font-medium text-gray-400">Admin / Reports</div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">รายงานและสถิติ</h1>
-          <p className="mt-1 text-xs text-gray-500">สรุปยอดขาย คำสั่งซื้อ ลูกค้า และข้อมูลสำคัญของร้าน</p>
+        
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
@@ -156,7 +156,7 @@ export default function AdminReports() {
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
         <Card title="ยอดขายตามช่วงเวลา" subtitle={range === 'ทั้งหมด' ? 'ภาพรวมคำสั่งซื้อทั้งหมด' : `ตัวกรอง: ${range}`}>
           <div className="grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl bg-gray-50 p-5">
+            <div className="rounded-xl bg-gray-50 p-4">
               <p className="text-xs font-semibold text-gray-500">รายได้จากออเดอร์</p>
               <p className="mt-2 text-2xl font-extrabold text-gray-900">{money(revenue)}</p>
               <div className="mt-5 flex h-24 items-end gap-2">
@@ -217,7 +217,7 @@ export default function AdminReports() {
 
       <Card title="รายงานการใช้งาน AI" subtitle={`ข้อมูล Recommendation จาก ${ai.provider === 'luna' ? 'Luna' : 'Gemini'}`}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Summary icon="fa-toggle-on" label="สถานะ" value={ai.enabled === false ? 'ปิด' : 'เปิด'} /><Summary icon="fa-robot" label="Provider" value={ai.provider === 'luna' ? 'Luna' : 'Gemini'} /><Summary icon="fa-wand-magic-sparkles" label="Recommendation" value={aiRecommendations.length} /><Summary icon="fa-bullseye" label="Accuracy" value={`${aiAccuracy}%`} /></div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-2xl bg-gray-50 p-4"><div className="text-xs font-bold text-gray-700">ผลการตรวจสอบ AI</div><div className="mt-3 grid grid-cols-2 gap-3"><div className="rounded-xl bg-white p-3"><div className="text-[10px] text-gray-400">ตรวจแล้ว</div><b className="text-lg">{reviewedAI.length}</b></div><div className="rounded-xl bg-white p-3"><div className="text-[10px] text-gray-400">ถูกต้อง</div><b className="text-lg text-emerald-600">{correctAI}</b></div></div></div><div className="rounded-2xl bg-gray-50 p-4"><div className="text-xs font-bold text-gray-700">สินค้าที่ AI แนะนำบ่อย</div><div className="mt-3 space-y-2">{topAIProducts.length ? topAIProducts.map(([id, count]) => <div key={id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs"><span>สินค้า #{id}</span><b className="text-violet-600">{count} ครั้ง</b></div>) : <span className="text-xs text-gray-400">ยังไม่มีข้อมูล</span>}</div></div></div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="rounded-xl bg-gray-50 p-4"><div className="text-xs font-bold text-gray-700">ผลการตรวจสอบ AI</div><div className="mt-3 grid grid-cols-2 gap-3"><div className="rounded-xl bg-white p-3"><div className="text-[10px] text-gray-400">ตรวจแล้ว</div><b className="text-lg">{reviewedAI.length}</b></div><div className="rounded-xl bg-white p-3"><div className="text-[10px] text-gray-400">ถูกต้อง</div><b className="text-lg text-emerald-600">{correctAI}</b></div></div></div><div className="rounded-2xl bg-gray-50 p-4"><div className="text-xs font-bold text-gray-700">สินค้าที่ AI แนะนำบ่อย</div><div className="mt-3 space-y-2">{topAIProducts.length ? topAIProducts.map(([id, count]) => <div key={id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs"><span>สินค้า #{id}</span><b className="text-violet-600">{count} ครั้ง</b></div>) : <span className="text-xs text-gray-400">ยังไม่มีข้อมูล</span>}</div></div></div>
         <Link to="/home/admin/settings" className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-violet-600">ไปจัดการ AI Management <i className="fa-solid fa-arrow-right" /></Link>
       </Card>
     </div>
@@ -227,8 +227,8 @@ export default function AdminReports() {
 function RangeBanner({ text, onReset }) {
   return <div className="flex items-center justify-between rounded-2xl border border-violet-100 bg-violet-50 px-5 py-4"><b className="text-sm text-violet-800">{text}</b><button onClick={onReset} className="rounded-lg bg-white px-3 py-2 text-[10px] font-bold text-violet-600 shadow-sm">วันนี้</button></div>
 }
-function Metric({ icon, label, value, note }) { return <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-gray-500">{label}</p><p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">{value}</p></div><span className="grid size-11 place-items-center rounded-xl bg-violet-50 text-violet-600"><i className={`fa-solid ${icon}`} /></span></div><p className="mt-4 text-[10px] text-gray-400">{note}</p></div> }
-function Card({ title, subtitle, children }) { return <div className="rounded-2xl border border-gray-200 bg-white shadow-sm"><div className="px-5 py-5 md:px-6"><h2 className="text-sm font-bold text-gray-900">{title}</h2><p className="mt-1 text-[11px] text-gray-400">{subtitle}</p></div><div className="border-t border-gray-100 px-5 pb-5 md:px-6 md:pb-6">{children}</div></div> }
+function Metric({ icon, label, value, note }) { return <div className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-gray-500">{label}</p><p className="mt-2 text-2xl font-bold tracking-tight text-gray-900">{value}</p></div><span className="grid size-11 place-items-center rounded-xl bg-violet-50 text-violet-600"><i className={`fa-solid ${icon}`} /></span></div><p className="mt-4 text-[10px] text-gray-400">{note}</p></div> }
+function Card({ title, subtitle, children }) { return <div className="h-full rounded-xl border border-[#ececf2] bg-white shadow-sm"><div className="px-5 py-5 md:px-6"><h2 className="text-sm font-bold text-gray-900">{title}</h2><p className="mt-1 text-[11px] text-gray-400">{subtitle}</p></div><div className="border-t border-gray-100 px-5 pb-5 md:px-6 md:pb-6">{children}</div></div> }
 function Bar({ label, value, total }) { const percent = Math.round((value / total) * 100); return <div><div className="mb-1 flex justify-between text-[10px]"><span className="text-gray-500">{label}</span><b>{value}</b></div><div className="h-2 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-violet-500" style={{ width: `${percent}%` }} /></div></div> }
 function Summary({ icon, label, value }) { return <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3"><span className="grid size-9 place-items-center rounded-lg bg-white text-violet-600 shadow-sm"><i className={`fa-solid ${icon} text-xs`} /></span><div><p className="text-[10px] text-gray-400">{label}</p><b className="text-sm text-gray-800">{value}</b></div></div> }
 function Empty({ text }) { return <div className="py-8 text-center text-xs text-gray-400">{text}</div> }

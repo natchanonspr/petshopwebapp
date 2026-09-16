@@ -337,9 +337,7 @@ export default function AdminCustomers() {
           จัดการผู้ใช้งาน
         </h1>
 
-        <p className="mt-1 text-xs text-gray-400">
-          จัดการข้อมูล Customer และ Admin
-        </p>
+       
       </div>
 
       {/* =========================

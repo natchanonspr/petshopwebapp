@@ -86,6 +86,7 @@ export default function Checkout() {
   const [promoCode, setPromoCode] = useState(
     discountInfo.code || '',
   )
+  const [promoError, setPromoError] = useState('')
   const [selectedAddressId, setSelectedAddressId] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('promptpay')
 

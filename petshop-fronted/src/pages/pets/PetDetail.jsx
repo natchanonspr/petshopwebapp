@@ -61,8 +61,6 @@ export default function PetDetail() {
         pet_neutered: Boolean(editForm.pet_neutered),
         pet_disease: editForm.pet_disease || "",
         pet_health: editForm.pet_health || "",
-        pet_appearance: editForm.pet_appearance || "",
-        pet_personality: editForm.pet_personality || "",
         description: editForm.description || "",
         image: editForm.image || "",
       }
@@ -390,45 +388,19 @@ export default function PetDetail() {
                 />
               </label>
 
-              {/* ลักษณะ */}
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-bold">
-                  ลักษณะของสัตว์เลี้ยง
-                </span>
-                <textarea
-                  value={editForm?.pet_appearance ?? ''}
-                  onChange={(e) => updateEdit('pet_appearance', e.target.value)}
-                  rows="3"
-                  className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm"
-                  placeholder="เช่น ขนสั้น สีเทา ตัวกลม ดวงตากลมโต"
-                />
-              </label>
+             
 
-              {/* นิสัย */}
+              {/* คำอธิบายสัตว์เลี้ยง */}
               <label className="block">
                 <span className="mb-1.5 block text-xs font-bold">
-                  นิสัยของสัตว์เลี้ยง
-                </span>
-                <textarea
-                  value={editForm?.pet_personality ?? ''}
-                  onChange={(e) => updateEdit('pet_personality', e.target.value)}
-                  rows="3"
-                  className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm"
-                  placeholder="เช่น ขี้อ้อน ร่าเริง ชอบเล่นกับคน รักสงบ"
-                />
-              </label>
-
-              {/* หมายเหตุ */}
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-bold">
-                  หมายเหตุ
+                  คำอธิบายสัตว์เลี้ยง
                 </span>
                 <textarea
                   value={editForm?.description ?? ''}
                   onChange={(e) => updateEdit('description', e.target.value)}
-                  rows="3"
+                  rows="7"
                   className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm"
-                  placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับน้อง"
+                  placeholder="คำอธิบายสัตว์เลี้ยงเพิ่มเติม เช่น นิสัย, พฤติกรรม, สิ่งที่ชอบ, สิ่งที่ไม่ชอบ"
                 />
               </label>
 
@@ -519,19 +491,7 @@ export default function PetDetail() {
             <InfoRow icon="fa-heart-pulse" label="ปัญหาสุขภาพ" value={pet?.pet_health || '-'} />
           </Section>
 
-          <Section icon="fa-eye" title="ลักษณะ">
-            <div className="px-4 py-4 text-sm leading-6 text-gray-700">
-              {pet?.pet_appearance || 'ไม่มีข้อมูล'}
-            </div>
-          </Section>
-
-          <Section icon="fa-heart" title="นิสัย">
-            <div className="px-4 py-4 text-sm leading-6 text-gray-700">
-              {pet?.pet_personality || 'ไม่มีข้อมูล'}
-            </div>
-          </Section>
-
-          <Section icon="fa-note-sticky" title="หมายเหตุ">
+          <Section icon="fa-note-sticky" title="คำอธิบายสัตว์เลี้ยง">
             <div className="px-4 py-4 text-sm leading-6 text-gray-700">
               {pet?.description || 'ไม่มีข้อมูล'}
             </div>

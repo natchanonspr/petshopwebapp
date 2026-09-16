@@ -350,18 +350,10 @@ export default function Pets() {
                 <input value={form.pet_health} onChange={(e) => setField('pet_health', e.target.value)} className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm" placeholder="เช่น ไม่มี, แพ้อาหาร" />
               </label>
 
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-bold">ลักษณะของสัตว์เลี้ยง</span>
-                <textarea value={form.pet_appearance} onChange={(e) => setField('pet_appearance', e.target.value)} rows="3" className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm" placeholder="เช่น ขนสั้น สีเทา ตัวกลม ดวงตากลมโต" />
-              </label>
+          
 
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold">นิสัยของสัตว์เลี้ยง</span>
-                <textarea value={form.pet_personality} onChange={(e) => setField('pet_personality', e.target.value)} rows="3" className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm" placeholder="เช่น ขี้อ้อน ร่าเริง ชอบเล่นกับคน รักสงบ" />
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-bold">หมายเหตุ</span>
+                <span className="mb-1.5 block text-xs font-bold">คำอธิบายสัตว์เลี้ยง</span>
                 <textarea value={form.description} onChange={(e) => setField('description', e.target.value)} rows="3" className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm" placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับน้อง" />
               </label>
             </div>

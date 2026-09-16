@@ -4,6 +4,7 @@ import {
   getAdminOrder,
   updateAdminOrderStatus,
 } from '../../api/orders.js'
+import { getStoreProfile } from '../../lib/store.js'
 
 const statuses = [
   'รอดำเนินการ',
@@ -120,7 +121,9 @@ export default function AdminOrderDetail() {
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false)
 
   const loadOrder = async () => {
     try {
@@ -292,9 +295,41 @@ export default function AdminOrderDetail() {
   }
 
   const address = order.address || {}
+  const store = getStoreProfile()
+
+  const handlePrintReceipt = () => {
+    window.print()
+  }
 
   return (
-    <div className="space-y-5 pb-20 md:pb-6">
+    <div className="admin-order-detail space-y-4 pb-20 md:pb-6">
+      <style>{`
+        @page {
+          size: 80mm auto;
+          margin: 0;
+        }
+
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+
+          .admin-order-detail .receipt-print-area,
+          .admin-order-detail .receipt-print-area * {
+            visibility: visible !important;
+          }
+
+          .admin-order-detail .receipt-print-area {
+            position: absolute !important;
+            inset: 0 auto auto 0 !important;
+            width: 80mm !important;
+            max-width: 80mm !important;
+            margin: 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
 
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -329,7 +364,7 @@ export default function AdminOrderDetail() {
       <div className="grid gap-4 lg:grid-cols-3">
 
         {/* Customer */}
-        <div className="rounded-xl border border-[#ececf2] bg-white p-5">
+        <div className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-gray-500">
               <i className="fa-solid fa-user" />
@@ -380,7 +415,7 @@ export default function AdminOrderDetail() {
         </div>
 
         {/* Payment */}
-        <div className="rounded-xl border border-[#ececf2] bg-white p-5">
+        <div className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-gray-500">
               <i className="fa-solid fa-credit-card" />
@@ -422,7 +457,7 @@ export default function AdminOrderDetail() {
 
         {/* Payment Slip */}
         {order.payment_status === 'reviewing' && (
-          <div className="rounded-xl border border-[#ececf2] bg-white p-5">
+          <div className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
             <h2 className="mb-4 text-sm font-bold text-gray-900">
               หลักฐานการชำระเงิน
             </h2>
@@ -436,7 +471,7 @@ export default function AdminOrderDetail() {
         )}
 
         {/* Total */}
-        <div className="rounded-xl border border-[#ececf2] bg-white p-5">
+        <div className="h-full rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
           <p className="mb-4 text-xs text-gray-400">
             ยอดรวมคำสั่งซื้อ
           </p>
@@ -458,15 +493,26 @@ export default function AdminOrderDetail() {
       </div>
 
       {/* Status Management */}
-      <div className="rounded-xl border border-[#ececf2] bg-white p-5">
-        <div className="mb-4">
-          <h2 className="text-sm font-bold text-gray-900">
-            จัดการสถานะคำสั่งซื้อ
-          </h2>
+      <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">
+              จัดการสถานะคำสั่งซื้อ
+            </h2>
 
-          <p className="mt-1 text-xs text-gray-400">
-            เปลี่ยนสถานะของคำสั่งซื้อจากรายการด้านล่าง
-          </p>
+            <p className="mt-1 text-xs text-gray-400">
+              เปลี่ยนสถานะของคำสั่งซื้อจากรายการด้านล่าง
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowReceiptPreview(true)}
+            className="h-10 shrink-0 rounded-lg border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+          >
+            <i className="fa-solid fa-receipt mr-2" />
+            Preview ใบเสร็จ
+          </button>
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row">
@@ -493,10 +539,11 @@ export default function AdminOrderDetail() {
 
           <button
             type="button"
-            onClick={handleSaveStatus}
+            onClick={() => setShowStatusConfirm(true)}
             disabled={
               saving ||
-              order.order_status === 'cancelled'
+              order.order_status === 'cancelled' ||
+              selectedStatus === order.status
             }
             className="h-11 rounded-lg bg-gray-900 px-5 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -530,7 +577,7 @@ export default function AdminOrderDetail() {
       </div>
 
       {/* Products */}
-      <div className="rounded-xl border border-[#ececf2] bg-white">
+      <div className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
         <div className="border-b border-[#ececf2] px-5 py-4">
           <h2 className="text-sm font-bold text-gray-900">
             รายการสินค้า
@@ -683,8 +730,164 @@ export default function AdminOrderDetail() {
         </div>
       </div>
 
+      {/* Receipt Preview */}
+      {showReceiptPreview && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-gray-950/50 p-4 print:static print:block print:bg-white print:p-0">
+          <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl bg-gray-100 p-5 shadow-2xl print:max-h-none print:max-w-none print:overflow-visible print:rounded-none print:bg-white print:p-0 print:shadow-none">
+            <div className="mb-4 flex items-center justify-between print:hidden">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Preview ใบเสร็จ</h2>
+                <p className="mt-1 text-xs text-gray-400">ตัวอย่างใบเสร็จสำหรับพิมพ์</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReceiptPreview(false)}
+                className="grid size-9 place-items-center rounded-lg text-gray-400 hover:bg-white"
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+
+            <div className="receipt-print-area relative mx-auto max-w-[330px] bg-white px-5 py-6 text-gray-900 shadow-[0_8px_25px_rgba(30,30,50,0.10)] before:absolute before:inset-x-0 before:-bottom-1 before:h-2 before:bg-[radial-gradient(circle_at_6px_0,transparent_5px,#fff_5.5px)] before:bg-[length:12px_8px] before:bg-repeat-x print:max-w-[330px] print:shadow-none">
+              <div className="text-center">
+                <div className="mx-auto grid size-16 place-items-center overflow-hidden rounded-xl text-gray-700">
+                  {store.image ? (
+                    <img src={store.image} alt="โลโก้ร้าน" className="h-full w-full object-cover" />
+                  ) : (
+                    <i className="fa-solid fa-paw text-3xl" />
+                  )}
+                </div>
+                <h3 className="mt-2 text-base font-black uppercase tracking-tight">
+                  {store.name || 'PetShop ร้านเพื่อนสัตว์เลี้ยง'}
+                </h3>
+                <p className="mx-auto mt-1 max-w-[280px] whitespace-pre-line text-[9px] leading-4 text-gray-500">
+                  {store.address || '-'}
+                </p>
+                <p className="mt-0.5 text-[9px] text-gray-500">
+                  โทร {store.phone || '-'}
+                </p>
+                <p className="mt-0.5 text-[8px] text-gray-400">
+                  เลขประจำตัวผู้เสียภาษี: {store.taxId || '-'}
+                </p>
+              </div>
+
+              <div className="my-4 border-t border-dashed border-gray-400" />
+
+              <div className="text-center">
+                <p className="text-xs font-black tracking-widest">ใบเสร็จรับเงิน</p>
+                <p className="mt-1 text-[8px] text-gray-400">RECEIPT / TAX INVOICE</p>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-1 text-[8px] text-gray-500">
+                <span>
+                  เลขที่: <b className="text-gray-700">{order.displayId}</b>
+                </span>
+                <span className="text-right">{order.date} {order.time}</span>
+              </div>
+
+              <div className="my-4 border-t border-gray-300" />
+
+              <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-[8px] font-bold text-gray-500">
+                <span>รายการ</span>
+                <span>จำนวน</span>
+                <span>รวม</span>
+              </div>
+
+              <div className="mt-2 space-y-2.5">
+                {order.items.map((item) => {
+                  const price = Number(item.order_price || 0)
+                  const quantity = Number(item.order_quantity || 0)
+                  const itemTotal = price * quantity
+
+                  return (
+                    <div key={item.order_item_id} className="grid grid-cols-[1fr_auto_auto] items-start gap-x-3">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold leading-3.5 text-gray-800">{item.product_name}</p>
+                        <p className="text-[8px] text-gray-400">
+                          ฿{price.toLocaleString('th-TH', { minimumFractionDigits: 2 })} / ชิ้น
+                        </p>
+                      </div>
+                      <span className="text-[9px] text-gray-600">{quantity}</span>
+                      <span className="text-right text-[9px] font-bold">
+                        ฿{itemTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="my-4 border-t border-dashed border-gray-400" />
+
+              <div className="space-y-1.5 text-[9px]">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">รวมค่าสินค้า</span>
+                  <span>฿{subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ส่วนลด</span>
+                  <span>฿0.00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ค่าจัดส่ง</span>
+                  <span>ฟรี</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ราคาก่อน VAT</span>
+                  <span>฿{subtotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">VAT 7%</span>
+                  <span>฿0.00</span>
+                </div>
+                <div className="mt-2 flex items-end justify-between border-t-2 border-gray-900 pt-3">
+                  <span className="text-[11px] font-black">ยอดชำระสุทธิ</span>
+                  <span className="text-lg font-black">฿{order.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-lg bg-gray-50 px-3 py-2 text-[8px] text-gray-500">
+                <div className="flex justify-between">
+                  <span>ชำระโดย</span>
+                  <b className="text-gray-700">{order.payment_method || 'ไม่ระบุ'}</b>
+                </div>
+                <div className="mt-1 flex justify-between">
+                  <span>สถานะ</span>
+                  <b className={order.payment_status === 'paid' ? 'text-emerald-600' : 'text-gray-700'}>
+                    {order.payment_status === 'paid' ? 'ชำระเงินแล้ว' : order.payment}
+                  </b>
+                </div>
+              </div>
+
+              <div className="mt-5 border-t border-dashed border-gray-400 pt-3 text-center">
+                <p className="text-[9px] font-bold">ขอบคุณที่ใช้บริการ</p>
+                <p className="mt-1 text-[8px] text-gray-400">Thank you for shopping with us</p>
+                <p className="mt-2 text-[7px] tracking-[.2em] text-gray-300">•• •••• ••• •••• ••</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3 print:hidden">
+              <button
+                type="button"
+                onClick={() => setShowReceiptPreview(false)}
+                className="h-10 rounded-lg border border-gray-200 px-5 text-sm font-bold text-gray-600 hover:bg-white"
+              >
+                ปิด
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintReceipt}
+                className="h-10 rounded-lg bg-gray-900 px-5 text-sm font-bold text-white hover:bg-gray-800"
+              >
+                <i className="fa-solid fa-print mr-2" />
+                พิมพ์ใบเสร็จ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Address */}
-      <div className="rounded-xl border border-[#ececf2] bg-white p-5">
+      <div className="rounded-xl border border-[#ececf2] bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-gray-500">
             <i className="fa-solid fa-location-dot" />
@@ -763,6 +966,63 @@ export default function AdminOrderDetail() {
             )}
         </div>
       </div>
+
+      {/* Status Confirmation */}
+      {showStatusConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+              <i className="fa-solid fa-circle-question text-lg" />
+            </div>
+
+            <h3 className="text-base font-bold text-gray-900">
+              ยืนยันการเปลี่ยนสถานะ
+            </h3>
+
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              คุณต้องการเปลี่ยนสถานะคำสั่งซื้อ{' '}
+              <span className="font-bold text-gray-700">
+                {order.displayId}
+              </span>{' '}
+              เป็น{' '}
+              <span className="font-bold text-gray-700">
+                {selectedStatus}
+              </span>{' '}
+              ใช่หรือไม่?
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowStatusConfirm(false)}
+                disabled={saving}
+                className="h-10 flex-1 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50"
+              >
+                ย้อนกลับ
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowStatusConfirm(false)
+                  await handleSaveStatus()
+                }}
+                disabled={saving}
+                className="h-10 flex-1 rounded-lg bg-gray-900 text-sm font-bold text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin mr-2" />
+                    กำลังบันทึก...
+                  </>
+                ) : (
+                  'ยืนยันบันทึก'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancel Confirmation */}
       {showCancelConfirm && (

@@ -20,6 +20,10 @@ export default function OrderSuccess() {
 
   const store = getStoreProfile()
 
+  const handlePrintReceipt = () => {
+    window.print()
+  }
+
   // =========================
   // โหลด Order จาก Backend
   // =========================
@@ -89,7 +93,140 @@ export default function OrderSuccess() {
   }
 
   return (
-    <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
+    <div className="order-success-page mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
+      <style>{`
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
+
+        @page receipt-80mm {
+          size: 80mm auto;
+          margin: 0;
+        }
+
+        @media print {
+          html,
+          body {
+            background: #fff !important;
+            height: auto !important;
+            min-height: 0 !important;
+          }
+
+          body * {
+            visibility: hidden;
+          }
+
+          .order-success-page,
+          .order-success-page * {
+            visibility: visible;
+          }
+
+          .order-success-page {
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            background: #fff !important;
+            box-shadow: none !important;
+          }
+
+          .order-success-page header,
+          .order-success-page .print-hide,
+          .order-success-page nav {
+            display: none !important;
+          }
+
+          .order-success-content {
+            display: block !important;
+            width: 100% !important;
+            max-width: 760px !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+          }
+
+          .print-receipt {
+            page: receipt-80mm;
+          }
+
+          .order-success-content section {
+            break-inside: avoid;
+            box-shadow: none !important;
+          }
+
+          .order-success-content .print-receipt {
+            display: block !important;
+            width: 80mm !important;
+            max-width: 80mm !important;
+            min-width: 80mm !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            font-size: 12px !important;
+            color: #111827 !important;
+          }
+
+          .order-success-content .print-receipt > div:first-child {
+            padding-bottom: 14px !important;
+          }
+
+          html,
+          body {
+            width: 80mm !important;
+            min-width: 80mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          .order-success-content .print-receipt .print-item {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          .order-success-content .print-receipt .print-total {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          .order-success-content .print-receipt .text-orange-500 {
+            color: #111827 !important;
+          }
+
+          .order-success-content .print-receipt .border-gray-100,
+          .order-success-content .print-receipt .border-gray-200 {
+            border-color: #d1d5db !important;
+          }
+
+          .order-success-content .print-success {
+            display: none !important;
+          }
+
+          .order-success-content .print-order-info {
+            background: #fff !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0 !important;
+          }
+
+          .order-success-content .print-actions {
+            display: none !important;
+          }
+
+          .order-success-content .print-receipt-heading {
+            display: block !important;
+          }
+
+          .order-success-page img {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      `}</style>
 
       {/* ================= HEADER ================= */}
       <header className="z-10 shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-4 pt-3 shadow-md">
@@ -131,11 +268,11 @@ export default function OrderSuccess() {
         </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-28 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <main className="order-success-content min-h-0 flex-1 overflow-y-auto px-5 pb-28 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
         {/* ================= SUCCESS ================= */}
         <section
-          className={`rounded-3xl border border-gray-100 bg-white p-5 text-center shadow-sm transition-all duration-500 ease-out ${
+          className={`print-success rounded-3xl border border-gray-100 bg-white p-5 text-center shadow-sm transition-all duration-500 ease-out ${
             showContent
               ? 'translate-y-0 opacity-100'
               : 'translate-y-4 opacity-0'
@@ -194,14 +331,15 @@ export default function OrderSuccess() {
         {/* ================= ORDER DETAIL ================= */}
         {order && (
           <section
-            className={`mt-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-500 delay-100 ease-out ${
+            className={`print-receipt mt-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-500 delay-100 ease-out ${
               showContent
                 ? 'translate-y-0 opacity-100'
                 : 'translate-y-4 opacity-0'
             }`}
           >
             {/* STORE */}
-            <div className="flex items-center gap-3 border-b border-dashed border-gray-200 pb-4">
+            <div className="flex items-start justify-between gap-5 border-b border-dashed border-gray-200 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
               <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-orange-50 text-orange-500">
                 {store.image ? (
                   <img
@@ -216,13 +354,28 @@ export default function OrderSuccess() {
 
               <div className="min-w-0">
                 <p className="text-sm font-extrabold text-gray-900">
-                  {store.name}
+                  {store.name || 'PetShop'}
                 </p>
 
-                <p className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-gray-400">
-                  {store.address}
+                <p className="mt-0.5 whitespace-pre-line text-[10px] leading-4 text-gray-400">
+                  {store.address || '-'}
+                </p>
+
+                <p className="mt-0.5 text-[10px] text-gray-400">
+                  โทร {store.phone || '-'}
+                </p>
+
+                <p className="mt-0.5 text-[9px] text-gray-400">
+                  เลขประจำตัวผู้เสียภาษี: {store.taxId || '-'}
                 </p>
               </div>
+              <div className="print-receipt-heading hidden shrink-0 text-right">
+                <p className="text-lg font-black tracking-wide text-gray-900">ใบเสร็จรับเงิน</p>
+                <p className="mt-1 text-[9px] text-gray-400">RECEIPT / PAYMENT CONFIRMATION</p>
+                <p className="mt-2 text-[10px] font-bold text-gray-700">เลขที่ #{order?.order_id || orderId}</p>
+                <p className="mt-1 text-[9px] text-gray-400">วันที่ออกใบเสร็จ {new Date().toLocaleString('th-TH')}</p>
+              </div>
+            </div>
             </div>
 
             {/* ITEMS */}
@@ -255,7 +408,7 @@ export default function OrderSuccess() {
                 return (
                   <div
                     key={item.order_item_id}
-                    className="flex items-start gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+                    className="print-item flex items-start gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0"
                   >
                     <div className="size-14 shrink-0 overflow-hidden rounded-2xl bg-gray-100">
                       {item.product_image ? (
@@ -305,7 +458,7 @@ export default function OrderSuccess() {
             </div>
 
             {/* TOTAL */}
-            <div className="mt-4 space-y-2 border-t border-dashed border-gray-200 pt-4 text-xs text-gray-500">
+            <div className="print-total mt-4 space-y-2 border-t border-dashed border-gray-200 pt-4 text-xs text-gray-500">
               <div className="flex justify-between">
                 <span>ค่าสินค้า</span>
                 <span>
@@ -340,7 +493,7 @@ export default function OrderSuccess() {
             </div>
 
             {/* ORDER INFO */}
-            <div className="mt-4 rounded-2xl bg-gray-50 p-3 text-[10px] leading-5 text-gray-400">
+            <div className="print-order-info mt-4 rounded-2xl bg-gray-50 p-3 text-[10px] leading-5 text-gray-400">
               <p>
                 สถานะคำสั่งซื้อ:{' '}
                 {order.order_status || 'pending'}
@@ -354,6 +507,9 @@ export default function OrderSuccess() {
               <p>
                 วิธีชำระเงิน:{' '}
                 {order.payment_method || 'ไม่ระบุ'}
+              </p>
+              <p className="mt-1">
+                วันที่สั่งซื้อ: {order.created_at ? new Date(order.created_at).toLocaleString('th-TH') : '-'}
               </p>
             </div>
           </section>
@@ -372,22 +528,20 @@ export default function OrderSuccess() {
 
         {/* BUTTONS */}
         <section
-          className={`mt-4 space-y-3 transition-all duration-500 delay-200 ease-out ${
+          className={`print-actions mt-4 space-y-3 transition-all duration-500 delay-200 ease-out ${
             showContent
               ? 'translate-y-0 opacity-100'
               : 'translate-y-4 opacity-0'
           }`}
         >
-          {order && (
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-orange-200 bg-orange-50 text-sm font-bold text-orange-600 transition hover:-translate-y-0.5 hover:bg-orange-100 active:scale-[0.99]"
-            >
-              <i className="fa-solid fa-print" />
-              พิมพ์ / บันทึก PDF
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handlePrintReceipt}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gray-900 text-sm font-bold text-white shadow-lg shadow-gray-900/15 transition hover:-translate-y-0.5 hover:bg-gray-800 active:scale-[0.99]"
+          >
+            <i className="fa-solid fa-print" />
+            พิมพ์ใบเสร็จ
+          </button>
 
           <Link
             to="/orders"
