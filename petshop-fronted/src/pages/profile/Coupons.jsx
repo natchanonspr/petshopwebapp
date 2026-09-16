@@ -1,88 +1,170 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getCoupons } from '../../api/coupons.js'
 import { Link, useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
 
 const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
-const ADMIN_COUPONS_KEY = 'petshop_admin_coupons_v1'
-
-const FALLBACK_COUPONS = [
-  {
-    id: 'T100',
-    code: 'T100',
-    amount: 100,
-    title: 'ลดทันที ฿100',
-    subtitle: 'พร้อมส่งฟรี',
-    min: 499,
-    expires: '30 ก.ย. 2569',
-    tone: 'orange',
-    icon: 'fa-bolt',
-  },
-  {
-    id: 'PO50',
-    code: 'PO50',
-    amount: 50,
-    title: 'ลดเพิ่ม ฿50',
-    subtitle: 'พร้อมส่งฟรี',
-    min: 299,
-    expires: '30 ก.ย. 2569',
-    tone: 'yellow',
-    icon: 'fa-paw',
-  },
-  {
-    id: 'PET80',
-    code: 'PET80',
-    amount: 80,
-    title: 'เพื่อนใหม่ลด ฿80',
-    subtitle: 'สำหรับคำสั่งซื้อแรก',
-    min: 599,
-    expires: '15 ต.ค. 2569',
-    tone: 'green',
-    icon: 'fa-heart',
-    disabled: true,
-  },
-]
-
-function loadCoupons() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(ADMIN_COUPONS_KEY) || 'null')
-    return Array.isArray(saved) && saved.length ? saved : FALLBACK_COUPONS
-  } catch { return FALLBACK_COUPONS }
-}
 
 function mapCoupon(coupon) {
   const type = coupon.type || 'ส่วนลดคงที่'
+
+  const value = Number(
+    coupon.value ?? 0
+  )
+
+  const min = Number(
+    coupon.min_purchase ??
+    coupon.min ??
+    0
+  )
+
+  const expireAt =
+    coupon.expire_at ||
+    coupon.expire ||
+    null
+
+  const usageLimit = Number(
+    coupon.usage_limit ??
+    coupon.limit ??
+    0
+  )
+
+  const used = Number(
+    coupon.used_count ??
+    coupon.used ??
+    0
+  )
+
+  const isExpired =
+    expireAt &&
+    new Date() > new Date(expireAt)
+
+  const isUsageLimitReached =
+    usageLimit > 0 &&
+    used >= usageLimit
+
   return {
     ...coupon,
-    code: String(coupon.code || '').toUpperCase(),
-    amount: Number(coupon.value || coupon.amount || 0),
-    title: coupon.title || 'ส่วนลดพิเศษสำหรับคุณ',
-    subtitle: type === 'เปอร์เซ็นต์' ? `ลด ${coupon.value}%` : type === 'ค่าส่ง' ? 'รับสิทธิ์ส่งฟรี' : 'ส่วนลดทันที',
-    min: Number(coupon.min || 0),
-    expires: coupon.expire ? new Date(coupon.expire).toLocaleDateString('th-TH', { day:'2-digit', month:'short', year:'numeric' }) : (coupon.expires || 'ไม่กำหนด'),
-    disabled: Boolean(coupon.disabled) || !coupon.active || (coupon.expire && new Date() > new Date(coupon.expire)) || (Number(coupon.limit || 0) > 0 && Number(coupon.used || 0) >= Number(coupon.limit || 0)),
-    icon: type === 'เปอร์เซ็นต์' ? 'fa-percent' : type === 'ค่าส่ง' ? 'fa-truck-fast' : (coupon.icon || 'fa-ticket'),
+
+    id:
+      coupon.coupon_id ??
+      coupon.id ??
+      coupon.code,
+
+    code: String(
+      coupon.code || ''
+    ).toUpperCase(),
+
+    amount: value,
+
+    title:
+      coupon.title ||
+      'ส่วนลดพิเศษสำหรับคุณ',
+
+    subtitle:
+      type === 'เปอร์เซ็นต์'
+        ? `ลด ${value}%`
+        : type === 'ค่าส่ง'
+          ? 'รับสิทธิ์ส่งฟรี'
+          : 'ส่วนลดทันที',
+
+    min,
+
+    expires: expireAt
+      ? new Date(expireAt).toLocaleDateString(
+        'th-TH',
+        {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }
+      )
+      : 'ไม่กำหนด',
+
+    disabled:
+      Boolean(coupon.disabled) ||
+      coupon.active === false ||
+      Boolean(isExpired) ||
+      isUsageLimitReached,
+
+    icon:
+      type === 'เปอร์เซ็นต์'
+        ? 'fa-percent'
+        : type === 'ค่าส่ง'
+          ? 'fa-truck-fast'
+          : coupon.icon || 'fa-ticket',
+
     type,
   }
 }
 
 function saveCoupon(coupon) {
-  localStorage.setItem(CHECKOUT_DISCOUNT_KEY, JSON.stringify({
-    code: coupon.code,
-    amount: coupon.amount,
-    min: coupon.min,
-    freeShipping: coupon.type === 'ค่าส่ง' || coupon.freeShipping === true,
-    type: coupon.type || 'ส่วนลดคงที่',
-  }))
+  localStorage.setItem(
+    CHECKOUT_DISCOUNT_KEY,
+    JSON.stringify({
+      code: coupon.code,
+      amount: coupon.amount,
+      min: coupon.min,
+      freeShipping:
+        coupon.type === 'ค่าส่ง' ||
+        coupon.freeShipping === true,
+      type:
+        coupon.type ||
+        'ส่วนลดคงที่',
+    })
+  )
 }
 
 export default function Coupons() {
   const navigate = useNavigate()
-  const [coupons, setCoupons] = useState(() => loadCoupons().map(mapCoupon))
+  const [coupons, setCoupons] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+
   const [tab, setTab] = useState('available')
   const [copied, setCopied] = useState('')
   const [showEmptyCartModal, setShowEmptyCartModal] = useState(false)
   const [pendingCoupon, setPendingCoupon] = useState(null)
+  useEffect(() => {
+    let active = true
 
+    const loadCoupons = async () => {
+      try {
+        setLoading(true)
+        setErrorMessage('')
+
+        const data = await getCoupons()
+
+        const normalized = (
+          Array.isArray(data) ? data : []
+        ).map(mapCoupon)
+
+        if (active) {
+          setCoupons(normalized)
+        }
+      } catch (error) {
+        console.error('Load coupons error:', error)
+
+        if (active) {
+          setCoupons([])
+          setErrorMessage(
+            error.message ||
+            'ไม่สามารถโหลดคูปองได้',
+          )
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadCoupons()
+
+    return () => {
+      active = false
+    }
+  }, [])
   const visibleCoupons = useMemo(() => tab === 'available' ? coupons.filter((coupon) => !coupon.disabled) : coupons.filter((coupon) => coupon.disabled), [tab, coupons])
 
   const availableCount = coupons.filter((coupon) => !coupon.disabled).length
@@ -117,6 +199,19 @@ export default function Coupons() {
     setCopied(coupon.code)
     window.setTimeout(() => setCopied(''), 1400)
   }
+  if (loading) {
+    return (
+      <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="mx-auto mb-3 size-10 animate-spin rounded-full border-4 border-gray-200 border-t-orange-500" />
+
+          <p className="text-sm text-gray-400">
+            กำลังโหลดคูปอง...
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-slate-50 font-sans text-slate-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
@@ -127,7 +222,7 @@ export default function Coupons() {
           </Link>
           <div className="text-center">
             <h1 className="m-0 text-[17px] font-extrabold text-gray-900">คูปองของฉัน</h1>
-            
+
           </div>
           <span className="grid size-10 place-items-center rounded-full bg-orange-50 text-orange-500">
             <i className="fa-solid fa-ticket text-[17px]" />
@@ -145,6 +240,12 @@ export default function Coupons() {
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto px-3 py-4 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {errorMessage && (
+          <div className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            <i className="fa-solid fa-circle-exclamation mr-2" />
+            {errorMessage}
+          </div>
+        )}
         <div className="mb-4 rounded-3xl bg-gradient-to-r from-orange-500 to-orange-400 p-4 text-white shadow-lg shadow-orange-500/15">
           <div className="flex items-center gap-3">
             <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/20 backdrop-blur-sm">
