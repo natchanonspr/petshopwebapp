@@ -121,3 +121,20 @@ export async function updateAdminOrderStatus(id, status) {
 
   return unwrap(res, 'เปลี่ยนสถานะคำสั่งซื้อไม่สำเร็จ')
 }
+
+export async function updateAdminOrderPaymentStatus(id, status) {
+  if (!id || id === 'undefined' || id === 'null') {
+    throw new Error('รหัสคำสั่งซื้อไม่ถูกต้อง')
+  }
+
+  const res = await apiFetch(`${API_BASE}/admin/orders/${id}/payment-status`, {
+    method: 'PATCH',
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  })
+
+  return unwrap(res, 'อัปเดตสถานะการชำระเงินไม่สำเร็จ')
+}

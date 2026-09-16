@@ -420,8 +420,6 @@ export default function Checkout() {
         couponCode: discountInfo.code || '',
       })
 
-      navigate(`/payment/${order.order_id}`)
-
       console.log(
         'Create order successful:',
         order,
@@ -431,13 +429,8 @@ export default function Checkout() {
         new Event('petshop-cart-updated'),
       )
 
-      navigate(
-        `/orders/success?id=${encodeURIComponent(
-          order?.order_id ||
-          order?.id ||
-          '',
-        )}`,
-      )
+      navigate(`/payment/${order.order_id}`)
+      
     } catch (error) {
       console.error(
         'Create order error:',

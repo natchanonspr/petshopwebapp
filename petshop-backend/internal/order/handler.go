@@ -1,6 +1,7 @@
 package order
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/gofiber/fiber/v2"
@@ -83,6 +84,7 @@ func UploadPaymentSlip(c *fiber.Ctx) error {
 	}
 
 	userIDValue := c.Locals("user_id")
+	fmt.Printf("DEBUG user_id = %v, type = %T\n", userIDValue, userIDValue)
 	userID, ok := userIDValue.(int64)
 
 	if !ok {
@@ -237,4 +239,27 @@ func AdminUpdateStatus(c *fiber.Ctx) error {
 		"message": "Update Order Status Successful",
 	})
 
+}
+
+func AdminUpdatePaymentStatus(c *fiber.Ctx) error {
+	orderID, err := c.ParamsInt("id")
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	req := struct {
+		Status string `json:"status"`
+	}{}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	if err := UpdateOrderPaymentStatusService(int64(orderID), req.Status); err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Update Payment Status Successful",
+	})
 }

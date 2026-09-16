@@ -186,6 +186,7 @@ func main() {
 	adminOrders.Get("/", order.AdminList)
 	adminOrders.Get("/:id", order.AdminRead)
 	adminOrders.Patch("/:id/status", order.AdminUpdateStatus)
+	adminOrders.Patch("/:id/payment-status", order.AdminUpdatePaymentStatus)
 
 	// Noti API
 	notifications := app.Group("/notifications", middleware.JWTProtected(jwtSecret))

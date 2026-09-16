@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
 import CartBadge from '../../components/cart/CartBadge.jsx'
@@ -7,30 +7,42 @@ import EmptyState from '../../components/EmptyState.jsx'
 import { getOrders } from '../../api/orders.js'
 import { addToCart } from '../../api/cart.js'
 
-const tabs = ['ทั้งหมด', 'รอดำเนินการ', 'กำลังจัดส่ง', 'สำเร็จ']
+const tabs = [
+  'ทั้งหมด',
+  'รอดำเนินการ',
+  'ยืนยันออเดอร์แล้ว',
+  'กำลังจัดส่ง',
+  'จัดส่งสำเร็จ',
+  'ยกเลิก',
+]
 
 const statusMap = {
   pending: {
     label: 'รอดำเนินการ',
     className: 'bg-orange-50 text-orange-600',
   },
-  shipping: {
+
+  confirmed: {
+    label: 'ยืนยันออเดอร์แล้ว',
+    className: 'bg-indigo-50 text-indigo-600',
+  },
+
+  shipped: {
     label: 'กำลังจัดส่ง',
-    className: 'bg-orange-50 text-orange-600',
+    className: 'bg-blue-50 text-blue-600',
   },
-  completed: {
-    label: 'สำเร็จ',
-    className: 'bg-gray-100 text-gray-500',
+
+  deliveried: {
+    label: 'จัดส่งสำเร็จ',
+    className: 'bg-green-50 text-green-600',
   },
-  success: {
-    label: 'สำเร็จ',
-    className: 'bg-gray-100 text-gray-500',
-  },
+
   cancelled: {
     label: 'ยกเลิก',
     className: 'bg-red-50 text-red-500',
   },
 }
+
 
 function normalizeOrder(order) {
   const items = Array.isArray(order.items)
@@ -115,6 +127,10 @@ export default function Orders() {
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [reorderingId, setReorderingId] = useState(null)
+  const tabsRef = useRef(null)
+  const isDraggingTabs = useRef(false)
+  const startX = useRef(0)
+  const startScrollLeft = useRef(0)
 
   useEffect(() => {
     let active = true
@@ -235,6 +251,44 @@ export default function Orders() {
     }
   }
 
+  const handleTabsMouseDown = (event) => {
+    const element = tabsRef.current
+
+    if (!element) return
+
+    isDraggingTabs.current = true
+    startX.current = event.pageX - element.offsetLeft
+    startScrollLeft.current = element.scrollLeft
+
+    element.classList.add('cursor-grabbing')
+  }
+
+  const handleTabsMouseMove = (event) => {
+    if (!isDraggingTabs.current) return
+
+    const element = tabsRef.current
+
+    if (!element) return
+
+    event.preventDefault()
+
+    const x = event.pageX - element.offsetLeft
+    const distance = x - startX.current
+
+    element.scrollLeft =
+      startScrollLeft.current - distance
+  }
+
+  const stopTabsDragging = () => {
+    const element = tabsRef.current
+
+    isDraggingTabs.current = false
+
+    if (element) {
+      element.classList.remove('cursor-grabbing')
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] items-center justify-center bg-gray-50">
@@ -253,7 +307,7 @@ export default function Orders() {
     <div className="mx-auto flex h-[100dvh] w-full min-w-0 max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
 
       {/* ================= HEADER ================= */}
-      <header className="z-10 min-w-0 shrink-0 overflow-hidden rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-3 pt-3 shadow-md">
+      <header className="z-10 min-w-0 shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-3 pt-3 shadow-md">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
@@ -320,20 +374,35 @@ export default function Orders() {
         </label>
 
         {/* TABS */}
-        <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`shrink-0 rounded-full border-0 px-5 py-2 text-sm font-medium whitespace-nowrap transition active:scale-95 ${activeTab === tab
-                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
-                : 'bg-gray-100 text-gray-500'
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="relative -mx-5 mt-4 min-w-0">
+          <div
+            ref={tabsRef}
+            onMouseDown={handleTabsMouseDown}
+            onMouseMove={handleTabsMouseMove}
+            onMouseUp={stopTabsDragging}
+            onMouseLeave={stopTabsDragging}
+            className="cursor-grab overflow-x-auto overflow-y-hidden px-5 pb-1 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <div className="flex w-max min-w-max flex-nowrap gap-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    if (!isDraggingTabs.current) {
+                      setActiveTab(tab)
+                    }
+                  }}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium leading-none transition active:scale-95 ${activeTab === tab
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                      : 'bg-gray-100 text-gray-500'
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -459,13 +528,16 @@ export default function Orders() {
                     to={`/orders/${encodeURIComponent(
                       order.id,
                     )}`}
-                    className="rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 active:scale-95"
+                    className="flex h-9 w-[100px] items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-bold leading-none text-gray-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 active:scale-95"
                   >
                     ดูรายละเอียด
                   </Link>
 
-                  {order.rawStatus ===
-                    'completed' && (
+                  {(
+                    order.rawStatus === 'deliveried' ||
+                    order.rawStatus === 'completed' ||
+                    order.rawStatus === 'success'
+                  ) && (
                       <button
                         type="button"
                         onClick={() =>
@@ -474,7 +546,7 @@ export default function Orders() {
                         disabled={
                           reorderingId === order.id
                         }
-                        className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex h-9 w-[100px] items-center justify-center rounded-full bg-orange-500 text-xs font-bold leading-none text-white transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {reorderingId === order.id
                           ? 'กำลังเพิ่ม...'

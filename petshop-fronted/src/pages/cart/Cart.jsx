@@ -139,7 +139,7 @@ export default function Cart() {
   const afterDiscount = Math.max(0, subtotal - discount)
 
   const delivery =
-    subtotal === 0 || isFreeShipping || afterDiscount >= 1000 ? 0 : 40
+    subtotal === 0 || isFreeShipping || afterDiscount >= 500 ? 0 : 40
 
   const total = afterDiscount + delivery
 

@@ -330,3 +330,23 @@ func UpdateOrderStatusService(orderID int64, status string) error {
 
 	return UpdateOrder(order)
 }
+
+// Update status การจ่ายเงิน
+func UpdateOrderPaymentStatusService(orderID int64, status string) error {
+	validStatus := map[string]bool{
+		PaymentPaid:     true,
+		PaymentRejected: true,
+	}
+
+	if !validStatus[status] {
+		return errors.New("สถานะการชำระเงินไม่ถูกต้อง")
+	}
+
+	order, err := GetOrderAdmin(orderID)
+	if err != nil {
+		return err
+	}
+
+	order.PaymentStatus = status
+	return db.Save(&order).Error
+}
