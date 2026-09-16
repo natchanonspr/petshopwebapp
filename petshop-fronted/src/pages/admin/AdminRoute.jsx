@@ -32,7 +32,7 @@ export default function AdminRoute({ children }) {
   if (!token) {
     return (
       <Navigate
-        to="/home/admin/login"
+        to="/login"
         replace
         state={{ from: location }}
       />
@@ -47,7 +47,7 @@ export default function AdminRoute({ children }) {
 
     return (
       <Navigate
-        to="/home/admin/login"
+        to="/login"
         replace
         state={{ from: location }}
       />

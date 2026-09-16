@@ -252,7 +252,7 @@ export default function AdminLayout() {
     localStorage.removeItem('petshop_token')
     localStorage.removeItem('petshop_user_auth')
     setProfileOpen(false)
-    navigate('/home/admin/login', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return <div className="admin-panel min-h-screen bg-[#f8f9fc] text-gray-900">
@@ -289,7 +289,7 @@ export default function AdminLayout() {
         <div className="flex items-center gap-2">
           <NavLink to="/home/admin/notifications" className="relative grid size-10 place-items-center rounded-xl text-gray-500 hover:bg-gray-50"><i className="fa-regular fa-bell text-[15px]" />{unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-red-500 px-1 text-[9px] font-extrabold leading-4 text-white text-center ring-2 ring-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}</NavLink>
           <div className="relative"><button onClick={() => setProfileOpen(v => !v)} className="flex items-center gap-2 rounded-xl p-1.5 hover:bg-gray-50"><span className="grid size-9 place-items-center rounded-full bg-violet-100 text-violet-600"><i className="fa-solid fa-user text-xs" /></span><span className="hidden text-left sm:block"><b className="block max-w-[150px] truncate text-xs">{profile.name || 'Admin'}</b><small className="block max-w-[150px] truncate text-[10px] text-gray-400">{profile.email || profile.phone || 'ผู้ดูแลระบบ'}</small></span><i className="fa-solid fa-chevron-down hidden text-[9px] text-gray-400 sm:block" /></button>
-            {profileOpen && <div className="absolute right-0 top-12 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl"><div className="border-b border-gray-100 px-3 py-2"><div className="text-[11px] font-extrabold text-gray-900">{profile.name || 'Admin'}</div><div className="mt-0.5 truncate text-[10px] text-gray-400">{profile.email || profile.phone || 'บัญชีผู้ดูแลระบบ'}</div></div><button onClick={logout} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50"><i className="fa-solid fa-right-from-bracket w-4" /> ออกจากระบบ</button></div>}
+            {profileOpen && <div className="absolute right-0 top-12 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl"><div className="border-b border-gray-100 px-3 py-2"><div className="text-[11px] font-extrabold text-gray-900">{profile.name || 'Admin'}</div><div className="mt-0.5 truncate text-[10px] text-gray-400">{profile.email || profile.phone || 'บัญชีผู้ดูแลระบบ'}</div></div><button type="button" onClick={() => { setProfileOpen(false); navigate('/home') }} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"><i className="fa-solid fa-store w-4" /> กลับหน้าร้าน</button><button onClick={logout} className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50"><i className="fa-solid fa-right-from-bracket w-4" /> ออกจากระบบ</button></div>}
           </div>
         </div>
       </div>

@@ -28,7 +28,6 @@ import Favorites from './pages/profile/Favorites.jsx'
 import Notifications from './pages/notifications/Notifications.jsx'
 
 import AdminRoute from './pages/admin/AdminRoute.jsx'
-import AdminLogin from './pages/admin/AdminLogin.jsx'
 import AdminLayout from './pages/admin/AdminLayout.jsx'
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import AdminOrders from './pages/admin/AdminOrders.jsx'
@@ -263,11 +262,6 @@ export default function App() {
                 {/* =========================
             Admin
         ========================= */}
-
-                <Route
-                    path="/home/admin/login"
-                    element={<AdminLogin />}
-                />
 
                 <Route
                     path="/home/admin"

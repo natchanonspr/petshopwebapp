@@ -76,6 +76,8 @@ function Addresses() {
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState(null)
   const [showSuccess, setShowSuccess] = useState(false)
 
   const [loadingAddresses, setLoadingAddresses] = useState(true)
@@ -383,8 +385,6 @@ function Addresses() {
   // Delete
   // -----------------------------
   const remove = async (id) => {
-    if (!window.confirm('ต้องการลบที่อยู่นี้ใช่ไหม?')) return
-
     try {
       setDeletingId(id)
       setError('')
@@ -405,6 +405,12 @@ function Addresses() {
   // -----------------------------
   // Set default
   // -----------------------------
+  const openDeleteConfirm = (id) => {
+    setDeleteTargetId(id)
+    setShowDeleteConfirm(true)
+    setError('')
+  }
+
   const setDefault = async (address) => {
     try {
       setError('')
@@ -584,7 +590,7 @@ function Addresses() {
 
                 <button
                   type="button"
-                  onClick={() => remove(address.id)}
+                  onClick={() => openDeleteConfirm(address.id)}
                   disabled={deletingId === address.id}
                   className="rounded-full bg-red-50 px-3 py-2 text-[11px] font-bold text-red-500 disabled:opacity-50"
                 >
@@ -647,6 +653,60 @@ function Addresses() {
                 )}
               </button>
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[105] flex items-center justify-center bg-slate-950/45 px-5 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-[380px] rounded-[28px] bg-white p-6 text-center shadow-[0_20px_60px_rgba(15,23,42,0.22)]">
+            <div className="mx-auto grid size-16 place-items-center rounded-full bg-red-50 text-red-500">
+              <i className="fa-solid fa-trash text-2xl" />
+            </div>
+
+            <h2 className="mt-4 text-xl font-extrabold text-slate-900">
+              ยืนยันการลบที่อยู่?
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              คุณต้องการลบที่อยู่นี้หรือไม่? การลบแล้วจะไม่สามารถกู้คืนได้
+            </p>
+
+            <div className="mt-6 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDeleteTargetId(null)
+                }}
+                disabled={deletingId !== null}
+                className="h-12 flex-1 rounded-2xl bg-gray-100 text-sm font-extrabold text-gray-600 disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!deleteTargetId) return
+                  await remove(deleteTargetId)
+                  setShowDeleteConfirm(false)
+                  setDeleteTargetId(null)
+                }}
+                disabled={deletingId !== null}
+                className="h-12 flex-1 rounded-2xl bg-red-500 text-sm font-extrabold text-white disabled:opacity-50"
+              >
+                {deletingId !== null ? (
+                  <i className="fa-solid fa-spinner fa-spin" />
+                ) : (
+                  'ยืนยันลบ'
+                )}
+              </button>
             </div>
           </div>
         </div>

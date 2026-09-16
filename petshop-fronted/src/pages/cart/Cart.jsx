@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { applyCoupon } from '../../api/coupons.js'
-import { logActivity } from '../../admin/activity.js'
 import {
   getCart,
   updateCartItem,
   removeCartItem,
 } from '../../api/cart.js'
-
-const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
 
 const parsePrice = (value) => {
   if (typeof value === 'number') {
@@ -24,10 +20,6 @@ export default function Cart() {
   const [errorMessage, setErrorMessage] = useState('')
 
   const [isOpenSummary, setIsOpenSummary] = useState(false)
-  const [promoCode, setPromoCode] = useState('')
-  const [discount, setDiscount] = useState(0)
-  const [isFreeShipping, setIsFreeShipping] = useState(false)
-  const [isError, setIsError] = useState(false)
 
   const loadCart = async () => {
     try {
@@ -136,54 +128,9 @@ export default function Cart() {
     0,
   )
 
-  const afterDiscount = Math.max(0, subtotal - discount)
+  const delivery = subtotal === 0 || subtotal >= 500 ? 0 : 40
 
-  const delivery =
-    subtotal === 0 || isFreeShipping || afterDiscount >= 500 ? 0 : 40
-
-  const total = afterDiscount + delivery
-
-  const handleApplyCode = async () => {
-    const code = promoCode.trim().toUpperCase()
-    const result = await applyCoupon(code, subtotal)
-
-    if (!result.ok) {
-      setDiscount(0)
-      setIsFreeShipping(false)
-      localStorage.removeItem(CHECKOUT_DISCOUNT_KEY)
-      setIsError(true)
-      return
-    }
-
-    setPromoCode(code)
-    setDiscount(result.amount)
-    setIsFreeShipping(result.freeShipping)
-
-    logActivity('coupon', `ใช้โค้ด ${code}`, {
-      couponCode: code,
-      amount: result.amount,
-    })
-
-    setIsError(false)
-
-    localStorage.setItem(
-      CHECKOUT_DISCOUNT_KEY,
-      JSON.stringify({
-        code,
-        amount: result.amount,
-        min: Number(result.min || 0),
-        freeShipping: result.freeShipping,
-      }),
-    )
-  }
-
-  const handleClearInput = () => {
-    setPromoCode('')
-    setDiscount(0)
-    setIsFreeShipping(false)
-    setIsError(false)
-    localStorage.removeItem(CHECKOUT_DISCOUNT_KEY)
-  }
+  const total = subtotal + delivery
 
   if (loading) {
     return (
@@ -363,78 +310,10 @@ export default function Cart() {
           <div
             className={`space-y-3 text-sm transition-all duration-300 ${isOpenSummary ? 'mb-3 max-h-[500px] opacity-100' : 'max-h-0 overflow-hidden opacity-0'}`}
           >
-            <div className="rounded-[22px] border border-dashed border-orange-400 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="grid size-9 shrink-0 place-items-center rounded-full bg-orange-50 text-orange-500">
-                  <i className="fa-solid fa-ticket" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold">มีโค้ดส่วนลดไหม?</p>
-                  <p className="mt-0.5 text-xs text-gray-400">กรอกโค้ดเพื่อรับส่วนลด</p>
-                </div>
-              </div>
-
-              <div className="mt-3 flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    aria-label="โค้ดส่วนลด"
-                    placeholder={isError ? 'ไม่พบโค้ดส่วนลดนี้' : 'กรอกโค้ดส่วนลด'}
-                    value={promoCode}
-                    onChange={(e) => {
-                      setPromoCode(e.target.value)
-                      if (isError) setIsError(false)
-                    }}
-                    className={`h-10 w-full rounded-full pl-4 pr-10 text-sm outline-none transition-all duration-200 ${isError ? 'border-2 border-red-400 bg-red-50 font-medium text-red-600 placeholder:text-red-400' : 'bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-200'}`}
-                  />
-
-                  {(promoCode || discount > 0 || isError) && (
-                    <button
-                      type="button"
-                      onClick={handleClearInput}
-                      className="absolute right-3 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-full bg-gray-300 text-[10px] text-white hover:bg-gray-400"
-                      aria-label="ล้างข้อความและยกเลิกโค้ด"
-                    >
-                      <i className="fa-solid fa-xmark" />
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleApplyCode}
-                  className="h-10 shrink-0 rounded-full bg-black px-5 text-xs font-bold text-white"
-                >
-                  ใช้โค้ด
-                </button>
-              </div>
-
-              {isFreeShipping && (
-                <p className="mt-2 text-xs font-medium text-green-600">
-                  <i className="fa-solid fa-truck-fast mr-1" />
-                  โค้ดนี้ได้รับสิทธิ์ส่งฟรี
-                </p>
-              )}
-            </div>
-
             <div className="flex justify-between pt-1 text-gray-500">
               <span>ค่าสินค้า</span>
               <span>฿{subtotal.toLocaleString()}</span>
             </div>
-
-            {discount > 0 && (
-              <>
-                <div className="flex justify-between text-red-500">
-                  <span>ส่วนลด {promoCode ? `(${promoCode})` : ''}</span>
-                  <span>-฿{discount.toLocaleString()}</span>
-                </div>
-
-                <div className="flex justify-between font-medium text-gray-800">
-                  <span>ค่าสินค้าหลังหักส่วนลด</span>
-                  <span>฿{afterDiscount.toLocaleString()}</span>
-                </div>
-              </>
-            )}
 
             <div className="flex justify-between text-gray-500">
               <span>ค่าจัดส่ง</span>
