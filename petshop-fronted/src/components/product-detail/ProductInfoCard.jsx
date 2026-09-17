@@ -6,20 +6,6 @@ export default function ProductInfoCard({ product, variants = [], selectedVarian
       <h2 className="m-0 text-xl font-bold leading-tight text-gray-700">{product.displayName || product.name}</h2>
       <p className="m-0 mt-1 text-sm text-gray-400">{product.displayCategory || product.category}</p>
 
-      {/* TODO: backend ยังไม่มี field คะแนนรีวิว/ยอดขายสะสมในตาราง products เลย ซ่อนแถวนี้ไว้ก่อนจนกว่าจะมีข้อมูลจริง (ไม่ควรใส่ตัวเลขปลอม) */}
-      {(product.rating != null || product.sold != null) && (
-        <div className="mt-3 flex items-center gap-2 text-xs">
-          {product.rating != null && (
-            <>
-              <span className="tracking-[1px] text-amber-400">★★★★★</span>
-              <span className="font-semibold text-gray-600">{product.rating}</span>
-            </>
-          )}
-          {product.rating != null && product.sold != null && <span className="text-gray-300">|</span>}
-          {product.sold != null && <span className="text-gray-500">ขายแล้ว {product.sold} ชิ้น</span>}
-        </div>
-      )}
-
       <p className="m-0 mt-4 text-3xl font-bold leading-none text-orange-500">฿{Number(displayPrice).toLocaleString()}</p>
 
       {variants.length > 0 && (

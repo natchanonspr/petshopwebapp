@@ -31,6 +31,7 @@ export default function AdminProducts() {
   const [search, setSearch] = useState(() => searchParams.get('search') || '')
   const [category, setCategory] = useState('ทั้งหมด')
   const [modal, setModal] = useState(null)
+  const [saveSuccess, setSaveSuccess] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
@@ -107,10 +108,12 @@ export default function AdminProducts() {
 
     try {
       setSaving(true)
-      if (modal === 'add') await createProduct(payload)
+      const isAdding = modal === 'add'
+      if (isAdding) await createProduct(payload)
       else await updateProduct(modal.id, payload)
       setModal(null)
       await refresh()
+      setSaveSuccess(isAdding ? 'เพิ่มสินค้าสำเร็จ' : 'แก้ไขสินค้าสำเร็จ')
     } catch (err) {
       console.error('Save product error:', err)
       setError(err.message || 'บันทึกสินค้าไม่สำเร็จ')
@@ -204,6 +207,17 @@ export default function AdminProducts() {
 
       {deleteTarget && <div className="fixed inset-0 z-[110] grid place-items-center bg-gray-950/45 p-4 backdrop-blur-[2px]" onMouseDown={e => e.target === e.currentTarget && !saving && setDeleteTarget(null)}>
         <div className="w-full max-w-sm overflow-hidden rounded-[24px] bg-white shadow-2xl"><div className="h-1.5 bg-red-500" /><div className="p-5 text-center"><div className="mx-auto grid size-16 place-items-center rounded-full bg-red-50 text-red-500"><i className="fa-solid fa-trash-can text-xl" /></div><h2 className="mt-4 text-base font-extrabold">ยืนยันการลบสินค้า</h2><p className="mt-2 text-[11px] text-gray-500">คุณต้องการลบสินค้า <b>{deleteTarget.name}</b> ใช่หรือไม่?</p><p className="mt-1 text-[10px] text-gray-400">การลบสินค้านี้ไม่สามารถย้อนกลับได้</p><div className="mt-5 flex gap-2"><button type="button" onClick={() => setDeleteTarget(null)} disabled={saving} className="h-10 flex-1 rounded-lg border border-gray-200 text-xs font-bold text-gray-500">ยกเลิก</button><button type="button" onClick={remove} disabled={saving} className="h-10 flex-1 rounded-lg bg-red-500 text-xs font-bold text-white">{saving ? 'กำลังลบ...' : 'ยืนยันลบ'}</button></div></div></div>
+      </div>}
+
+      {saveSuccess && <div className="fixed inset-0 z-[120] grid place-items-center bg-gray-950/45 p-4 backdrop-blur-[2px]">
+        <div className="w-full max-w-sm rounded-[24px] bg-white p-6 text-center shadow-2xl">
+          <div className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-50 text-emerald-500">
+            <i className="fa-solid fa-check text-2xl" />
+          </div>
+          <h2 className="mt-4 text-lg font-extrabold text-gray-900">{saveSuccess}</h2>
+          <p className="mt-2 text-[11px] text-gray-500">ข้อมูลสินค้าถูกบันทึกเรียบร้อยแล้ว</p>
+          <button type="button" onClick={() => setSaveSuccess('')} className="mt-5 h-10 w-full rounded-lg bg-[#6d3df5] text-xs font-bold text-white">ตกลง</button>
+        </div>
       </div>}
     </div>
   )

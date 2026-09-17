@@ -309,7 +309,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div>
+      <div className="p-5">
         <div className="flex min-h-[400px] items-center justify-center">
           <div className="text-center">
             <i className="fa-solid fa-spinner fa-spin text-2xl text-[#6d3df5]" />
@@ -328,7 +328,7 @@ export default function AdminDashboard() {
 
   if (errorMessage) {
     return (
-      <div>
+      <div className="p-5">
         <div className="rounded-2xl border border-red-100 bg-red-50 p-5 text-center">
           <i className="fa-solid fa-triangle-exclamation text-2xl text-red-500" />
 
@@ -353,15 +353,15 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-4 pb-20 md:pb-6">
+    <div className="p-5">
 
       {/* =====================================================
           Header
       ====================================================== */}
-      <div>
+      <div className="mb-6">
         <h1 className="mt-1 text-2xl font-extrabold text-gray-900">
           ภาพรวมร้านค้า
-        </h1>
+        </h1> 
       </div>
 
       {/* =====================================================
@@ -402,7 +402,7 @@ export default function AdminDashboard() {
       {/* =====================================================
           Sales Chart
       ====================================================== */}
-      <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <section className="mt-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
 
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -463,7 +463,7 @@ export default function AdminDashboard() {
       {/* =====================================================
           Recent Orders + Top Products
       ====================================================== */}
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <section className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
 
         {/* Recent Orders */}
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
