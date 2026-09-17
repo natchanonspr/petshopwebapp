@@ -51,9 +51,62 @@ func convertProductData(input []product.Product) []ProductData {
 	return result
 }
 
+// MaxFieldLen จำกัดความของข้อความก่อนส่งให้ AI เพื่อลดการใช้ Token
+const maxFieldLen = 200
+
+func truncate(s string, max int) string {
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max]) + "..."
+}
+
+// ข้อมูลฟิลย่อยที่ให้ AI ตัดสินใจ
+type promptPet struct {
+	Species     string  `json:"species"`
+	Breed       string  `json:"breed"`
+	Weight      float64 `json:"weight_kg"`
+	Gender      string  `json:"gender"`
+	Age         string  `json:"age"`
+	Neutered    bool    `json:"neutered"`
+	Disease     string  `json:"disease,omitempty"`
+	Health      string  `json:"health,omitempty"`
+	Description string  `json:"note,omitempty"`
+}
+
+type promptProduct struct {
+	ProductID   int64  `json:"id"`
+	Category    string `json:"category"`
+	Name        string `json:"name"`
+	Description string `json:"desc,omitempty"`
+}
+
 func buildPrompt(petData PetData, products []ProductData) string {
-	petJSON, _ := json.MarshalIndent(petData, "", "  ")
-	productsJSON, _ := json.MarshalIndent(products, "", "  ")
+	pet := promptPet{
+		Species:     petData.PetSpecies,
+		Breed:       petData.PetBreed,
+		Weight:      petData.PetWeight,
+		Gender:      petData.PetGender,
+		Age:         petData.PetAge,
+		Neutered:    petData.PetNeutered,
+		Disease:     truncate(petData.PetDisease, maxFieldLen),
+		Health:      truncate(petData.PetHealth, maxFieldLen),
+		Description: truncate(petData.Description, maxFieldLen),
+	}
+
+	items := make([]promptProduct, 0, len(products))
+	for _, item := range products {
+		items = append(items, promptProduct{
+			ProductID:   item.ProductID,
+			Category:    item.CategoryName,
+			Name:        item.ProductName,
+			Description: truncate(item.Description, maxFieldLen),
+		})
+	}
+
+	petJSON, _ := json.Marshal(pet)
+	productsJSON, _ := json.Marshal(items)
 
 	return fmt.Sprintf(`คุณเป็น AI ผู้ช่วยแนะนำสินค้าในร้าน Pet Shop
 	หน้าที่: วิเคราะห์ข้อมูลสัตว์เลี้ยงและเลือกสินค้าที่เหมาะสมที่สุดจากรายการสินค้าที่ให้เท่านั้น
