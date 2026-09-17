@@ -3,7 +3,7 @@ import liff from '@line/liff'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { loginWithLine } from '../../api/auth.js'
 import BoxLoader from '../../components/ui/box-loader.jsx'
-import {Eye, EyeOff} from "lucide-react"
+//import {Eye, EyeOff} from "lucide-react"
  
 export default function Login() {
   const navigate = useNavigate()
