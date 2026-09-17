@@ -1,7 +1,6 @@
 package order
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/gofiber/fiber/v2"
@@ -84,7 +83,6 @@ func UploadPaymentSlip(c *fiber.Ctx) error {
 	}
 
 	userIDValue := c.Locals("user_id")
-	fmt.Printf("DEBUG user_id = %v, type = %T\n", userIDValue, userIDValue)
 	userID, ok := userIDValue.(int64)
 
 	if !ok {
