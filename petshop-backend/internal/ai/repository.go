@@ -41,9 +41,12 @@ func GetProductsForRecommendation() ([]product.Product, error) {
 	var products []product.Product
 
 	result := db.
-		Where("product_status = ?", true).
-		Where("product_stock > ?", 0).
-		Order("created_at DESC").
+		Table("products").
+		Select("products.*, categories.category_name").
+		Joins("LEFT JOIN categories ON categories.category_id = products.category_id").
+		Where("products.product_status = ?", true).
+		Where("products.product_stock > ?", 0).
+		Order("products.created_at DESC").
 		Find(&products)
 
 	if result.Error != nil {
@@ -51,4 +54,69 @@ func GetProductsForRecommendation() ([]product.Product, error) {
 	}
 
 	return products, nil
+}
+
+func SaveAIRecommendations(
+	userID int64,
+	petID int64,
+	recommendations []Recommendation,
+) error {
+	if db == nil {
+		return errors.New("ai database is not initialized")
+	}
+
+	if len(recommendations) == 0 {
+		return nil
+	}
+
+	items := make([]AIRecommendation, 0, len(recommendations))
+
+	for _, recommendation := range recommendations {
+		items = append(items, AIRecommendation{
+			UserID:    userID,
+			PetID:     petID,
+			ProductID: recommendation.ProductID,
+			Reason:    recommendation.Reason,
+		})
+	}
+
+	return db.Create(&items).Error
+}
+
+func GetAIRecommendationHistory(userID int64, petID *int64) ([]AIRecommendationHistoryItem, error) {
+	if db == nil {
+		return nil, errors.New("ai database is not initialized")
+	}
+
+	var history []AIRecommendationHistoryItem
+
+	query := db.
+		Table("ai_recommendations AS ar").
+		Select(`
+			ar.id,
+			ar.pet_id,
+			pets.pet_name,
+			ar.product_id,
+			products.product_name,
+			products.product_image,
+			products.product_price,
+			categories.category_name,
+			ar.reason,
+			ar.created_at
+		`).
+		Joins("LEFT JOIN pets ON pets.pet_id = ar.pet_id").
+		Joins("LEFT JOIN products ON products.product_id = ar.product_id").
+		Joins("LEFT JOIN categories ON categories.category_id = products.category_id").
+		Where("ar.user_id = ?", userID).
+		Order("ar.created_at DESC")
+
+	if petID != nil {
+		query = query.Where("ar.pet_id = ?", *petID)
+	}
+
+	if err := query.Find(&history).Error; err != nil {
+		return nil, err
+	}
+
+	return history, nil
 }

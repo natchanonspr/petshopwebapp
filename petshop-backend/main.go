@@ -202,6 +202,7 @@ func main() {
 
 	//AI
 	app.Get("/ai/recommendations", middleware.JWTProtected(os.Getenv("JWT_SECRET")), ai.Recommendations)
+	app.Get("/ai/history", middleware.JWTProtected(os.Getenv("JWT_SECRET")), ai.RecommendationHistory)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))

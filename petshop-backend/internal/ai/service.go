@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -46,6 +47,355 @@ func convertProductData(input []product.Product) []ProductData {
 			Description:   item.Description,
 			ProductStatus: item.ProductStatus,
 		})
+	}
+
+	return result
+}
+
+const maxCandidateProducts = 20
+
+func containsAny(text string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(text, keyword) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getLifeStage(birthdate string, species string) string {
+	born, err := time.Parse("2006-01-02", birthdate)
+	if err != nil {
+		return ""
+	}
+
+	now := time.Now()
+
+	years := now.Year() - born.Year()
+
+	if now.Month() < born.Month() ||
+		(now.Month() == born.Month() && now.Day() < born.Day()) {
+		years--
+	}
+
+	if years < 1 {
+		return "young"
+	}
+
+	if years >= 7 {
+		return "senior"
+	}
+
+	return "adult"
+}
+
+func getSizeGroup(weight float64, species string) string {
+	switch species {
+	case "สุนัข":
+		switch {
+		case weight <= 10:
+			return "small"
+		case weight <= 25:
+			return "medium"
+		default:
+			return "large"
+		}
+
+	case "แมว":
+		switch {
+		case weight <= 4:
+			return "small"
+		case weight <= 6:
+			return "medium"
+		default:
+			return "large"
+		}
+	}
+
+	return ""
+}
+
+type nutritionRule struct {
+	petKeywords     []string
+	productKeywords []string
+	score           int
+}
+
+var nutritionRules = []nutritionRule{
+	{
+		petKeywords: []string{
+			"ควบคุมน้ำหนัก",
+			"น้ำหนักเกิน",
+			"น้ำหนักเยอะ",
+			"อ้วน",
+			"weight control",
+			"weight management",
+		},
+		productKeywords: []string{
+			"ควบคุมน้ำหนัก",
+			"weight control",
+			"weight management",
+			"light",
+		},
+		score: 4,
+	},
+	{
+		petKeywords: []string{
+			"ย่อยอาหาร",
+			"ระบบย่อย",
+			"ท้องอ่อน",
+			"ย่อยง่าย",
+			"อาหารย่อยง่าย",
+			"sensitive digestion",
+			"digestive",
+		},
+		productKeywords: []string{
+			"ย่อยอาหาร",
+			"ย่อยง่าย",
+			"digestive",
+			"sensitive digestion",
+		},
+		score: 4,
+	},
+	{
+		petKeywords: []string{
+			"ผิวหนัง",
+			"ขน",
+			"ผิวแพ้ง่าย",
+			"แพ้ง่าย",
+			"sensitive skin",
+		},
+		productKeywords: []string{
+			"ผิวหนัง",
+			"บำรุงขน",
+			"skin",
+			"coat",
+			"sensitive skin",
+		},
+		score: 3,
+	},
+	{
+		petKeywords: []string{
+			"ทำหมัน",
+			"sterilized",
+			"neutered",
+		},
+		productKeywords: []string{
+			"ทำหมัน",
+			"sterilized",
+			"neutered",
+		},
+		score: 3,
+	},
+	{
+		petKeywords: []string{
+			"ทางเดินปัสสาวะ",
+			"ปัสสาวะ",
+			"urinary",
+		},
+		productKeywords: []string{
+			"urinary",
+			"ทางเดินปัสสาวะ",
+			"ปัสสาวะ",
+		},
+		score: 3,
+	},
+}
+
+func scoreNutritionMatch(petText string, productText string) int {
+	score := 0
+
+	for _, rule := range nutritionRules {
+		if !containsAny(petText, rule.petKeywords) {
+			continue
+		}
+
+		if containsAny(productText, rule.productKeywords) {
+			score += rule.score
+		}
+	}
+
+	return score
+}
+
+func filterProductsForPet(petData PetData, products []ProductData) []ProductData {
+	var speciesKeywords []string
+	var stageKeywords []string
+
+	switch petData.PetSpecies {
+	case "สุนัข":
+		speciesKeywords = []string{
+			"สุนัข",
+			"หมา",
+			"dog",
+			"puppy",
+		}
+
+	case "แมว":
+		speciesKeywords = []string{
+			"แมว",
+			"cat",
+			"kitten",
+		}
+
+	default:
+		return products
+	}
+
+	lifeStage := getLifeStage(
+		petData.PetBirthdate,
+		petData.PetSpecies,
+	)
+
+	switch lifeStage {
+	case "young":
+		if petData.PetSpecies == "สุนัข" {
+			stageKeywords = []string{
+				"puppy",
+				"ลูกสุนัข",
+				"ลูก",
+				"junior",
+			}
+		} else {
+			stageKeywords = []string{
+				"kitten",
+				"ลูกแมว",
+				"ลูก",
+				"junior",
+			}
+		}
+
+	case "adult":
+		stageKeywords = []string{
+			"adult",
+			"โต",
+			"ผู้ใหญ่",
+			"maintenance",
+		}
+
+	case "senior":
+		stageKeywords = []string{
+			"senior",
+			"สูงวัย",
+			"แก่",
+		}
+	}
+
+	sizeGroup := getSizeGroup(
+		petData.PetWeight,
+		petData.PetSpecies,
+	)
+
+	sizeKeywords := map[string][]string{
+		"small": {
+			"small",
+			"mini",
+			"เล็ก",
+		},
+		"medium": {
+			"medium",
+			"กลาง",
+		},
+		"large": {
+			"large",
+			"maxi",
+			"giant",
+			"ใหญ่",
+		},
+	}
+
+	type scoredProduct struct {
+		product ProductData
+		score   int
+	}
+
+	candidates := make([]scoredProduct, 0)
+
+	breed := strings.ToLower(
+		strings.TrimSpace(petData.PetBreed),
+	)
+
+	for _, item := range products {
+		category := strings.ToLower(
+			strings.TrimSpace(item.CategoryName),
+		)
+		name := strings.ToLower(
+			strings.TrimSpace(item.ProductName),
+		)
+		description := strings.ToLower(
+			strings.TrimSpace(item.Description),
+		)
+		petNutritionText := strings.ToLower(
+			strings.Join(
+				[]string{
+					petData.PetDisease,
+					petData.PetHealth,
+					petData.Description,
+				},
+				" ",
+			),
+		)
+		if petData.PetNeutered {
+			petNutritionText += " ทำหมัน sterilized neutered"
+		}
+
+		text := category + " " + name + " " + description
+
+		score := 0
+		score += scoreNutritionMatch(
+			petNutritionText,
+			text,
+		)
+
+		// ต้องเกี่ยวข้องกับชนิดสัตว์ก่อน
+		if containsAny(text, speciesKeywords) {
+			score += 10
+		} else if !containsAny(category, speciesKeywords) {
+			continue
+		}
+
+		// ช่วงวัยใช้เป็น "คะแนน" ไม่ใช่ hard filter
+		if len(stageKeywords) > 0 &&
+			containsAny(text, stageKeywords) {
+			score += 5
+		}
+
+		// ขนาด/น้ำหนักใช้เป็น "คะแนน"
+		if keywords, ok := sizeKeywords[sizeGroup]; ok &&
+			containsAny(text, keywords) {
+			score += 3
+		}
+
+		// สายพันธุ์เป็นคะแนนเสริม
+		if breed != "" &&
+			breed != "ไม่แน่ใจ" &&
+			strings.Contains(text, breed) {
+			score += 4
+		}
+
+		candidates = append(candidates, scoredProduct{
+			product: item,
+			score:   score,
+		})
+	}
+
+	if len(candidates) == 0 {
+		return products
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return candidates[i].score > candidates[j].score
+	})
+
+	if len(candidates) > maxCandidateProducts {
+		candidates = candidates[:maxCandidateProducts]
+	}
+
+	result := make([]ProductData, 0, len(candidates))
+
+	for _, candidate := range candidates {
+		result = append(result, candidate.product)
 	}
 
 	return result
@@ -113,7 +463,7 @@ func buildPrompt(petData PetData, products []ProductData) string {
 	ข้อมูลสัตว์เลี้ยง:%s
 	รายการสินค้า:%s
 	กติกา:
-		1. เลือกสินค้าได้ไม่เกิน 5 รายการ
+		1. เลือกสินค้าได้ไม่เกิน 3 รายการ
 		2. เลือกเฉพาะ product_id ที่มีอยู่ในรายการสินค้าเท่านั้น
 		3. ห้ามสร้าง product_id ใหม่
 		4. พิจารณาประเภทสัตว์ สายพันธุ์ น้ำหนัก อายุ เพศ การทำหมัน โรค สุขภาพ และรายละเอียด
@@ -123,12 +473,14 @@ func buildPrompt(petData PetData, products []ProductData) string {
 		8. ห้ามอ้างว่าสินค้ารักษาโรคได้
 		9. ถ้าข้อมูลไม่เพียงพอ ให้ใช้ข้อมูลที่มีและเลือกเฉพาะสินค้าที่เหมาะสมจริง
 		10. ถ้าไม่มีสินค้าที่เหมาะสม ให้คืน recommendations เป็น []
-		11. reason ต้องสั้น อ่านง่าย และอธิบายว่าเหตุใดสินค้านี้จึงเหมาะ
+		11. reason ต้องสั้น อ่านง่าย ไม่เกิน 100 ตัวอักษร และอธิบายว่าเหตุใดสินค้านี้จึงเหมาะ
 	ตอบ JSON เท่านั้น:{
-  		"recommendations": [{
+  		"recommendations": [
+		{
      		 "product_id": 1,
     		  "reason": "เหตุผล" 
-	}]}`, string(petJSON), string(productsJSON))
+		}
+		]}`, string(petJSON), string(productsJSON))
 }
 
 func callAI(prompt string) ([]Recommendation, error) {
@@ -154,7 +506,8 @@ func callAI(prompt string) ([]Recommendation, error) {
 			},
 		},
 		GenerationConfig: AIGenerationConfig{
-			MaxOutputTokens: 500,
+			MaxOutputTokens:  2000,
+			ResponseMimeType: "application/json",
 		},
 	}
 	payload, err := json.Marshal(requestBody)
@@ -162,67 +515,116 @@ func callAI(prompt string) ([]Recommendation, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf(
-		"https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
-		model,
-		apiKey,
-	), bytes.NewReader(payload))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
 	client := &http.Client{Timeout: 60 * time.Second}
 
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
+	const maxAttempts = 3
 
-	defer res.Body.Close()
+	var lastErr error
 
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		var body map[string]any
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		req, err := http.NewRequest(
+			http.MethodPost,
+			fmt.Sprintf(
+				"https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+				model,
+				apiKey,
+			),
+			bytes.NewReader(payload),
+		)
+		if err != nil {
+			return nil, err
+		}
 
-		_ = json.NewDecoder(res.Body).Decode(&body)
+		req.Header.Set("Content-Type", "application/json")
 
-		data, _ := json.Marshal(body)
+		res, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+		} else {
+			if res.StatusCode >= 200 && res.StatusCode < 300 {
+				var response AIResponse
 
-		return nil, fmt.Errorf("gemini api error: status=%d body=%s", res.StatusCode, string(data))
-	}
+				err := json.NewDecoder(res.Body).Decode(&response)
+				res.Body.Close()
 
-	var response AIResponse
-	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-		return nil, err
-	}
+				if err != nil {
+					return nil, err
+				}
 
-	var text string
+				var text string
 
-	for _, candidate := range response.Candidates {
-		for _, part := range candidate.Content.Parts {
-			text += part.Text
+				for _, candidate := range response.Candidates {
+					fmt.Printf("Gemini FinishReason: %s\n", candidate.FinishReason)
+
+					for _, part := range candidate.Content.Parts {
+						text += part.Text
+					}
+				}
+
+				fmt.Printf("Gemini Raw Text: %q\n", text)
+
+				text = strings.TrimSpace(text)
+				text = strings.TrimPrefix(text, "```json")
+				text = strings.TrimPrefix(text, "```")
+				text = strings.TrimSuffix(text, "```")
+				text = strings.TrimSpace(text)
+
+				if text == "" {
+					return nil, errors.New("AI returned empty response")
+				}
+
+				var result struct {
+					Recommendations []Recommendation `json:"recommendations"`
+				}
+
+				if err := json.Unmarshal([]byte(text), &result); err != nil {
+					return nil, fmt.Errorf(
+						"invalid AI JSON response: %w",
+						err,
+					)
+				}
+
+				return result.Recommendations, nil
+			}
+
+			var body map[string]any
+
+			_ = json.NewDecoder(res.Body).Decode(&body)
+			res.Body.Close()
+
+			data, _ := json.Marshal(body)
+
+			lastErr = fmt.Errorf(
+				"gemini api error: status=%d body=%s",
+				res.StatusCode,
+				string(data),
+			)
+
+			if res.StatusCode != http.StatusTooManyRequests &&
+				res.StatusCode < 500 {
+				return nil, lastErr
+			}
+		}
+
+		if attempt < maxAttempts {
+			wait := time.Duration(1<<uint(attempt-1)) * time.Second
+
+			fmt.Printf(
+				"Gemini request failed (attempt %d/%d), retrying in %s...\n",
+				attempt,
+				maxAttempts,
+				wait,
+			)
+
+			time.Sleep(wait)
 		}
 	}
 
-	text = strings.TrimSpace(text)
-	text = strings.TrimPrefix(text, "```json")
-	text = strings.TrimPrefix(text, "```")
-	text = strings.TrimSuffix(text, "```")
-	text = strings.TrimSpace(text)
-
-	var result struct {
-		Recommendations []Recommendation `json:"recommendations"`
-	}
-
-	if err := json.Unmarshal([]byte(text), &result); err != nil {
-		return nil, fmt.Errorf(
-			"invalid AI JSON response: %w",
-			err,
-		)
-	}
-
-	return result.Recommendations, nil
+	return nil, fmt.Errorf(
+		"Gemini unavailable after %d attempts: %w",
+		maxAttempts,
+		lastErr,
+	)
 }
 
 func GetRecommendationsService(userID int64, petID int64) (*RecommendationResponse, error) {
@@ -240,10 +642,28 @@ func GetRecommendationsService(userID int64, petID int64) (*RecommendationRespon
 	productData := convertProductData(products)
 
 	if len(productData) == 0 {
-		return &RecommendationResponse{Pet: petData, Recommendations: []Recommendation{}}, nil
+		return &RecommendationResponse{
+			Pet:             petData,
+			Recommendations: []Recommendation{},
+		}, nil
 	}
 
-	prompt := buildPrompt(petData, productData)
+	candidateProducts := filterProductsForPet(petData, productData)
+
+	if len(candidateProducts) == 0 {
+		return &RecommendationResponse{
+			Pet:             petData,
+			Recommendations: []Recommendation{},
+		}, nil
+	}
+
+	fmt.Printf(
+		"AI pre-filter: %d products -> %d candidates\n",
+		len(productData),
+		len(candidateProducts),
+	)
+
+	prompt := buildPrompt(petData, candidateProducts)
 
 	recommendations, err := callAI(prompt)
 	if err != nil {
@@ -251,10 +671,13 @@ func GetRecommendationsService(userID int64, petID int64) (*RecommendationRespon
 	}
 
 	// ตรวจสอบ product_id จาก AI อีกครั้ง
-	validProductIDs := make(map[int64]bool, len(products))
+	validProductIDs := make(map[int64]bool, len(candidateProducts))
 
-	for _, item := range products {
+	productByID := make(map[int64]ProductData, len(candidateProducts))
+
+	for _, item := range candidateProducts {
 		validProductIDs[item.ProductID] = true
+		productByID[item.ProductID] = item
 	}
 
 	filtered := make([]Recommendation, 0, len(recommendations))
@@ -269,6 +692,13 @@ func GetRecommendationsService(userID int64, petID int64) (*RecommendationRespon
 			continue
 		}
 
+		item, ok := productByID[recommendation.ProductID]
+		if !ok {
+			continue
+		}
+
+		recommendation.Product = &item
+
 		seen[recommendation.ProductID] = true
 
 		filtered = append(filtered, recommendation)
@@ -276,6 +706,10 @@ func GetRecommendationsService(userID int64, petID int64) (*RecommendationRespon
 		if len(filtered) >= 5 {
 			break
 		}
+	}
+
+	if err := SaveAIRecommendations(userID, petID, filtered); err != nil {
+		return nil, err
 	}
 
 	return &RecommendationResponse{Pet: petData, Recommendations: filtered}, nil

@@ -3,6 +3,7 @@ package order
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"petshop-backend/internal/address"
@@ -88,10 +89,11 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 		couponID       int64
 	)
 
-	couponCode := req.CouponCode
+	couponCode := strings.ToUpper(strings.TrimSpace(req.CouponCode))
 
 	if couponCode != "" {
 		result := coupon.ApplyCouponService(
+			userID,
 			couponCode,
 			subtotalAmount,
 		)
@@ -275,7 +277,17 @@ func CancelOrderService(orderID, userID int64) error {
 		if err := restoreStock(tx, order.Items); err != nil {
 			return err
 		}
-		return tx.Model(order).Update("order_status", "cancelled").Error
+
+		if order.CouponCode != "" {
+			if err := coupon.DecrementUsedCountByCode(tx, order.CouponCode); err != nil {
+				return err
+			}
+		}
+
+		return tx.
+			Model(order).
+			Update("order_status", "cancelled").
+			Error
 	})
 }
 
@@ -330,6 +342,12 @@ func UpdateOrderStatusService(orderID int64, adminUserID int64, status string) e
 
 			if err := restoreStock(tx, order.Items); err != nil {
 				return err
+			}
+
+			if order.CouponCode != "" {
+				if err := coupon.DecrementUsedCountByCode(tx, order.CouponCode); err != nil {
+					return err
+				}
 			}
 
 			if err := tx.
@@ -486,7 +504,16 @@ func UpdateOrderPaymentStatusService(orderID int64, adminUserID int64, status st
 				return err
 			}
 
-			if err := tx.Model(order).Updates(map[string]interface{}{"payment_status": "rejected", "order_status": "cancelled"}).Error; err != nil {
+			if order.CouponCode != "" {
+				if err := coupon.DecrementUsedCountByCode(tx, order.CouponCode); err != nil {
+					return err
+				}
+			}
+
+			if err := tx.Model(order).Updates(map[string]interface{}{
+				"payment_status": "rejected",
+				"order_status":   "cancelled",
+			}).Error; err != nil {
 				return err
 			}
 

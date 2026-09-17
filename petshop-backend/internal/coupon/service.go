@@ -18,8 +18,6 @@ var (
 	ErrDuplicateCode     = errors.New("รหัสโปรโมชั่นนี้มีอยู่แล้ว")
 )
 
-const dateTimeLayout = "2006-0102T15:04"
-
 func validCouponType(t string) bool {
 	return t == TypeFixed || t == TypePercentage || t == TypeFreeShipping
 }
@@ -117,9 +115,13 @@ func UpdateCouponService(couponID int64, req *CouponRequest) (*Coupon, error) {
 	}
 
 	if updated.CouponCode != existing.CouponCode {
-		if _, err := GetCouponByCode(updated.CouponCode); err != nil {
+		_, err := GetCouponByCode(updated.CouponCode)
+
+		if err == nil {
 			return nil, ErrDuplicateCode
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		}
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 	}
@@ -129,6 +131,7 @@ func UpdateCouponService(couponID int64, req *CouponRequest) (*Coupon, error) {
 	existing.CouponType = updated.CouponType
 	existing.CouponValue = updated.CouponValue
 	existing.MinOrder = updated.MinOrder
+	existing.MaxDiscount = updated.MaxDiscount
 	existing.UsageLimit = updated.UsageLimit
 	existing.PerUserLimit = updated.PerUserLimit
 	existing.StartAt = updated.StartAt
@@ -161,7 +164,7 @@ func GetActiveCouponsService() ([]Coupon, error) {
 }
 
 // ตรวจสอบเงื่อนไข + คำนวณส่วนลด (ไม่ได้บันทึกการใช้งาน/used_count ในรอบนี้)
-func ApplyCouponService(code string, subtotal float64) *ApplyResult {
+func ApplyCouponService(userID int64, code string, subtotal float64) *ApplyResult {
 	normalized := strings.ToUpper(strings.TrimSpace(code))
 	if normalized == "" {
 		return &ApplyResult{OK: false, Reason: "กรุณากรอกรหัสโปรโมชั่น"}
@@ -186,18 +189,31 @@ func ApplyCouponService(code string, subtotal float64) *ApplyResult {
 	if c.UsageLimit > 0 && c.UsedCount >= c.UsageLimit {
 		return &ApplyResult{OK: false, Reason: "สิทธิ์โปรโมชั่นถูกใช้ครบแล้ว"}
 	}
+	if c.PerUserLimit > 0 {
+		usedCount, err := CountUserCouponUsage(userID, normalized)
+		if err != nil {
+			return &ApplyResult{OK: false, Reason: "ไม่สามารถตรวจสอบการใช้โปรโมชั่นได้"}
+		}
+
+		if usedCount >= c.PerUserLimit {
+			return &ApplyResult{OK: false, Reason: "คุณใช้โปรโมชั่นนี้ครบจำนวนครั้งแล้ว"}
+		}
+	}
 	if subtotal < c.MinOrder {
 		return &ApplyResult{OK: false, Reason: fmt.Sprintf("ยอดสั่งซื้อขั้นต่ำ %.0f บาท สำหรับโค้ด %s", c.MinOrder, normalized)}
 	}
 
 	var amount float64
+
 	if c.CouponType == TypePercentage {
 		amount = subtotal * c.CouponValue / 100
 		if c.MaxDiscount > 0 && amount > c.MaxDiscount {
 			amount = c.MaxDiscount
 		}
-	} else {
+	} else if c.CouponType == TypeFixed {
 		amount = c.CouponValue
+	} else if c.CouponType == TypeFreeShipping {
+		amount = 0
 	}
 	if amount > subtotal {
 		amount = subtotal

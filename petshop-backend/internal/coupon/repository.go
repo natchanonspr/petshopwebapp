@@ -81,3 +81,31 @@ func IncrementUsedCount(tx *gorm.DB, couponID int64) error {
 
 	return nil
 }
+
+func CountUserCouponUsage(userID int64, couponCode string) (int64, error) {
+	var count int64
+
+	err := db.
+		Table("orders").
+		Where("user_id = ?", userID).
+		Where("coupon_code = ?", couponCode).
+		Where("order_status <> ?", "cancelled").
+		Count(&count).Error
+
+	return count, err
+}
+
+func DecrementUsedCountByCode(tx *gorm.DB, couponCode string) error {
+	if tx == nil || couponCode == "" {
+		return nil
+	}
+
+	return tx.
+		Model(&Coupon{}).
+		Where("coupon_code = ? AND used_count > 0", couponCode).
+		UpdateColumn(
+			"used_count",
+			gorm.Expr("used_count - ?", 1),
+		).
+		Error
+}

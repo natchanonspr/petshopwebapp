@@ -31,8 +31,9 @@ type ProductData struct {
 }
 
 type Recommendation struct {
-	ProductID int64  `json:"product_id"`
-	Reason    string `json:"reason"`
+	ProductID int64        `json:"product_id"`
+	Reason    string       `json:"reason"`
+	Product   *ProductData `json:"product"`
 }
 
 type RecommendationResponse struct {
@@ -54,7 +55,8 @@ type AIPart struct {
 }
 
 type AIGenerationConfig struct {
-	MaxOutputTokens int `json:"maxOutputTokens"`
+	MaxOutputTokens  int    `json:"maxOutputTokens"`
+	ResponseMimeType string `json:"responseMimeType,omitempty"`
 }
 
 type AIResponse struct {
@@ -62,7 +64,8 @@ type AIResponse struct {
 }
 
 type AICandidate struct {
-	Content AIContent `json:"content"`
+	Content      AIContent `json:"content"`
+	FinishReason string    `json:"finishReason"`
 }
 
 type AIRecommendation struct {
@@ -72,4 +75,17 @@ type AIRecommendation struct {
 	ProductID int64     `json:"product_id"`
 	Reason    string    `json:"reason"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type AIRecommendationHistoryItem struct {
+	ID           int64     `json:"id"`
+	PetID        int64     `json:"pet_id"`
+	PetName      string    `json:"pet_name"`
+	ProductID    int64     `json:"product_id"`
+	ProductName  string    `json:"product_name"`
+	ProductImage string    `json:"product_image"`
+	ProductPrice float64   `json:"product_price"`
+	CategoryName string    `json:"category_name"`
+	Reason       string    `json:"reason"`
+	CreatedAt    time.Time `json:"created_at"`
 }

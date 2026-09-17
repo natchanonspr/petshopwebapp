@@ -2,17 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
 import { getPets } from '../../api/pets.js'
-import { getProducts } from '../../api/products.js'
-import { logActivity } from '../../admin/activity.js'
-
-// backend ยังไม่มี field "age" ให้ตรงๆ มีแค่วันเกิด (pet_birthdate) เลยคำนวณอายุปีเอาเอง
-function getAgeYears(birthdate) {
-  if (!birthdate) return 0
-  const born = new Date(birthdate)
-  if (Number.isNaN(born.getTime())) return 0
-  const diffMs = Date.now() - born.getTime()
-  return Math.max(0, diffMs / (1000 * 60 * 60 * 24 * 365.25))
-}
+import { getRecommendations } from '../../api/ai.js'
 
 const AI_KEY = 'petshop_ai_management_v1'
 
@@ -35,20 +25,6 @@ function getAISettings() {
   } catch {
     return fallback
   }
-}
-
-function saveRecommendationLog(entry) {
-  try {
-    const current = getAISettings()
-    const recommendations = Array.isArray(current.recommendations) ? current.recommendations : []
-    localStorage.setItem(AI_KEY, JSON.stringify({ ...current, recommendations: [entry, ...recommendations].slice(0, 100) }))
-    window.dispatchEvent(new Event('petshop-ai-updated'))
-  } catch {}
-}
-
-function getNumber(value) {
-  const number = Number.parseFloat(String(value ?? '').replace(/[^0-9.]/g, ''))
-  return Number.isFinite(number) ? number : 0
 }
 
 function scoreProduct(product, pet, age, weight, ai) {
@@ -86,29 +62,38 @@ function scoreProduct(product, pet, age, weight, ai) {
 
 export default function Recommendation() {
   const [pets, setPets] = useState([])
-  const [products, setProducts] = useState([])
   const [selectedId, setSelectedId] = useState(null)
-  const [age, setAge] = useState('')
-  const [weight, setWeight] = useState('')
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [loadError, setLoadError] = useState('')
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
   useEffect(() => {
     let active = true
 
-    Promise.all([getPets(), getProducts()])
-      .then(([nextPets, nextProducts]) => {
+    getPets()
+      .then((nextPets) => {
         if (!active) return
+
         setPets(nextPets)
-        setProducts(nextProducts)
+
         setSelectedId((current) => {
-          const stillExists = current != null && nextPets.some((pet) => String(pet.pet_id) === String(current))
-          return stillExists ? current : (nextPets[0]?.pet_id ?? null)
+          const stillExists =
+            current != null &&
+            nextPets.some(
+              (pet) => String(pet.pet_id) === String(current),
+            )
+
+          return stillExists
+            ? current
+            : (nextPets[0]?.pet_id ?? null)
         })
       })
       .catch((err) => {
-        if (active) setLoadError(err?.message || 'โหลดข้อมูลไม่สำเร็จ')
+        if (active) {
+          setLoadError(err?.message || 'โหลดข้อมูลไม่สำเร็จ')
+        }
       })
 
     return () => {
@@ -121,25 +106,14 @@ export default function Recommendation() {
     [pets, selectedId],
   )
 
-  // Sync the editable AI inputs whenever the selected pet's saved data changes.
   useEffect(() => {
-    if (!selectedPet) {
-      setAge('')
-      setWeight('')
-      setResult(null)
-      return
-    }
-
-    setAge(String(Math.round(getAgeYears(selectedPet.pet_birthdate) * 10) / 10 || ''))
-    setWeight(String(getNumber(selectedPet.pet_weight) || ''))
     setResult(null)
     setError('')
-  }, [selectedPet?.pet_id, selectedPet?.pet_birthdate, selectedPet?.pet_weight])
+  }, [selectedPet?.pet_id])
 
-  const handleAnalyze = (event) => {
+  const handleAnalyze = async (event) => {
     event.preventDefault()
-    const nextAge = Number(age)
-    const nextWeight = Number(weight)
+
     const ai = getAISettings()
 
     if (!ai.enabled) {
@@ -150,61 +124,44 @@ export default function Recommendation() {
 
     if (!selectedPet) {
       setError('กรุณาเลือกสัตว์เลี้ยงก่อน')
+      setResult(null)
       return
     }
-    if (!Number.isFinite(nextAge) || nextAge < 0) {
-      setError('กรุณากรอกอายุให้ถูกต้อง')
-      return
-    }
-    if (!Number.isFinite(nextWeight) || nextWeight <= 0) {
-      setError('กรุณากรอกน้ำหนักให้มากกว่า 0 กก.')
-      return
-    }
-
-    const isCat = selectedPet.pet_species === 'แมว'
-    const activeRules = Array.isArray(ai.rules) ? ai.rules.filter((rule) => rule.enabled).map((rule) => rule.label) : []
-    const nutrition = Array.isArray(ai.nutrition) ? ai.nutrition : []
-    const petWord = isCat ? 'แมว' : 'สุนัข'
-    const scoredProducts = products
-      .map((product) => ({ product, score: scoreProduct(product, selectedPet, nextAge, nextWeight, ai) }))
-      .filter((item) => item.score >= 0)
-      .sort((a, b) => b.score - a.score)
-    const suggestedProducts = scoredProducts.slice(0, 2).map((item) => item.product)
-    const calories = Math.round(nextWeight * (isCat ? 35 : 30))
-    const meal = Math.round(calories / 2)
 
     setError('')
-    const providerName = ai.provider === 'luna' ? 'Luna' : 'Gemini'
-    const nutritionRule = nutrition.find((item) => String(item.pet || '').includes(petWord))
-    const recommendationResult = isCat ? 'แนะนำอาหารแมวตามข้อมูลน้อง' : 'แนะนำอาหารสุนัขตามข้อมูลน้อง'
-    setResult({
-      provider: providerName,
-      rules: activeRules,
-      calories,
-      meal,
-      title: isCat ? 'อาหารสำหรับแมว' : 'อาหารสำหรับสุนัข',
-      description:
-        nextAge < 1
-          ? 'น้องยังอยู่ในวัยเด็ก ควรเลือกอาหารที่เหมาะกับช่วงวัยและแบ่งเป็นมื้อเล็ก ๆ'
-          : nutritionRule?.note || `คำแนะนำเบื้องต้นจากข้อมูล ${activeRules.length ? activeRules.join(', ') : 'อายุและน้ำหนัก'} ของน้อง`,
-      products: suggestedProducts,
-    })
+    setIsAnalyzing(true)
+    try {
+      const recommendation = await getRecommendations(selectedPet.pet_id)
 
-    logActivity('recommendation', `วิเคราะห์อาหารสำหรับ ${selectedPet.pet_name}`, { petId: selectedPet.pet_id, petType: selectedPet.pet_species, age: nextAge, weight: nextWeight, provider: providerName })
-    saveRecommendationLog({
-      id: Date.now(),
-      date: new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }),
-      customer: 'ลูกค้าปัจจุบัน',
-      provider: providerName,
-      result: recommendationResult,
-      correct: null,
-      petType: selectedPet.pet_species,
-      age: nextAge,
-      weight: nextWeight,
-      rules: activeRules,
-      productIds: scoredProducts.slice(0, 2).map((item) => item.product.id),
-      scores: scoredProducts.slice(0, 2).map((item) => ({ productId: item.product.id, score: item.score })),
-    })
+      console.log('AI Recommendation:', recommendation)
+
+      const recommendedProducts = (recommendation?.recommendations ?? [])
+        .filter((item) => item?.product)
+        .map((item) => ({
+          ...item.product,
+          reason: item.reason || 'AI แนะนำสินค้านี้จากข้อมูลของน้อง',
+        }))
+
+      setResult({
+        pet: recommendation?.pet,
+        provider: 'Gemini',
+        rules: [],
+        title:
+          recommendation?.pet?.pet_species === 'แมว'
+            ? 'อาหารสำหรับแมว'
+            : 'อาหารสำหรับสุนัข',
+        description:
+          recommendedProducts.length > 0
+            ? `AI วิเคราะห์ข้อมูลของ ${recommendation?.pet?.pet_name || selectedPet.pet_name} และพบสินค้าที่เหมาะสม`
+            : 'AI ยังไม่พบสินค้าที่เหมาะสมจากรายการสินค้าที่มี',
+        products: recommendedProducts,
+      })
+    } catch (err) {
+      setResult(null)
+      setError(err?.message || 'ไม่สามารถวิเคราะห์ด้วย AI ได้')
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   return (
@@ -275,18 +232,91 @@ export default function Recommendation() {
             <div className="mb-3">
               <span className="text-[10px] font-bold text-orange-500">STEP 02</span>
               <h2 className="m-0 mt-0.5 text-base font-extrabold text-gray-900">ข้อมูลพื้นฐานของน้อง</h2>
-              <p className="m-0 mt-1 text-[10px] text-gray-400">ข้อมูลนี้ช่วยให้คำแนะนำตรงกับน้องมากขึ้น</p>
+              <p className="m-0 mt-1 text-[10px] text-gray-400">ข้อมูลจากโปรไฟล์สัตว์เลี้ยงของคุณ</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <label className="block"><span className="mb-1.5 block text-xs font-bold">อายุ (ปี)</span><input type="number" min="0" step="0.1" value={age} onChange={(e) => setAge(e.target.value)} placeholder="เช่น 2" className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-orange-400 focus:bg-white" /></label>
-              <label className="block"><span className="mb-1.5 block text-xs font-bold">น้ำหนัก (กก.)</span><input type="number" min="0.1" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="เช่น 4" className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-orange-400 focus:bg-white" /></label>
+              <div className="rounded-2xl bg-gray-50 p-3">
+                <span className="block text-[10px] font-bold text-gray-400">
+                  วันเกิด
+                </span>
+                <strong className="mt-1 block text-sm text-gray-800">
+                  {selectedPet?.pet_birthdate
+                    ? new Date(selectedPet.pet_birthdate).toLocaleDateString('th-TH')
+                    : '-'}
+                </strong>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 p-3">
+                <span className="block text-[10px] font-bold text-gray-400">
+                  น้ำหนัก
+                </span>
+                <strong className="mt-1 block text-sm text-gray-800">
+                  {selectedPet?.pet_weight != null
+                    ? `${selectedPet.pet_weight} กก.`
+                    : '-'}
+                </strong>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 p-3">
+                <span className="block text-[10px] font-bold text-gray-400">
+                  สายพันธุ์
+                </span>
+                <strong className="mt-1 block truncate text-sm text-gray-800">
+                  {selectedPet?.pet_breed || '-'}
+                </strong>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 p-3">
+                <span className="block text-[10px] font-bold text-gray-400">
+                  เพศ
+                </span>
+                <strong className="mt-1 block text-sm text-gray-800">
+                  {selectedPet?.pet_gender || '-'}
+                </strong>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 p-3">
+                <span className="block text-[10px] font-bold text-gray-400">
+                  ทำหมัน
+                </span>
+                <strong className="mt-1 block text-sm text-gray-800">
+                  {selectedPet?.pet_neutered ? 'ทำหมันแล้ว' : 'ยังไม่ได้ทำหมัน'}
+                </strong>
+              </div>
             </div>
             {error && <p className="m-0 mt-2 text-xs font-medium text-red-500">{error}</p>}
-            <button type="submit" className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 text-sm font-extrabold text-white shadow-md shadow-orange-500/20 transition active:scale-[0.99]">
-              <i className="fa-solid fa-sparkles" /> วิเคราะห์ให้น้อง
+            <button
+              type="submit"
+              disabled={isAnalyzing}
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 text-sm font-extrabold text-white shadow-md shadow-orange-500/20 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isAnalyzing ? (
+                <>
+                  <span
+                    className="inline-block size-4 animate-spin rounded-full border-2 border-white border-r-transparent"
+                    aria-hidden="true"
+                  />
+                  กำลังวิเคราะห์...
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-sparkles" />
+                  วิเคราะห์
+                </>
+              )}
             </button>
           </section>
         </form>
+
+        {isAnalyzing && (
+          <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-white p-4 text-xs font-bold text-gray-500 shadow-sm">
+            <span
+              className="inline-block size-5 animate-spin rounded-full border-2 border-orange-500 border-r-transparent"
+              aria-hidden="true"
+            />
+            <span>AI กำลังวิเคราะห์ข้อมูล...</span>
+          </div>
+        )}
 
         {result && (
           <section className="mt-4 overflow-hidden rounded-[26px] border border-orange-100 bg-white shadow-sm">
@@ -301,19 +331,72 @@ export default function Recommendation() {
               </div>
             </div>
             <div className="p-4">
-            <p className="mt-3 text-xs leading-5 text-gray-600">{result.description}</p>
-            {result.rules?.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{result.rules.map((rule) => <span key={rule} className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold text-violet-600"><i className="fa-solid fa-check mr-1" />{rule}</span>)}</div>}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl bg-orange-50 p-3 text-center"><strong className="block text-lg text-orange-500">~{result.calories}</strong><span className="text-[10px] text-gray-500">พลังงาน/วัน (ประมาณ)</span></div>
-              <div className="rounded-2xl bg-gray-50 p-3 text-center"><strong className="block text-lg text-gray-800">~{result.meal}</strong><span className="text-[10px] text-gray-500">พลังงาน/มื้อ × 2</span></div>
-            </div>
-            {result.products.length > 0 && <div className="mt-4"><div className="mb-2 flex items-center justify-between"><h3 className="m-0 text-sm font-bold">สินค้าที่น่าสนใจ</h3><Link to="/products" className="text-xs font-bold text-orange-500">ดูทั้งหมด</Link></div><div className="space-y-2">{result.products.map((product) => <Link key={product.id} to={`/products/${product.id}`} className="flex items-center gap-3 rounded-2xl border border-gray-100 p-3 active:bg-gray-50"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gray-100 text-lg text-gray-400"><i className={`fa-solid ${product.icon}`} /></span><span className="min-w-0 flex-1"><strong className="block truncate text-xs">{product.name}</strong><span className="text-[10px] text-gray-400">{product.category}</span></span><strong className="text-sm text-orange-500">฿{product.price.toLocaleString()}</strong></Link>)}</div></div>}
-            <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-3">
-              <div className="flex gap-2">
-                <i className="fa-solid fa-circle-info mt-0.5 text-[11px] text-orange-400" />
-                <p className="m-0 text-[10px] leading-5 text-gray-400">คำแนะนำนี้เป็นข้อมูลเบื้องต้นจากอายุ น้ำหนัก และประเภทสัตว์เลี้ยง ไม่ใช่การวินิจฉัยทางการแพทย์ หากน้องมีโรคประจำตัวควรปรึกษาสัตวแพทย์</p>
+              <p className="mt-3 text-xs leading-5 text-gray-600">{result.description}</p>
+              {result.rules?.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{result.rules.map((rule) => <span key={rule} className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold text-violet-600"><i className="fa-solid fa-check mr-1" />{rule}</span>)}</div>}
+              <div className="mt-3 grid grid-cols-2 gap-2">
               </div>
-            </div>
+              {result.products.length > 0 && (
+                <div className="mt-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="m-0 text-sm font-bold">สินค้าที่น่าสนใจ</h3>
+
+                    <Link
+                      to="/products"
+                      className="text-xs font-bold text-orange-500"
+                    >
+                      ดูทั้งหมด
+                    </Link>
+                  </div>
+
+                  <div className="space-y-2">
+                    {result.products.map((product) => (
+                      <Link
+                        key={product.product_id}
+                        to={`/products/${product.product_id}`}
+                        className="flex items-center gap-3 rounded-2xl border border-gray-100 p-3 active:bg-gray-50"
+                      >
+                        <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-gray-100">
+                          {product.product_image ? (
+                            <img
+                              src={product.product_image}
+                              alt={product.product_name}
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <i className="fa-solid fa-bowl-food text-lg text-gray-400" />
+                          )}
+                        </span>
+
+                        <span className="min-w-0 flex-1">
+                          <strong className="block truncate text-xs">
+                            {product.product_name}
+                          </strong>
+
+                          <span className="block text-[10px] text-gray-400">
+                            {product.category_name}
+                          </span>
+
+                          {product.reason && (
+                            <span className="mt-1 block text-[10px] leading-4 text-gray-500">
+                              {product.reason}
+                            </span>
+                          )}
+                        </span>
+
+                        <strong className="shrink-0 text-sm text-orange-500">
+                          ฿{Number(product.product_price).toLocaleString()}
+                        </strong>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                <div className="flex gap-2">
+                  <i className="fa-solid fa-circle-info mt-0.5 text-[11px] text-orange-400" />
+                  <p className="m-0 text-[10px] leading-5 text-gray-400">คำแนะนำนี้เป็นข้อมูลเบื้องต้นจากอายุ น้ำหนัก และประเภทสัตว์เลี้ยง ไม่ใช่การวินิจฉัยทางการแพทย์ หากน้องมีโรคประจำตัวควรปรึกษาสัตวแพทย์</p>
+                </div>
+              </div>
             </div>
           </section>
         )}

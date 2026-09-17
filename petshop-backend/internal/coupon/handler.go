@@ -101,11 +101,20 @@ func Active(c *fiber.Ctx) error {
 }
 
 func Apply(c *fiber.Ctx) error {
+	value := c.Locals("user_id")
+
+	userID := value.(int64)
+
 	req := new(ApplyRequest)
 	if err := c.BodyParser(req); err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	result := ApplyCouponService(req.CouponCode, req.Subtotal)
+	result := ApplyCouponService(
+		userID,
+		req.CouponCode,
+		req.Subtotal,
+	)
+
 	return c.JSON(result)
 }
