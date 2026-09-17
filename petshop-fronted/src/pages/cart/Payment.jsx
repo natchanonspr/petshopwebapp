@@ -19,6 +19,7 @@ export default function Payment() {
   const [uploadError, setUploadError] = useState('')
 
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [uploadSuccessOpen, setUploadSuccessOpen] = useState(false)
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -55,6 +56,38 @@ export default function Payment() {
       )
     }
   }, [orderId])
+
+  useEffect(() => {
+    if (!orderId || !order) {
+      return
+    }
+
+    if (order.payment_status === 'paid') {
+      const timer = window.setTimeout(() => {
+        navigate(`/orders/${orderId}`)
+      }, 800)
+
+      return () => window.clearTimeout(timer)
+    }
+
+    if (order.payment_status !== 'reviewing' && order.payment_status !== 'submitted') {
+      return
+    }
+
+    const refreshOrder = async () => {
+      try {
+        const data = await getOrder(orderId)
+        setOrder(data)
+      } catch (error) {
+        console.error('Refresh payment status error:', error)
+      }
+    }
+
+    const interval = window.setInterval(refreshOrder, 2000)
+    refreshOrder()
+
+    return () => window.clearInterval(interval)
+  }, [orderId, order?.payment_status, navigate])
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0]
@@ -106,8 +139,8 @@ export default function Payment() {
 
       setFile(null)
       setPreviewUrl('')
-
-      alert('ส่งสลิปเรียบร้อยแล้ว กรุณารอ Admin ตรวจสอบ')
+      setUploadOpen(false)
+      setUploadSuccessOpen(true)
     } catch (error) {
       console.error('Upload slip error:', error)
 
@@ -657,6 +690,34 @@ export default function Payment() {
           </button>
 
         </div>)}
+
+      {uploadSuccessOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 px-5">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl">
+            <div className="mx-auto grid size-16 place-items-center rounded-full bg-green-50 text-green-500">
+              <i className="fa-solid fa-check text-2xl" />
+            </div>
+
+            <h2 className="mt-4 text-lg font-bold text-gray-900">
+              ส่งสลิปเรียบร้อยแล้ว
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              ระบบได้รับสลิปของคุณแล้ว
+              <br />
+              กรุณารอ Admin ตรวจสอบการชำระเงิน
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setUploadSuccessOpen(false)}
+              className="mt-5 w-full rounded-full bg-orange-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/20"
+            >
+              ตกลง
+            </button>
+          </div>
+        </div>
+      )}
 
       {(isReviewing || isPaid) && (
         <div className="absolute bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 border-t border-gray-100 bg-white px-5 py-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">

@@ -105,9 +105,11 @@ export default function AdminOrders() {
   // =========================
   // Load Orders
   // =========================
-  const loadOrders = async () => {
+  const loadOrders = async (showLoading = true) => {
     try {
-      setLoading(true)
+      if (showLoading) {
+        setLoading(true)
+      }
       setError('')
 
       const data = await getAdminOrders()
@@ -125,12 +127,37 @@ export default function AdminOrders() {
         'ไม่สามารถโหลดคำสั่งซื้อได้'
       )
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }
 
   useEffect(() => {
     loadOrders()
+
+    const refreshOrders = () => {
+      if (document.hidden) {
+        return
+      }
+
+      loadOrders(false)
+    }
+
+    const interval = window.setInterval(refreshOrders, 3000)
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadOrders(false)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   // =========================

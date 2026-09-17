@@ -163,6 +163,12 @@ export default function Checkout() {
     loadData()
   }, [])
 
+  useEffect(() => {
+    if (!loading && items.length === 0) {
+      navigate('/cart', { replace: true })
+    }
+  }, [loading, items.length, navigate])
+
   // =========================
   // Normalize Cart
   // Backend Cart → Product
