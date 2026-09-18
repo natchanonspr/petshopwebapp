@@ -2,7 +2,10 @@ package user
 
 import (
 	"errors"
+	"net/mail"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -10,22 +13,80 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterUser(req *UserRegister) error {
-	if req.Username == "" || req.UserEmail == "" || req.UserPhone == "" || req.UserPassword == "" {
-		return errors.New("กรุณากรอกข้อมูลให้ครบถ้วน")
+var (
+	ErrEmptyUsername = errors.New("กรุณากรอกชื่อผู้ใช้")
+	ErrInvalidEmail  = errors.New("รูปแบบอีเมลไม่ถูกต้อง")
+	ErrInvalidPhone  = errors.New("รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง")
+	ErrShortPassword = errors.New("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
+)
+
+func validateUserFields(username string, email string, phone string) (string, string, string, error) {
+	username = strings.TrimSpace(username)
+	email = strings.TrimSpace(strings.ToLower(email))
+	phone = strings.TrimSpace(phone)
+
+	if username == "" {
+		return "", "", "", ErrEmptyUsername
 	}
 
-	if len(req.UserPassword) < 6 {
-		return errors.New("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
+	if email == "" {
+		return "", "", "", errors.New("กรุณากรอกอีเมล")
 	}
+
+	// ตรวจรูปแบบ email
+	parsedEmail, err := mail.ParseAddress(email)
+	if err != nil || parsedEmail.Address != email {
+		return "", "", "", ErrInvalidEmail
+	}
+
+	// เบอร์ไทย 10 หลัก
+	phoneRegex := regexp.MustCompile(`^0[0-9]{9}$`)
+	if !phoneRegex.MatchString(phone) {
+		return "", "", "", ErrInvalidPhone
+	}
+
+	return username, email, phone, nil
+}
+
+func validatePassword(password string) error {
+	if password == "" {
+		return errors.New("กรุณากรอกรหัสผ่าน")
+	}
+
+	if len(password) < 6 {
+		return ErrShortPassword
+	}
+
+	return nil
+}
+
+func RegisterUser(req *UserRegister) error {
+	if req == nil {
+		return errors.New("ข้อมูลไม่ถูกต้อง")
+	}
+
+	username, email, phone, err := validateUserFields(req.Username, req.UserEmail, req.UserPhone)
+	if err != nil {
+		return err
+	}
+
+	if err := validatePassword(req.UserPassword); err != nil {
+		return err
+	}
+
+	req.Username = username
+	req.UserEmail = email
+	req.UserPhone = phone
 
 	var existing User
+	// ตรวจเบอร์ซ้ำ
 	if result := db.Where("user_phone = ?", req.UserPhone).First(&existing); result.Error == nil {
 		return errors.New("เบอร์โทรนี้ถูกใช้งานแล้ว")
 	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return result.Error
 	}
 
+	// ตรวจเมลซ้ำ
 	if result := db.Where("LOWER(user_email) = LOWER(?)", req.UserEmail).First(&existing); result.Error == nil {
 		return errors.New("อีเมลนี้ถูกใช้งานแล้ว")
 	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -82,17 +143,38 @@ func LoginWithLine(req *LineLoginRequest) (string, error) {
 }
 
 func signToken(userID int64, role string) (string, error) {
+	jwtSecretKey := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if jwtSecretKey == "" {
+		return "", errors.New("JWT_SECRET is not configured")
+	}
+
+	if userID <= 0 {
+		return "", errors.New("invalid user id")
+	}
+
+	if role != "user" && role != "admin" {
+		return "", errors.New("invalid role")
+	}
+
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["user_id"] = userID
 	claims["role"] = role
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
-	jwtSecretKey := os.Getenv("JWT_SECRET")
 	return token.SignedString([]byte(jwtSecretKey))
 }
 
 func LoginUser(req *UserLogin) (string, error) {
+	if req == nil {
+		return "", errors.New("ข้อมูลไม่ถูกต้อง")
+	}
+
+	req.UserPhone = strings.TrimSpace(req.UserPhone)
+
+	if req.UserPhone == "" || req.UserPassword == "" {
+		return "", errors.New("กรุณากรอกเบอร์โทรและรหัสผ่าน")
+	}
 	//หา user ผ่านเบอร์โทร
 	selectedUser := new(User)
 
@@ -125,18 +207,38 @@ func UpdateProfileService(userID int64, req *UpdateProfileRequest) (*User, error
 		return nil, err
 	}
 
-	if req.UserEmail == "" {
+	if req == nil {
+		return nil, errors.New("ข้อมูลไม่ถูกต้อง")
+	}
+
+	username := strings.TrimSpace(req.Username)
+	email := strings.TrimSpace(strings.ToLower(req.UserEmail))
+	phone := strings.TrimSpace(req.UserPhone)
+
+	if username == "" {
+		return nil, ErrEmptyUsername
+	}
+
+	if email == "" {
 		return nil, errors.New("กรุณากรอกอีเมล")
 	}
 
-	if req.UserPhone == "" && user.UserPhone == "" {
-		return nil, errors.New("กรุณากรอกเบอร์โทร")
+	// ตรวจเมล
+	parsedEmail, err := mail.ParseAddress(email)
+	if err != nil || parsedEmail.Address != email {
+		return nil, ErrInvalidEmail
 	}
 
-	var existing User
-	//ตรวจเบอร์ซ้ำ
-	if req.UserPhone != "" {
-		if result := db.Where("user_phone = ? AND user_id <> ?", req.UserPhone, userID).First(&existing); result.Error == nil {
+	// ตรวจเบอร์
+	if phone != "" {
+		phoneRegex := regexp.MustCompile(`^0[0-9]{9}$`)
+
+		if !phoneRegex.MatchString(phone) {
+			return nil, ErrInvalidPhone
+		}
+
+		var existing User
+		if result := db.Where("user_phone = ? AND user_id <> ?", phone, userID).First(&existing); result.Error == nil {
 			return nil, errors.New("เบอร์โทรนี้ถูกใช้งานแล้ว")
 		} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, result.Error
@@ -144,17 +246,19 @@ func UpdateProfileService(userID int64, req *UpdateProfileRequest) (*User, error
 	}
 
 	//ตรวจอีเมลซ่้ำ
-	if result := db.Where("LOWER(user_email) = LOWER(?) AND user_id <> ?", req.UserEmail, userID).First(&existing); result.Error == nil {
+	var existing User
+	if result := db.Where("LOWER(user_email) = LOWER(?) AND user_id <> ?", email, userID).First(&existing); result.Error == nil {
 		return nil, errors.New("อีเมลนี้ถูกใช้งานแล้ว")
 	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, result.Error
 	}
 
-	user.Username = req.Username
-	user.UserEmail = req.UserEmail
-	user.UserPictureURL = req.UserPictureURL
-	if req.UserPhone != "" {
-		user.UserPhone = req.UserPhone
+	user.Username = username
+	user.UserEmail = email
+	user.UserPictureURL = strings.TrimSpace(req.UserPictureURL)
+
+	if phone != "" {
+		user.UserPhone = phone
 	}
 
 	if err := UpdateUser(user); err != nil {
@@ -165,13 +269,21 @@ func UpdateProfileService(userID int64, req *UpdateProfileRequest) (*User, error
 }
 
 func ChangePasswordService(userID int64, req *ChangePasswordRequest) error {
+	if req == nil {
+		return errors.New("ข้อมูลไม่ถูกต้อง")
+	}
+
+	if err := validatePassword(req.NewPassword); err != nil {
+		return err
+	}
+
 	user, err := GetUserByID(userID)
 	if err != nil {
 		return err
 	}
 
 	if user.UserPassword == "" {
-		return errors.New("บัญชีนี้ยังไม่มีรหัสผ่าน")
+		return errors.New("บัญชีนี้ไม่มีรหัสผ่าน")
 	}
 
 	// เช็ครหัสเดิม
@@ -180,6 +292,14 @@ func ChangePasswordService(userID int64, req *ChangePasswordRequest) error {
 		[]byte(req.OldPassword),
 	); err != nil {
 		return errors.New("รหัสผ่านเดิมไม่ถูกต้อง")
+	}
+
+	// ไม่ให้ใช้ password เดิมซ้ำ
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.UserPassword),
+		[]byte(req.NewPassword),
+	); err == nil {
+		return errors.New("รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword(

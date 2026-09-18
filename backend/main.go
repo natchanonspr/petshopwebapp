@@ -36,7 +36,10 @@ func main() {
 	dbuser := os.Getenv("DBUSER")
 	dbname := os.Getenv("DBNAME")
 	dbpassword := os.Getenv("DBPASSWORD")
-	jwtSecret := os.Getenv("JWT_SECRET")
+	jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET is not configured")
+	}
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbhost, dbport, dbuser, dbname, dbpassword)
 
@@ -201,8 +204,8 @@ func main() {
 	adminNotifications.Delete("/", notification.AdminDelete)
 
 	//AI
-	app.Get("/ai/recommendations", middleware.JWTProtected(os.Getenv("JWT_SECRET")), ai.Recommendations)
-	app.Get("/ai/history", middleware.JWTProtected(os.Getenv("JWT_SECRET")), ai.RecommendationHistory)
+	app.Get("/ai/recommendations", middleware.JWTProtected(jwtSecret), ai.Recommendations)
+	app.Get("/ai/history", middleware.JWTProtected(jwtSecret), ai.RecommendationHistory)
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))
