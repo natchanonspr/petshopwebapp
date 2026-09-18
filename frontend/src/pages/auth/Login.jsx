@@ -92,12 +92,9 @@ export default function Login() {
     }
     let active = true
     liff.init({ liffId })
-      .then(() => {
+      .then(async () => {
         if (!active) return
 
-        // LINE authorization code ใช้ได้ครั้งเดียว
-        // หลัง LIFF แลก code สำเร็จแล้ว ให้ล้าง code/state ออกจาก URL
-        // เพื่อไม่ให้กดเข้า Login ใหม่หรือ refresh แล้วเอา code เดิมมาใช้ซ้ำ
         const url = new URL(window.location.href)
         if (url.searchParams.has('code') || url.searchParams.has('state')) {
           url.searchParams.delete('code')
@@ -106,6 +103,10 @@ export default function Login() {
         }
 
         setLineReady(true)
+
+        if (liff.isLoggedIn()) {
+          await saveLineUser()
+        }
       })
       .catch((err) => {
         console.error('LIFF init failed:', err)
