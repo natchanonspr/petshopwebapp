@@ -1,3 +1,6 @@
+// =========================
+// Authentication API: Login, Register และการจัดการข้อมูลการเข้าสู่ระบบ
+// =========================
 import { API_BASE, apiFetch, unwrap } from './api'
 
 export async function loginWithLine({

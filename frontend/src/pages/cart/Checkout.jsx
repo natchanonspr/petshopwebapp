@@ -1,3 +1,6 @@
+// =========================
+// Checkout Page: ตรวจสอบตะกร้า ที่อยู่ คูปอง และสร้างคำสั่งซื้อ
+// =========================
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 

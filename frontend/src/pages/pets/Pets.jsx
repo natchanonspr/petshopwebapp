@@ -1,3 +1,6 @@
+// =========================
+// Pets Page: แสดง เพิ่ม แก้ไข และลบข้อมูลสัตว์เลี้ยง
+// =========================
 import { useEffect, useState } from 'react'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
 import PetCard from '../../components/pets/PetCard.jsx'

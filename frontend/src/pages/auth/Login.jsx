@@ -1,3 +1,6 @@
+// =========================
+// Login Page: จัดการการเข้าสู่ระบบด้วยโทรศัพท์และ LINE
+// =========================
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import liff from '@line/liff'
