@@ -82,6 +82,26 @@ func Update(c *fiber.Ctx) error {
 	})
 }
 
+func AdminListByUser(c *fiber.Ctx) error {
+	userID, err := c.ParamsInt("userId")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "รหัสผู้ใช้งานไม่ถูกต้อง",
+		})
+	}
+
+	pets, err := ListPet(int64(userID))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "ไม่สามารถโหลดข้อมูลสัตว์เลี้ยงได้",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data": pets,
+	})
+}
+
 func List(c *fiber.Ctx) error {
 	userID, _ := c.Locals("user_id").(int64)
 
