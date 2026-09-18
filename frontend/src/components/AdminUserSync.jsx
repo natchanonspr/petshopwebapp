@@ -78,9 +78,21 @@ export default function AdminUserSync() {
 
     // เช็คโปรโมชั่นเริ่ม/ใกล้หมดอายุจากข้อมูลจริงบน backend (เดิมอ่านจาก localStorage mock)
     // เว้นระยะนานกว่าตัว sync ด้านบนเพราะตอนนี้เป็น network call ไม่ใช่อ่าน localStorage เฉยๆ
-    const checkCoupons = () => { getActiveCoupons().then(coupons => { try { processScheduledCouponNotifications(new Date(), coupons) } catch { } }).catch(() => { }) }
-    checkCoupons()
-    const couponTimer = window.setInterval(checkCoupons, 60000)
+    const checkCoupons = () => {
+  const token = localStorage.getItem('petshop_token')
+  if (!token) return
+
+  getActiveCoupons()
+    .then(coupons => {
+      try {
+        processScheduledCouponNotifications(new Date(), coupons)
+      } catch {}
+    })
+    .catch(() => {})
+}
+
+checkCoupons()
+const couponTimer = window.setInterval(checkCoupons, 60000)
 
     return () => { events.forEach(e => window.removeEventListener(e, sync)); window.clearInterval(timer); window.clearInterval(couponTimer) }
   }, [])
