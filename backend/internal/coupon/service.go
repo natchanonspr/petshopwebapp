@@ -49,13 +49,13 @@ func validdateAndBuild(req *CouponRequest) (*Coupon, error) {
 	}
 
 	usageLimit := req.UsageLimit
-	if usageLimit <= 0 {
-		usageLimit = 1
+	if usageLimit < 0 {
+		usageLimit = 0
 	}
 
 	perUserLimit := req.PerUserLimit
-	if perUserLimit <= 0 {
-		perUserLimit = 1
+	if perUserLimit < 0 {
+		perUserLimit = 0
 	}
 
 	minOrder := req.MinOrder
@@ -190,7 +190,7 @@ func ApplyCouponService(userID int64, code string, subtotal float64) *ApplyResul
 		return &ApplyResult{OK: false, Reason: "สิทธิ์โปรโมชั่นถูกใช้ครบแล้ว"}
 	}
 	if c.PerUserLimit > 0 {
-		usedCount, err := CountUserCouponUsage(userID, normalized)
+		usedCount, err := CountUserCouponUsage(userID, c.CouponID)
 		if err != nil {
 			return &ApplyResult{OK: false, Reason: "ไม่สามารถตรวจสอบการใช้โปรโมชั่นได้"}
 		}

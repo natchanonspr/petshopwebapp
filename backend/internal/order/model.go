@@ -31,6 +31,7 @@ type Order struct {
 	DiscountAmount float64 `gorm:"type:numeric(10,2);not null;default:0" json:"discount_amount"`
 	ShippingAmount float64 `gorm:"type:numeric(10,2);not null;default:0" json:"shipping_amount"`
 	TaxAmount      float64 `gorm:"type:numeric(10,2);not null;default:0" json:"tax_amount"`
+	CouponID       *int64  `gorm:"index" json:"coupon_id,omitempty"`
 	CouponCode     string  `json:"coupon_code"`
 	OrderStatus    string  `gorm:"not null;default:'pending'" json:"order_status"`
 	PaymentMethod  string  `json:"payment_method"`

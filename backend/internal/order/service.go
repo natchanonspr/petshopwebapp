@@ -86,7 +86,7 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 	var (
 		discountAmount float64
 		shippingAmount float64 = 40
-		couponID       int64
+		couponID       *int64
 	)
 
 	couponCode := strings.ToUpper(strings.TrimSpace(req.CouponCode))
@@ -103,7 +103,8 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 		}
 
 		discountAmount = result.Amount
-		couponID = result.CouponID
+		id := result.CouponID
+		couponID = &id
 
 		if result.FreeShipping {
 			shippingAmount = 0
@@ -130,7 +131,14 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 
 	err = db.Transaction(func(tx *gorm.DB) error {
 
-		// สร้าง คำสั่งซื้อ
+		// ใช้ coupon ก่อนสร้าง Order
+		if couponID != nil {
+			if err := coupon.ConsumeCoupon(tx, *couponID, userID, couponCode); err != nil {
+				return err
+			}
+		}
+
+		// สร้าง Order
 		order := &Order{
 			UserID:         userID,
 			OrderAddress:   string(snapshot),
@@ -138,11 +146,12 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 			DiscountAmount: discountAmount,
 			ShippingAmount: shippingAmount,
 			TaxAmount:      taxAmount,
+			CouponID:       couponID,
 			CouponCode:     couponCode,
 			TotalAmount:    totalAmount,
-			OrderStatus:    "pending",
+			OrderStatus:    OrderPending,
 			PaymentMethod:  req.PaymentMethod,
-			PaymentStatus:  "unpaid",
+			PaymentStatus:  PaymentUnpaid,
 		}
 
 		if err := tx.Create(order).Error; err != nil {
@@ -183,12 +192,6 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 
 			if result.RowsAffected == 0 {
 				return ErrOutOfStock
-			}
-		}
-
-		if couponID != 0 {
-			if err := coupon.IncrementUsedCount(tx, couponID); err != nil {
-				return err
 			}
 		}
 
@@ -276,16 +279,13 @@ func CancelOrderService(orderID, userID int64) error {
 			return err
 		}
 
-		if order.CouponCode != "" {
-			if err := coupon.DecrementUsedCountByCode(tx, order.CouponCode); err != nil {
+		if order.CouponID != nil {
+			if err := coupon.DecrementUsedCount(tx, *order.CouponID); err != nil {
 				return err
 			}
 		}
 
-		return tx.
-			Model(order).
-			Update("order_status", "cancelled").
-			Error
+		return tx.Model(order).Update("order_status", "cancelled").Error
 	})
 }
 
@@ -356,8 +356,8 @@ func UpdateOrderStatusService(orderID int64, adminUserID int64, status string) e
 			}
 
 			// คืนจำนวนการใช้ Coupon
-			if order.CouponCode != "" {
-				if err := coupon.DecrementUsedCountByCode(tx, order.CouponCode); err != nil {
+			if order.CouponID != nil {
+				if err := coupon.DecrementUsedCount(tx, *order.CouponID); err != nil {
 					return err
 				}
 			}
@@ -468,13 +468,10 @@ func UpdateOrderPaymentStatusService(orderID int64, adminUserID int64, status st
 
 		err := db.Transaction(func(tx *gorm.DB) error {
 
-			if err := tx.
-				Model(order).
-				Updates(map[string]interface{}{
-					"payment_status": "paid",
-					"order_status":   "confirmed",
-				}).
-				Error; err != nil {
+			if err := tx.Model(order).Updates(map[string]interface{}{
+				"payment_status": "paid",
+				"order_status":   "confirmed",
+			}).Error; err != nil {
 				return err
 			}
 
@@ -510,8 +507,8 @@ func UpdateOrderPaymentStatusService(orderID int64, adminUserID int64, status st
 				return err
 			}
 
-			if order.CouponCode != "" {
-				if err := coupon.DecrementUsedCountByCode(tx, order.CouponCode); err != nil {
+			if order.CouponID != nil {
+				if err := coupon.DecrementUsedCount(tx, *order.CouponID); err != nil {
 					return err
 				}
 			}
