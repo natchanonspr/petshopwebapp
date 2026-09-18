@@ -2,8 +2,10 @@ package coupon
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var db *gorm.DB
@@ -82,30 +84,94 @@ func IncrementUsedCount(tx *gorm.DB, couponID int64) error {
 	return nil
 }
 
-func CountUserCouponUsage(userID int64, couponCode string) (int64, error) {
+func CountUserCouponUsage(userID, couponID int64) (int64, error) {
 	var count int64
 
 	err := db.
 		Table("orders").
 		Where("user_id = ?", userID).
-		Where("coupon_code = ?", couponCode).
+		Where("coupon_id = ?", couponID).
 		Where("order_status <> ?", "cancelled").
 		Count(&count).Error
 
 	return count, err
 }
 
-func DecrementUsedCountByCode(tx *gorm.DB, couponCode string) error {
-	if tx == nil || couponCode == "" {
+func ConsumeCoupon(tx *gorm.DB, couponID, userID int64, couponCode string) error {
+	if tx == nil {
+		return errors.New("transaction ไม่ถูกต้อง")
+	}
+
+	// Lock coupon row เพื่อป้องกันการใช้พร้อมกันหลาย request
+	var c Coupon
+
+	if err := tx.
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		First(&c, couponID).
+		Error; err != nil {
+		return err
+	}
+
+	if !c.Active {
+		return errors.New("โปรโมชั่นนี้ปิดการใช้งานอยู่")
+	}
+
+	now := time.Now()
+	if now.Before(c.StartAt) {
+		return errors.New("โปรโมชั่นนี้ยังไม่เริ่ม")
+	}
+	if now.After(c.ExpireAt) {
+		return errors.New("โปรโมชั่นนี้หมดอายุแล้ว")
+	}
+
+	// ตรวจ UsageLimit อีกครั้งภายใน Transaction
+	if c.UsageLimit > 0 && c.UsedCount >= c.UsageLimit {
+		return errors.New("โปรโมชั่นนี้ถูกใช้ครบจำนวนแล้ว")
+	}
+
+	// ตรวจ PerUserLimit อีกครั้งภายใน Transaction
+	if c.PerUserLimit > 0 {
+		var count int64
+
+		if err := tx.
+			Table("orders").
+			Where("user_id = ?", userID).
+			Where("coupon_code = ?", couponCode).
+			Where("order_status <> ?", "cancelled").
+			Count(&count).
+			Error; err != nil {
+			return err
+		}
+
+		if count >= c.PerUserLimit {
+			return errors.New("คุณใช้โปรโมชั่นนี้ครบจำนวนครั้งแล้ว")
+		}
+	}
+
+	// เพิ่มจำนวนการใช้
+	result := tx.Model(&Coupon{}).Where("coupon_id = ?", couponID).UpdateColumn("used_count", gorm.Expr("used_count + 1"))
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("ไม่สามารถบันทึกการใช้โปรโมชั่นได้")
+	}
+
+	return nil
+}
+
+func DecrementUsedCount(tx *gorm.DB, couponID int64) error {
+	if tx == nil || couponID == 0 {
 		return nil
 	}
 
-	return tx.
-		Model(&Coupon{}).
-		Where("coupon_code = ? AND used_count > 0", couponCode).
-		UpdateColumn(
-			"used_count",
-			gorm.Expr("used_count - ?", 1),
-		).
-		Error
+	result := tx.Model(&Coupon{}).Where("coupon_id = ? AND used_count > 0", couponID).UpdateColumn("used_count", gorm.Expr("used_count - 1"))
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }

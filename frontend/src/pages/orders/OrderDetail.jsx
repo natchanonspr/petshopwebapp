@@ -8,9 +8,9 @@ import CartBadge from '../../components/cart/CartBadge.jsx'
 
 const statusMap = {
   pending: { label: 'รอดำเนินการ', className: 'bg-orange-50 text-orange-600' },
-  shipping: { label: 'กำลังจัดส่ง', className: 'bg-orange-50 text-orange-600' },
-  completed: { label: 'สำเร็จ', className: 'bg-green-50 text-green-600' },
-  success: { label: 'สำเร็จ', className: 'bg-green-50 text-green-600' },
+  confirmed: { label: 'ยืนยันออเดอร์แล้ว', className: 'bg-indigo-50 text-indigo-600' },
+  shipped: { label: 'กำลังจัดส่ง', className: 'bg-blue-50 text-blue-600' },
+  delivered: { label: 'จัดส่งสำเร็จ', className: 'bg-green-50 text-green-600' },
   cancelled: { label: 'ยกเลิก', className: 'bg-red-50 text-red-500' },
 }
 

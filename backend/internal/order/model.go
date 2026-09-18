@@ -14,6 +14,14 @@ const (
 	PaymentRejected    = "rejected"
 )
 
+const (
+	OrderPending   = "pending"
+	OrderConfirmed = "confirmed"
+	OrderShipped   = "shipped"
+	OrderDelivered = "delivered"
+	OrderCancelled = "cancelled"
+)
+
 type Order struct {
 	OrderID        int64   `gorm:"primaryKey;autoIncrement" json:"order_id"`
 	UserID         int64   `gorm:"not null" json:"user_id"`
@@ -23,6 +31,7 @@ type Order struct {
 	DiscountAmount float64 `gorm:"type:numeric(10,2);not null;default:0" json:"discount_amount"`
 	ShippingAmount float64 `gorm:"type:numeric(10,2);not null;default:0" json:"shipping_amount"`
 	TaxAmount      float64 `gorm:"type:numeric(10,2);not null;default:0" json:"tax_amount"`
+	CouponID       *int64  `gorm:"index" json:"coupon_id,omitempty"`
 	CouponCode     string  `json:"coupon_code"`
 	OrderStatus    string  `gorm:"not null;default:'pending'" json:"order_status"`
 	PaymentMethod  string  `json:"payment_method"`

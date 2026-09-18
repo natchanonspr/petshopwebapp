@@ -6,6 +6,7 @@ import { getAddresses } from '../../api/address.js'
 import { createOrder } from '../../api/orders.js'
 
 import { applyCoupon } from '../../api/coupons.js'
+import { calculateOrderPricing, VAT_RATE, } from '../../lib/orderPricing.js'
 
 const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
 
@@ -305,11 +306,11 @@ export default function Checkout() {
       ? 0
       : 40
 
-  const beforeTax = afterDiscount + delivery
-
-  const taxAmount = beforeTax * 0.07
-
-  const total = beforeTax + taxAmount
+  const { vat: taxAmount, total, } = calculateOrderPricing({
+    subtotal,
+    discount,
+    delivery,
+  })
 
   // =========================
   // Coupon
@@ -436,7 +437,7 @@ export default function Checkout() {
       )
 
       navigate(`/payment/${order.order_id}`)
-      
+
     } catch (error) {
       console.error(
         'Create order error:',
@@ -872,7 +873,7 @@ export default function Checkout() {
             </div>
 
             <div className="flex justify-between">
-              <span>VAT 7%</span>
+              <span>VAT {VAT_RATE * 100}%</span>
 
               <span>
                 ฿{taxAmount.toLocaleString()}
