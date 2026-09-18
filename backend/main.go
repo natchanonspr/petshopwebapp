@@ -120,6 +120,9 @@ func main() {
 	adminUsers.Delete("/:id", user.AdminDelete)
 	adminUsers.Patch("/:id/role", user.AdminUpdateRole)
 
+	adminPets := app.Group("/admin/pets", middleware.JWTProtected(jwtSecret), middleware.AdminOnly)
+	adminPets.Get("/:userId", pet.AdminListByUser)
+
 	// PET API
 	pets := app.Group("/pets", middleware.JWTProtected(jwtSecret))
 	pets.Post("/", pet.Create)

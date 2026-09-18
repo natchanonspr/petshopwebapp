@@ -9,6 +9,19 @@ export async function getPets() {
   return Array.isArray(data) ? data : []
 }
 
+export async function getAdminPets(userId) {
+  if (!userId || userId === 'undefined' || userId === 'null') {
+    throw new Error('รหัสผู้ใช้งานไม่ถูกต้อง')
+  }
+
+  const res = await apiFetch(`${API_BASE}/admin/pets/${userId}`, {
+    headers: { ...authHeaders() },
+  })
+
+  const data = await unwrap(res, 'โหลดข้อมูลสัตว์เลี้ยงของลูกค้าไม่สำเร็จ')
+  return Array.isArray(data) ? data : []
+}
+
 export async function getPet(id) {
   if (!id || id === 'undefined' || id === 'null') {
     throw new Error('รหัสสัตว์เลี้ยงไม่ถูกต้อง')

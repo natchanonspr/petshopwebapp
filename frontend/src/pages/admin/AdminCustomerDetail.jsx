@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { getAdminUser } from '../../api/users.js'
 import { getAdminOrders } from '../../api/orders.js'
+import { getAdminPets } from '../../api/pets.js'
 
 const statusMap = {
   pending: 'รอดำเนินการ',
@@ -189,6 +190,7 @@ export default function AdminCustomerDetail() {
 
   const [user, setUser] = useState(null)
   const [orders, setOrders] = useState([])
+  const [pets, setPets] = useState([])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -198,10 +200,11 @@ export default function AdminCustomerDetail() {
       setLoading(true)
       setError('')
 
-      const [userResponse, ordersResponse] =
+      const [userResponse, ordersResponse, petsResponse] =
         await Promise.all([
           getAdminUser(userId),
           getAdminOrders(),
+          getAdminPets(userId),
         ])
 
       const customer =
@@ -209,6 +212,9 @@ export default function AdminCustomerDetail() {
 
       const allOrders =
         unwrapData(ordersResponse)
+
+      const customerPets =
+        unwrapData(petsResponse)
 
       const customerOrders =
         Array.isArray(allOrders)
@@ -227,6 +233,11 @@ export default function AdminCustomerDetail() {
       )
 
       setOrders(customerOrders)
+      setPets(
+        Array.isArray(customerPets)
+          ? customerPets
+          : [],
+      )
     } catch (err) {
       console.error(
         'load admin customer detail error:',
@@ -538,6 +549,73 @@ export default function AdminCustomerDetail() {
           />
 
         </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#ececf2] px-5 py-4">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">
+              สัตว์เลี้ยงของลูกค้า
+            </h2>
+            <p className="mt-0.5 text-[10px] text-gray-400">
+              ข้อมูลสัตว์เลี้ยงที่เชื่อมกับบัญชีนี้
+            </p>
+          </div>
+          <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold text-violet-600">
+            {pets.length} ตัว
+          </span>
+        </div>
+
+        {pets.length === 0 ? (
+          <EmptyState
+            icon="fa-paw"
+            text="ลูกค้ายังไม่มีข้อมูลสัตว์เลี้ยง"
+          />
+        ) : (
+          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pets.map((pet) => (
+              <div
+                key={pet.pet_id}
+                className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm transition hover:border-violet-100 hover:shadow-md"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gray-50 text-violet-500">
+                    {pet.image ? (
+                      <img
+                        src={pet.image}
+                        alt={pet.pet_name || 'สัตว์เลี้ยง'}
+                        className="size-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none'
+                          event.currentTarget.nextElementSibling?.classList.remove('hidden')
+                        }}
+                      />
+                    ) : null}
+                    
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-extrabold text-gray-900">
+                      {pet.pet_name || 'ไม่ระบุชื่อ'}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-gray-500">
+                      {pet.pet_species || 'ไม่ระบุ'}{pet.pet_breed ? ` · ${pet.pet_breed}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 md:grid-cols-3">
+                  <Info label="น้ำหนัก" value={pet.pet_weight ? `${pet.pet_weight} กก.` : '—'} />
+                  <Info label="เพศ" value={pet.pet_gender || '—'} />
+                  <Info label="วันเกิด" value={formatDate(pet.pet_birthdate)} />
+                  <Info label="ทำหมัน" value={pet.pet_neutered ? 'ทำแล้ว' : 'ยังไม่ทำ'} />
+                  <Info label="โรคประจำตัว" value={pet.pet_disease || 'ไม่มีข้อมูล'} />
+                  <Info label="สุขภาพ" value={pet.pet_health || 'ไม่มีข้อมูล'} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* =========================
