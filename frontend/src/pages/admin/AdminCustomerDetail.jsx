@@ -12,7 +12,7 @@ const statusMap = {
   pending: 'รอดำเนินการ',
   confirmed: 'ยืนยันออเดอร์แล้ว',
   shipped: 'กำลังจัดส่ง',
-  deliveried: 'จัดส่งสำเร็จ',
+  delivered: 'จัดส่งสำเร็จ',
   cancelled: 'ยกเลิก',
 }
 
@@ -20,14 +20,16 @@ const statusTone = {
   pending: 'bg-violet-50 text-violet-600',
   confirmed: 'bg-indigo-50 text-indigo-600',
   shipped: 'bg-blue-50 text-blue-600',
-  deliveried: 'bg-green-50 text-green-700',
+  delivered: 'bg-green-50 text-green-700',
   cancelled: 'bg-red-50 text-red-500',
 }
 
 const paymentMap = {
-  unpaid: 'รอตรวจสอบ',
+  unpaid: 'ยังไม่ชำระ',
+  waiting_slip: 'รอส่งสลิป',
+  reviewing: 'กำลังตรวจสอบ',
   paid: 'ชำระแล้ว',
-  cancelled: 'ยกเลิก',
+  rejected: 'ถูกปฏิเสธ',
 }
 
 function unwrapData(value) {
@@ -291,7 +293,7 @@ export default function AdminCustomerDetail() {
     return orders.filter(
       (order) =>
         order?.order_status ===
-        'deliveried',
+        'delivered',
     ).length
   }, [orders])
 

@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { getAdminUsers, updateAdminUserRole, deleteAdminUser } from '../../api/users.js'
 
-import {
-  getAdminUsers,
-  updateAdminUserRole,
-  deleteAdminUser,
-} from '../../api/users.js'
+const CUSTOMERS_PER_PAGE = 20
 
 function getRole(user) {
   return user?.user_role || user?.role || 'user'
@@ -48,18 +45,16 @@ function RoleBadge({ role }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold ${
-        isAdmin
-          ? 'bg-violet-50 text-violet-600'
-          : 'bg-gray-100 text-gray-600'
-      }`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold ${isAdmin
+        ? 'bg-violet-50 text-violet-600'
+        : 'bg-gray-100 text-gray-600'
+        }`}
     >
       <i
-        className={`fa-solid ${
-          isAdmin
-            ? 'fa-user-shield'
-            : 'fa-user'
-        } mr-1.5`}
+        className={`fa-solid ${isAdmin
+          ? 'fa-user-shield'
+          : 'fa-user'
+          } mr-1.5`}
       />
 
       {isAdmin ? 'Admin' : 'User'}
@@ -101,24 +96,19 @@ export default function AdminCustomers() {
   const [users, setUsers] = useState([])
 
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] =
-    useState('ทั้งหมด')
+  const [roleFilter, setRoleFilter] = useState('ทั้งหมด')
+  const [currentPage, setCurrentPage] = useState(1)
 
-  const [loading, setLoading] =
-    useState(true)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [roleTarget, setRoleTarget] =
-    useState(null)
+  const [roleTarget, setRoleTarget] = useState(null)
 
-  const [deleteTarget, setDeleteTarget] =
-    useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
-  const [savingRole, setSavingRole] =
-    useState(false)
+  const [savingRole, setSavingRole] = useState(false)
 
-  const [deleting, setDeleting] =
-    useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // =========================
   // Load users
@@ -143,7 +133,7 @@ export default function AdminCustomers() {
 
       setError(
         err?.message ||
-          'ไม่สามารถโหลดข้อมูลผู้ใช้งานได้',
+        'ไม่สามารถโหลดข้อมูลผู้ใช้งานได้',
       )
     } finally {
       setLoading(false)
@@ -202,6 +192,45 @@ export default function AdminCustomers() {
     roleFilter,
   ])
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredUsers.length /
+      CUSTOMERS_PER_PAGE,
+    ),
+  )
+
+  const paginatedUsers = useMemo(() => {
+    const start =
+      (currentPage - 1) *
+      CUSTOMERS_PER_PAGE
+
+    return filteredUsers.slice(
+      start,
+      start + CUSTOMERS_PER_PAGE,
+    )
+  }, [
+    filteredUsers,
+    currentPage,
+  ])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, roleFilter])
+
+  const pageStart =
+    filteredUsers.length === 0
+      ? 0
+      : (currentPage - 1) *
+      CUSTOMERS_PER_PAGE +
+      1
+
+  const pageEnd = Math.min(
+    currentPage *
+    CUSTOMERS_PER_PAGE,
+    filteredUsers.length,
+  )
+
   // =========================
   // Summary
   // =========================
@@ -245,12 +274,12 @@ export default function AdminCustomers() {
       setUsers((prev) =>
         prev.map((user) =>
           Number(user.user_id) ===
-          Number(roleTarget.user_id)
+            Number(roleTarget.user_id)
             ? {
-                ...user,
-                user_role: nextRole,
-                role: nextRole,
-              }
+              ...user,
+              user_role: nextRole,
+              role: nextRole,
+            }
             : user,
         ),
       )
@@ -264,7 +293,7 @@ export default function AdminCustomers() {
 
       setError(
         err?.message ||
-          'ไม่สามารถเปลี่ยน Role ได้',
+        'ไม่สามารถเปลี่ยน Role ได้',
       )
 
       setRoleTarget(null)
@@ -304,7 +333,7 @@ export default function AdminCustomers() {
 
       setError(
         err?.message ||
-          'ไม่สามารถลบผู้ใช้งานได้',
+        'ไม่สามารถลบผู้ใช้งานได้',
       )
     } finally {
       setDeleting(false)
@@ -337,7 +366,7 @@ export default function AdminCustomers() {
           จัดการผู้ใช้งาน
         </h1>
 
-       
+
       </div>
 
       {/* =========================
@@ -478,11 +507,10 @@ export default function AdminCustomers() {
             title="รีเฟรช"
           >
             <i
-              className={`fa-solid fa-rotate-right text-[11px] ${
-                loading
-                  ? 'animate-spin'
-                  : ''
-              }`}
+              className={`fa-solid fa-rotate-right text-[11px] ${loading
+                ? 'animate-spin'
+                : ''
+                }`}
             />
           </button>
 
@@ -496,11 +524,11 @@ export default function AdminCustomers() {
         ) : (
           <>
 
-            <div className="overflow-x-auto">
+            <div className="max-h-[600px] overflow-auto">
 
               <table className="w-full min-w-[1050px] text-left text-[11px]">
 
-                <thead className="bg-[#fafafa] text-[9px] font-bold text-gray-400">
+                <thead className="sticky top-0 z-10 bg-[#fafafa] text-[9px] font-bold text-gray-400">
                   <tr>
 
                     <th className="px-4 py-3">
@@ -532,7 +560,7 @@ export default function AdminCustomers() {
 
                 <tbody>
 
-                  {filteredUsers.map(
+                  {paginatedUsers.map(
                     (user) => {
                       const role =
                         getRole(user)
@@ -565,11 +593,10 @@ export default function AdminCustomers() {
                                   />
                                 ) : (
                                   <i
-                                    className={`fa-solid ${
-                                      isAdmin
-                                        ? 'fa-user-shield'
-                                        : 'fa-user'
-                                    } text-[10px]`}
+                                    className={`fa-solid ${isAdmin
+                                      ? 'fa-user-shield'
+                                      : 'fa-user'
+                                      } text-[10px]`}
                                   />
                                 )}
 
@@ -659,18 +686,16 @@ export default function AdminCustomers() {
                                     ? 'เปลี่ยนเป็น User'
                                     : 'เปลี่ยนเป็น Admin'
                                 }
-                                className={`grid size-8 place-items-center rounded-lg border transition ${
-                                  isAdmin
-                                    ? 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
-                                    : 'border-violet-100 text-violet-500 hover:bg-violet-50'
-                                }`}
+                                className={`grid size-8 place-items-center rounded-lg border transition ${isAdmin
+                                  ? 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                                  : 'border-violet-100 text-violet-500 hover:bg-violet-50'
+                                  }`}
                               >
                                 <i
-                                  className={`fa-solid ${
-                                    isAdmin
-                                      ? 'fa-user'
-                                      : 'fa-user-shield'
-                                  } text-[10px]`}
+                                  className={`fa-solid ${isAdmin
+                                    ? 'fa-user'
+                                    : 'fa-user-shield'
+                                    } text-[10px]`}
                                 />
                               </button>
 
@@ -724,9 +749,48 @@ export default function AdminCustomers() {
           </>
         )}
 
-        <div className="border-t border-[#f0f0f3] px-4 py-3 text-center text-[10px] text-gray-400">
-          แสดง {filteredUsers.length} จาก{' '}
-          {users.length} ผู้ใช้งาน
+        <div className="flex flex-col gap-3 border-t border-[#f0f0f3] px-4 py-3 text-[10px] text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            แสดง {pageStart}-{pageEnd} จาก{' '}
+            {filteredUsers.length} ผู้ใช้งาน
+          </span>
+
+          <div className="flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage((page) =>
+                  Math.max(page - 1, 1),
+                )
+              }
+              disabled={currentPage === 1}
+              className="grid size-8 place-items-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <i className="fa-solid fa-chevron-left text-[10px]" />
+            </button>
+
+            <span className="min-w-[75px] text-center font-semibold text-gray-500">
+              หน้า {currentPage} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage((page) =>
+                  Math.min(
+                    page + 1,
+                    totalPages,
+                  ),
+                )
+              }
+              disabled={
+                currentPage === totalPages
+              }
+              className="grid size-8 place-items-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <i className="fa-solid fa-chevron-right text-[10px]" />
+            </button>
+          </div>
         </div>
 
       </section>
@@ -745,12 +809,11 @@ export default function AdminCustomers() {
 
               <span className="mx-auto grid size-16 place-items-center rounded-full bg-violet-50 text-violet-600">
                 <i
-                  className={`fa-solid ${
-                    getRole(roleTarget) ===
+                  className={`fa-solid ${getRole(roleTarget) ===
                     'admin'
-                      ? 'fa-user'
-                      : 'fa-user-shield'
-                  } text-xl`}
+                    ? 'fa-user'
+                    : 'fa-user-shield'
+                    } text-xl`}
                 />
               </span>
 
