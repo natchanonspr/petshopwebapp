@@ -23,7 +23,7 @@ const statusMap = {
   pending: 'รอดำเนินการ',
   confirmed: 'ยืนยันออเดอร์แล้ว',
   shipped: 'กำลังจัดส่ง',
-  deliveried: 'จัดส่งสำเร็จ',
+  delivered: 'จัดส่งสำเร็จ',
   cancelled: 'ยกเลิก',
 }
 
@@ -65,7 +65,7 @@ function normalizeOrder(order) {
     payment,
 
     shipping:
-      order.order_status === 'deliveried'
+      order.order_status === 'delivered'
         ? 'จัดส่งแล้ว'
         : order.order_status === 'shipped'
           ? 'กำลังจัดส่ง'
