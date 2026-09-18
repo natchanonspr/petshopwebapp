@@ -1,4 +1,4 @@
-petshop-fronted/node_modules/
-petshop-backend/.env
-petshop-fronted/.env
-petshop-fronted/dist
+frontend/node_modules/
+backend/.env
+frontend/.env
+frontend/dist
