@@ -14,6 +14,14 @@ const (
 	PaymentRejected    = "rejected"
 )
 
+const (
+	OrderPending   = "pending"
+	OrderConfirmed = "confirmed"
+	OrderShipped   = "shipped"
+	OrderDelivered = "delivered"
+	OrderCancelled = "cancelled"
+)
+
 type Order struct {
 	OrderID        int64   `gorm:"primaryKey;autoIncrement" json:"order_id"`
 	UserID         int64   `gorm:"not null" json:"user_id"`

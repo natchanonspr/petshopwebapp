@@ -40,7 +40,7 @@ function toRequestPayload(form) {
     coupon_code: form.code, 
     coupon_title: form.title, 
     coupon_type: form.type,
-    coupon_value: Number(form.coupon_value) || 0,
+    coupon_value: Number(form.value) || 0,
     min_order: Number(form.min) || 0,
     max_discount: form.maxDiscount === '' ? 0 : Number(form.maxDiscount) || 0,
     usage_limit: Number(form.limit) || 1,

@@ -15,14 +15,14 @@ const statusMap = {
   pending: 'รอดำเนินการ',
   confirmed: 'ยืนยันออเดอร์แล้ว',
   shipped: 'กำลังจัดส่ง',
-  deliveried: 'จัดส่งสำเร็จ',
+  delivered: 'จัดส่งสำเร็จ',
   cancelled: 'ยกเลิก',
 }
 
 const paymentMap = {
   unpaid: 'รอชำระเงิน',
   reviewing: 'กำลังตรวจสอบ',
-  paid: 'ชำระแล้ว',
+  paid: 'ชำระเงินแล้ว',
   rejected: 'สลิปถูกปฏิเสธ',
   cancelled: 'ยกเลิก',
 }
@@ -40,7 +40,7 @@ function getStatusValue(status) {
     'รอดำเนินการ': 'pending',
     'ยืนยันออเดอร์แล้ว': 'confirmed',
     'กำลังจัดส่ง': 'shipped',
-    'จัดส่งสำเร็จ': 'deliveried',
+    'จัดส่งสำเร็จ': 'delivered',
     'ยกเลิก': 'cancelled',
   }
 
@@ -341,7 +341,7 @@ export default function AdminOrderDetail() {
       setOrder((prev) => ({
         ...prev,
         payment_status: 'paid',
-        payment: 'ชำระแล้ว',
+        payment: 'ชำระเงินแล้ว',
       }))
 
       setToast('อนุมัติการชำระเงินแล้ว')
@@ -757,7 +757,7 @@ export default function AdminOrderDetail() {
               {order.payment_status === 'reviewing'
                 ? 'รอตรวจสอบ'
                 : order.payment_status === 'paid'
-                  ? 'ชำระแล้ว'
+                  ? 'ชำระเงินแล้ว'
                   : order.payment_status === 'rejected'
                     ? 'ปฏิเสธแล้ว'
                     : 'ไม่มีสลิป'}

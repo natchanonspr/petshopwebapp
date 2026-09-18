@@ -118,14 +118,12 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 		shippingAmount = 0
 	}
 
-	// คำนวณ VAT 7% จากยอดหลังส่วนลด + ค่าส่ง
-	beforeTax := afterDiscount + shippingAmount
+	// ยอดที่ลูกค้าต้องจ่ายจริง
+	totalAmount := afterDiscount + shippingAmount
 
 	// VAT 7%
-	taxAmount := beforeTax * 0.07
-
-	// ยอดรวมสุดท้าย
-	totalAmount := beforeTax + taxAmount
+	const taxRate = 0.07
+	taxAmount := totalAmount * taxRate / (1 + taxRate)
 
 	// สร้าง คำสั่งซื้อ และ สินค้าในคำสั่งซื้อ
 	var createdOrder *Order
@@ -304,59 +302,68 @@ func GetOrderAdminService(orderID int64) (*Order, error) {
 // Admin : เปลี่ยนสเตตัสของออเดอร์ลูกค้า
 func UpdateOrderStatusService(orderID int64, adminUserID int64, status string) error {
 
-	// สถานะ
+	// ตรวจสอบสเตตัส
 	validStatus := map[string]bool{
-		"pending":    true,
-		"confirmed":  true,
-		"shipped":    true,
-		"deliveried": true,
-		"cancelled":  true,
+		OrderPending:   true,
+		OrderConfirmed: true,
+		OrderShipped:   true,
+		OrderDelivered: true,
+		OrderCancelled: true,
 	}
 
 	if !validStatus[status] {
 		return errors.New("สถานะคำสั่งซื้อไม่ถูกต้อง")
 	}
 
+	// ดึง Order
 	order, err := GetOrderAdmin(orderID)
 	if err != nil {
 		return err
 	}
 
-	if order.OrderStatus == "cancelled" {
-		return errors.New("คำสั่งซื้อนี้ถูกยกเลิก")
-	}
-
-	if order.OrderStatus == "deliveried" {
-		return errors.New("คำสั่งซื้อนี้จัดส่งเรียบร้อยแล้ว")
-	}
-
 	oldStatus := order.OrderStatus
+
 	if oldStatus == status {
 		return nil
 	}
 
+	switch oldStatus {
+	case OrderPending:
+		if status != OrderConfirmed && status != OrderCancelled {
+			return errors.New("ออเดอร์ที่รอดำเนินการสามารถเปลี่ยนเป็นยืนยันหรือยกเลิกได้เท่านั้น")
+		}
+
+	case OrderShipped:
+		if status != OrderDelivered {
+			return errors.New("ออเดอร์ที่กำลังจัดส่งสามารถเปลี่ยนเป็นจัดส่งสำเร็จได้เท่านั้น")
+		}
+
+	case OrderCancelled:
+		return errors.New("คำสั่งซื้อนี้ถูกยกเลิกแล้ว")
+
+	default:
+		return errors.New("พบสถานะคำสั่งซื้อที่ไม่รู้จัก")
+	}
+
 	// ยกเลิกคำสั่งซื้อ
-	if status == "cancelled" {
+	if status == OrderCancelled {
 
 		err := db.Transaction(func(tx *gorm.DB) error {
 
+			/// คืน Stock สินค้า
 			if err := restoreStock(tx, order.Items); err != nil {
 				return err
 			}
 
+			// คืนจำนวนการใช้ Coupon
 			if order.CouponCode != "" {
 				if err := coupon.DecrementUsedCountByCode(tx, order.CouponCode); err != nil {
 					return err
 				}
 			}
 
-			if err := tx.
-				Model(order).
-				Update(
-					"order_status",
-					"cancelled",
-				).
-				Error; err != nil {
+			// เปลี่ยนสถานะ
+			if err := tx.Model(order).Update("order_status", OrderCancelled).Error; err != nil {
 				return err
 			}
 
@@ -401,23 +408,22 @@ func UpdateOrderStatusService(orderID int64, adminUserID int64, status string) e
 
 	switch status {
 
-	case "confirmed":
+	case OrderConfirmed:
 		title = "ร้านยืนยันคำสั่งซื้อแล้ว"
 		detail = "คำสั่งซื้อของคุณได้รับการยืนยันและกำลังเตรียมสินค้า"
 		icon = "fa-circle-check"
 
-	case "shipped":
+	case OrderShipped:
 		title = "คำสั่งซื้อกำลังจัดส่ง"
 		detail = "สินค้าของคุณถูกส่งออกจากร้านและกำลังเดินทางไปหาคุณ"
 		icon = "fa-truck-fast"
 
-	case "deliveried":
+	case OrderDelivered:
 		title = "จัดส่งสำเร็จแล้ว"
 		detail = "คำสั่งซื้อของคุณจัดส่งสำเร็จแล้ว ขอบคุณที่ใช้บริการ"
 		icon = "fa-box-open"
 
 	default:
-		// pending ไม่ต้องสร้าง notification
 		return nil
 	}
 

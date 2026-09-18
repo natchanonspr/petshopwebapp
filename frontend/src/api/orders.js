@@ -100,7 +100,7 @@ export async function updateAdminOrderStatus(id, status) {
     'pending',
     'confirmed',
     'shipped',
-    'deliveried',
+    'delivered',
     'cancelled',
   ]
 
