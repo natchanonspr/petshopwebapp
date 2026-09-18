@@ -1,3 +1,6 @@
+// =========================
+// Routing: กำหนดเส้นทางของ User และ Admin ทั้งระบบ
+// =========================
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AdminUserSync from './components/AdminUserSync.jsx'
 

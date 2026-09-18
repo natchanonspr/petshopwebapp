@@ -28,9 +28,11 @@ const statusMap = {
 }
 
 const paymentMap = {
-  unpaid: 'รอตรวจสอบ',
+  unpaid: 'ยังไม่ชำระ',
+  waiting_slip: 'รอส่งสลิป',
+  reviewing: 'กำลังตรวจสอบ',
   paid: 'ชำระแล้ว',
-  cancelled: 'ยกเลิก',
+  rejected: 'ถูกปฏิเสธ',
 }
 
 function normalizeOrder(order) {
@@ -86,7 +88,7 @@ function normalizeOrder(order) {
       }) + ' น.'
       : '—',
 
-    phone: '—',
+    phone: order.user?.phone || '—',
   }
 }
 
@@ -431,7 +433,7 @@ export default function AdminOrders() {
               onChange={(e) =>
                 setSearch(e.target.value)
               }
-              placeholder="ค้นหาเลขคำสั่งซื้อ ชื่อลูกค้า เบอร์โทร หรือเลขพัสดุ..."
+              placeholder="ค้นหาเลขคำสั่งซื้อ ชื่อลูกค้า หรือเบอร์โทร..."
               className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-xs text-gray-700 outline-none placeholder:text-gray-400 focus:border-violet-300"
             />
 
@@ -451,16 +453,24 @@ export default function AdminOrders() {
               ทั้งหมด
             </option>
 
-            <option value="รอตรวจสอบ">
-              รอตรวจสอบ
+            <option value="ยังไม่ชำระ">
+              ยังไม่ชำระ
+            </option>
+
+            <option value="รอส่งสลิป">
+              รอส่งสลิป
+            </option>
+
+            <option value="กำลังตรวจสอบ">
+              กำลังตรวจสอบ
             </option>
 
             <option value="ชำระแล้ว">
               ชำระแล้ว
             </option>
 
-            <option value="ยกเลิก">
-              ยกเลิก
+            <option value="ถูกปฏิเสธ">
+              ถูกปฏิเสธ
             </option>
           </select>
 

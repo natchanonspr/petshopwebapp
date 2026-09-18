@@ -1,4 +1,7 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || ''
+export // =========================
+// API Configuration: กำหนด Base URL สำหรับเชื่อมต่อ Backend
+// =========================
+const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 export function ngrokHeaders() {
   return { 'ngrok-skip-browser-warning': 'true' }
