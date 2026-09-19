@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { API_BASE, apiFetch } from '../../api/api.js'
 import { getAdminOrder, updateAdminOrderStatus, updateAdminOrderPaymentStatus, } from '../../api/orders.js'
 import { getStoreProfile } from '../../lib/store.js'
-import { OrderReceipt } from '../../components/orders/OrderReceipt.jsx'
+import OrderReceipt from '../../components/orders/OrderReceipt.jsx'
 
 const statuses = [
   'รอดำเนินการ',

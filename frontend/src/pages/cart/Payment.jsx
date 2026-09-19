@@ -204,7 +204,7 @@ export default function Payment() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/orders')}
               className="grid size-10 place-items-center rounded-full bg-gray-100 text-gray-500"
             >
               <i className="fa-solid fa-arrow-left" />
@@ -281,7 +281,7 @@ export default function Payment() {
 
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/orders')}
             aria-label="ย้อนกลับ"
             className="grid size-10 place-items-center rounded-full bg-gray-100 text-gray-500"
           >
@@ -724,7 +724,7 @@ export default function Payment() {
 
                 {cancelError && (
                   <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-xs text-red-600">
-                     <i className="fa-solid fa-circle-exclamation mr-2" />
+                    <i className="fa-solid fa-circle-exclamation mr-2" />
                     <span>{cancelError}</span>
                   </div>
                 )}
@@ -742,7 +742,7 @@ export default function Payment() {
 
           <button
             type="button"
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate('/products')}
             className="w-full rounded-full bg-orange-500 py-3.5 text-sm font-bold text-white"
           >
             เลือกสินค้าใหม่

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"petshop-backend/internal/address"
 	"petshop-backend/internal/ai"
@@ -209,6 +210,23 @@ func main() {
 	//AI
 	app.Get("/ai/recommendations", middleware.JWTProtected(jwtSecret), ai.Recommendations)
 	app.Get("/ai/history", middleware.JWTProtected(jwtSecret), ai.RecommendationHistory)
+
+	// ตรวจ Order ที่หมดเวลาชำระเงินทันทีเมื่อ Backend เริ่มทำงาน
+	if err := order.ExpireUnpaidOrdersService(); err != nil {
+		log.Printf("Initial expire unpaid orders error: %v", err)
+	}
+
+	// ตรวจซ้ำทุก 1 นาที
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			if err := order.ExpireUnpaidOrdersService(); err != nil {
+				log.Printf("Expire unpaid orders error: %v", err)
+			}
+		}
+	}()
 
 	port := os.Getenv("PORT")
 	log.Fatal(app.Listen(":" + port))

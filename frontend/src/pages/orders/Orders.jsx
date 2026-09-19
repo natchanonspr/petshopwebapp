@@ -15,7 +15,6 @@ const tabs = [
   'จัดส่งสำเร็จ',
   'ยกเลิก',
 ]
-
 const statusMap = {
   pending: {
     label: 'รอดำเนินการ',
@@ -32,7 +31,7 @@ const statusMap = {
     className: 'bg-blue-50 text-blue-600',
   },
 
-  deliveried: {
+  delivered: {
     label: 'จัดส่งสำเร็จ',
     className: 'bg-green-50 text-green-600',
   },
@@ -72,12 +71,16 @@ function normalizeOrder(order) {
     order.order_status || order.status || '',
   ).toLowerCase()
 
-  const status = statusMap[rawStatus] || {
-    label:
-      rawStatus || 'ไม่ทราบสถานะ',
-    className:
-      'bg-gray-100 text-gray-500',
+  const status = rawStatus === 'cancelled' && order.payment_status === 'unpaid' ? {
+    label: 'หมดเวลาชำระเงิน',
+    className: 'bg-red-50 text-red-500',
   }
+    : statusMap[rawStatus] || {
+      label:
+        rawStatus || 'ไม่ทราบสถานะ',
+      className:
+        'bg-gray-100 text-gray-500',
+    }
 
   const date = order.created_at
     ? new Date(
@@ -135,9 +138,12 @@ export default function Orders() {
   useEffect(() => {
     let active = true
 
-    const loadOrders = async () => {
+    const loadOrders = async (showLoading = false) => {
       try {
-        setLoading(true)
+        if (showLoading) {
+          setLoading(true)
+        }
+
         setErrorMessage('')
 
         const data = await getOrders()
@@ -153,23 +159,45 @@ export default function Orders() {
         console.error('Load orders error:', error)
 
         if (active) {
-          setOrders([])
           setErrorMessage(
             error.message ||
             'ไม่สามารถโหลดคำสั่งซื้อได้',
           )
         }
       } finally {
-        if (active) {
+        if (active && showLoading) {
           setLoading(false)
         }
       }
     }
 
-    loadOrders()
+    // โหลดครั้งแรก
+    loadOrders(true)
+
+    // Refresh ทุก 3 วินาที
+    const interval = window.setInterval(() => {
+      loadOrders(false)
+    }, 3000)
+
+    // เมื่อกลับมาเปิดหน้า/แท็บ
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadOrders(false)
+      }
+    }
+
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange,
+    )
 
     return () => {
       active = false
+      window.clearInterval(interval)
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange,
+      )
     }
   }, [])
 
@@ -179,6 +207,8 @@ export default function Orders() {
     return orders.filter((order) => {
       const matchesTab =
         activeTab === 'ทั้งหมด' ||
+        (activeTab === 'ยกเลิก' &&
+          order.rawStatus === 'cancelled') ||
         order.statusLabel === activeTab
 
       const productNames = Array.isArray(order.items)
@@ -394,8 +424,8 @@ export default function Orders() {
                     }
                   }}
                   className={`shrink-0 whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium leading-none transition active:scale-95 ${activeTab === tab
-                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
-                      : 'bg-gray-100 text-gray-500'
+                    ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                    : 'bg-gray-100 text-gray-500'
                     }`}
                 >
                   {tab}
@@ -533,8 +563,17 @@ export default function Orders() {
                     ดูรายละเอียด
                   </Link>
 
+                  {order.payment_status === 'unpaid' && order.rawStatus === 'pending' && (
+                    <Link
+                      to={`/payment/${encodeURIComponent(order.id)}`}
+                      className="flex h-9 w-[100px] items-center justify-center rounded-full bg-orange-500 text-xs font-bold leading-none !text-white transition hover:bg-orange-600 active:scale-95"
+                    >
+                      ชำระเงิน
+                    </Link>
+                  )}
+
                   {(
-                    order.rawStatus === 'deliveried' ||
+                    order.rawStatus === 'delivered' ||
                     order.rawStatus === 'completed' ||
                     order.rawStatus === 'success'
                   ) && (

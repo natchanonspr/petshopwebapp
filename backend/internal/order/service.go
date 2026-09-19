@@ -16,12 +16,13 @@ import (
 )
 
 var (
-	ErrAddressNotFound = errors.New("ไม่พบที่อยู่")
-	ErrNotOwner        = errors.New("ไม่ใช่ข้อมูลของคุณ")
-	ErrEmptyCart       = errors.New("ตะกร้าว่าง")
-	ErrOutOfStock      = errors.New("สินค้าในสต็อกไม่พอ")
-	ErrInvalidQuantity = errors.New("จำนวนสินค้าต้องมากกว่า 0")
-	ErrCannotCancel    = errors.New("ไม่สามารถยกเลิกคำสั่งซื้อนี้ได้")
+	ErrAddressNotFound  = errors.New("ไม่พบที่อยู่")
+	ErrNotOwner         = errors.New("ไม่ใช่ข้อมูลของคุณ")
+	ErrEmptyCart        = errors.New("ตะกร้าว่าง")
+	ErrOutOfStock       = errors.New("สินค้าในสต็อกไม่พอ")
+	ErrInvalidQuantity  = errors.New("จำนวนสินค้าต้องมากกว่า 0")
+	ErrCannotCancel     = errors.New("ไม่สามารถยกเลิกคำสั่งซื้อนี้ได้")
+	ErrCannotUploadSlip = errors.New("ไม่สามารถส่งสลิปสำหรับคำสั่งซื้อนี้ได้")
 )
 
 func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
@@ -211,6 +212,70 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 	return createdOrder, nil
 }
 
+// กำหนดเวลา 5นาทีถ้ายังไม่ชำระเงินจะขึ้นว่าหมดอายุ
+const unpaidOrderTimeout = 5 * time.Minute
+
+// ยกเลิก Order ที่ยังไม่ได้ชำระเงินเกินเวลาที่กำหนด
+func ExpireUnpaidOrdersService() error {
+	cutoff := time.Now().Add(-unpaidOrderTimeout)
+
+	var orders []Order
+
+	if err := db.
+		Preload("Items").Where(
+		"order_status = ? AND payment_status = ? AND created_at <= ?",
+		OrderPending, PaymentUnpaid, cutoff,
+	).Find(&orders).Error; err != nil {
+		return err
+	}
+
+	for _, order := range orders {
+
+		err := db.Transaction(func(tx *gorm.DB) error {
+
+			// เช็กสถานะซ้ำอีกครั้งก่อนยกเลิก
+			// ป้องกันกรณีลูกค้าชำระเงินหรือ Admin เปลี่ยนสถานะไปแล้ว
+			result := tx.
+				Model(&Order{}).
+				Where("order_id = ? AND order_status = ? AND payment_status = ?",
+					order.OrderID, OrderPending, PaymentUnpaid,
+				).Updates(map[string]interface{}{
+				"order_status": OrderCancelled,
+			})
+
+			if result.Error != nil {
+				return result.Error
+			}
+
+			// ถ้าสถานะเปลี่ยนไปแล้วระหว่างที่เรากำลังทำงาน
+			// จะไม่ต้องคืน Stock/Coupon ซ้ำ
+			if result.RowsAffected == 0 {
+				return nil
+			}
+
+			// คืน Stock
+			if err := restoreStock(tx, order.Items); err != nil {
+				return err
+			}
+
+			// คืนจำนวนการใช้ Coupon
+			if order.CouponID != nil {
+				if err := coupon.DecrementUsedCount(tx, *order.CouponID); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // ดูคำสั่งซื้อทั้งหมด
 func GetAllOrdersService(userID int64) ([]Order, error) {
 	return GetAllOrders(userID)
@@ -245,8 +310,8 @@ func UploadPaymentSlipService(orderID int64, userID int64, slipData []byte, cont
 		return nil, result.Error
 	}
 
-	if order.PaymentStatus == PaymentPaid {
-		return nil, errors.New("ออเดอร์นี้ชำระเงินแล้ว")
+	if order.OrderStatus != OrderPending || order.PaymentStatus != PaymentUnpaid {
+		return nil, ErrCannotUploadSlip
 	}
 
 	now := time.Now()

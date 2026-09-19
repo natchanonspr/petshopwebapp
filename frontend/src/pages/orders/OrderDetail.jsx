@@ -125,7 +125,10 @@ export default function OrderDetail() {
   const items = Array.isArray(order.items) ? order.items : []
   const address = parseAddressSnapshot(order.address_snapshot || order.order_address)
   const rawStatus = String(order.order_status || '').toLowerCase()
-  const status = statusMap[rawStatus] || {
+  const status = rawStatus === 'cancelled' && order.payment_status === 'unpaid' ? {
+    label: 'หมดเวลาชำระเงิน',
+    className: 'bg-red-50 text-red-500',
+  } : statusMap[rawStatus] || {
     label: rawStatus || 'ไม่ทราบสถานะ',
     className: 'bg-gray-100 text-gray-500',
   }
@@ -339,9 +342,6 @@ export default function OrderDetail() {
                 {getPaymentLabel(order.payment_method)}
               </p>
 
-              <p className="mt-2 text-xs text-gray-400">
-                สถานะการชำระเงิน: {order.payment_status || 'unpaid'}
-              </p>
             </div>
           </section>
 

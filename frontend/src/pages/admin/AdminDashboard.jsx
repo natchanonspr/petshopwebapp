@@ -54,7 +54,7 @@ function getStatusLabel(status) {
     pending: 'รอดำเนินการ',
     confirmed: 'ยืนยันออเดอร์แล้ว',
     shipped: 'กำลังจัดส่ง',
-    deliveried: 'จัดส่งสำเร็จ',
+    delivered: 'จัดส่งสำเร็จ',
     cancelled: 'ยกเลิก',
   }
 
@@ -66,7 +66,7 @@ function getStatusClass(status) {
     pending: 'bg-yellow-50 text-yellow-700',
     confirmed: 'bg-blue-50 text-blue-700',
     shipped: 'bg-purple-50 text-purple-700',
-    deliveried: 'bg-green-50 text-green-700',
+    delivered: 'bg-green-50 text-green-700',
     cancelled: 'bg-red-50 text-red-700',
   }
 

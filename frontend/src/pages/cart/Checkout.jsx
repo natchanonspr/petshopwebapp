@@ -434,6 +434,10 @@ export default function Checkout() {
 
       window.dispatchEvent(new Event('petshop-cart-updated'),)
 
+      navigate(`/orders`, {
+        replace: true,
+      })
+
       navigate(`/payment/${order.order_id}`)
 
     } catch (error) {
