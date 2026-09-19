@@ -14,7 +14,6 @@ import ProductDetail from './pages/product-detail/ProductDetail.jsx'
 
 import Cart from './pages/cart/Cart.jsx'
 import Checkout from './pages/cart/Checkout.jsx'
-import OrderSuccess from './pages/cart/OrderSuccess.jsx'
 import Payment from './pages/cart/Payment.jsx'
 import PaymentSlip from './pages/cart/PaymentSlip.jsx'
 
@@ -161,16 +160,7 @@ export default function App() {
                     path="/payment/:orderId/slip"
                     element={<PaymentSlip />}
                 />
-
-                <Route
-                    path="/orders/success"
-                    element={
-                        <ProtectedRoute>
-                            <OrderSuccess />
-                        </ProtectedRoute>
-                    }
-                />
-
+                
                 <Route
                     path="/orders"
                     element={

@@ -270,22 +270,31 @@ func CancelOrderService(orderID, userID int64) error {
 		return err
 	}
 
-	if order.OrderStatus != "pending" {
+	if order.OrderStatus != OrderPending || order.PaymentStatus != PaymentUnpaid {
 		return ErrCannotCancel
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
+		//คืน stock สินค้า
 		if err := restoreStock(tx, order.Items); err != nil {
 			return err
 		}
 
+		// คืน coupon
 		if order.CouponID != nil {
 			if err := coupon.DecrementUsedCount(tx, *order.CouponID); err != nil {
 				return err
 			}
 		}
 
-		return tx.Model(order).Update("order_status", "cancelled").Error
+		if err := tx.Model(order).Updates(map[string]interface{}{
+			"order_status":   OrderCancelled,
+			"payment_status": PaymentRejected,
+		}).Error; err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
 

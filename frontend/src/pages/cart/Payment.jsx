@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { getOrder } from '../../api/orders.js'
+import { getOrder, cancelOrder } from '../../api/orders.js'
 import { QRCodeSVG } from 'qrcode.react'
 import { uploadPaymentSlip } from '../../api/payment.js'
 
@@ -20,6 +20,9 @@ export default function Payment() {
 
   const [uploadOpen, setUploadOpen] = useState(false)
   const [uploadSuccessOpen, setUploadSuccessOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState('')
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -150,6 +153,36 @@ export default function Payment() {
       )
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleCancelPayment = async () => {
+    if (cancelling) return
+
+    try {
+      setCancelling(true)
+      setCancelError('')
+
+      const data = await cancelOrder(orderId)
+
+      console.log('Cancel order result:', data)
+
+      setOrder((prev) => ({
+        ...prev,
+        order_status: 'cancelled',
+        payment_status: 'rejected',
+      }))
+
+      setCancelConfirmOpen(false)
+    } catch (error) {
+      console.error('Cancel payment error:', error)
+
+      setCancelError(
+        error?.message ||
+        'ไม่สามารถยกเลิกการชำระเงินได้',
+      )
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -528,13 +561,13 @@ export default function Payment() {
 
       {/* BOTTOM ACTION */}
       {isUnpaid && (
-        <section className="relative z-20 shrink-0 overflow-hidden rounded-t-3xl border-t border-gray-100 bg-white shadow-[0_-10px_28px_rgba(0,0,0,0.12)]">
+        <section className="absolute bottom-0 left-1/2 z-40 flex h-auto max-h-[calc(100dvh-72px)] w-full max-w-[430px] -translate-x-1/2 flex-col overflow-hidden rounded-t-3xl border-t border-gray-100 bg-white shadow-[0_-10px_28px_rgba(0,0,0,0.12)]">
 
-          {/* Header */}
+          {/* HEADER - FIXED */}
           <button
             type="button"
             onClick={() => setUploadOpen((prev) => !prev)}
-            className="flex min-h-16 w-full items-center justify-between gap-3 px-4 py-4 text-left sm:px-5"
+            className="flex min-h-16 shrink-0 items-center justify-between gap-3 px-4 py-4 text-left sm:px-5"
           >
             <div className="flex items-center gap-3">
 
@@ -554,121 +587,150 @@ export default function Payment() {
 
             </div>
 
-            <div className="grid size-9 place-items-center rounded-full bg-gray-100 text-gray-500">
+            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500">
               <i
                 className={
                   uploadOpen
-                    ? 'fa-solid fa-chevron-up'
-                    : 'fa-solid fa-chevron-down'
+                    ? 'fa-solid fa-chevron-down'
+                    : 'fa-solid fa-chevron-up'
                 }
               />
             </div>
           </button>
 
-          {/* Expand content */}
+          {/* CONTENT */}
           {uploadOpen && (
-            <div className="border-t border-gray-100 px-5 pb-5 pt-4">
+            <>
+              <div className="min-h-0 flex-1 overflow-y-auto border-t border-gray-100 px-5 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
-              {/* Upload */}
-              <label
-                htmlFor="payment-slip"
-                className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-orange-200 bg-orange-50 px-5 py-7 transition hover:bg-orange-100"
-              >
+                {/* Upload */}
+                <label
+                  htmlFor="payment-slip"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-orange-200 bg-orange-50 px-5 py-7 transition hover:bg-orange-100"
+                >
 
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Payment slip preview"
-                    className="max-h-72 w-full rounded-2xl object-contain"
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Payment slip preview"
+                      className="max-h-[55vh] w-full rounded-2xl object-contain"
+                    />
+                  ) : (
+                    <>
+                      <div className="grid size-12 place-items-center rounded-full bg-white text-orange-500 shadow-sm">
+                        <i className="fa-solid fa-image" />
+                      </div>
+
+                      <p className="mt-3 text-sm font-bold text-gray-700">
+                        แตะเพื่อเพิ่มรูปสลิป
+                      </p>
+
+                      <p className="mt-1 text-xs text-gray-400">
+                        JPG หรือ PNG ไม่เกิน 5MB
+                      </p>
+                    </>
+                  )}
+
+                  <input
+                    id="payment-slip"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    className="hidden"
+                    onChange={handleFileChange}
                   />
-                ) : (
-                  <>
-                    <div className="grid size-12 place-items-center rounded-full bg-white text-orange-500 shadow-sm">
-                      <i className="fa-solid fa-image" />
+
+                </label>
+
+                {/* Selected file */}
+                {file && (
+                  <div className="mt-3 flex items-center gap-3 rounded-2xl bg-gray-50 p-3">
+
+                    <div className="grid size-10 shrink-0 place-items-center rounded-full bg-green-50 text-green-500">
+                      <i className="fa-solid fa-check" />
                     </div>
 
-                    <p className="mt-3 text-sm font-bold text-gray-700">
-                      แตะเพื่อเพิ่มรูปสลิป
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-gray-700">
+                        {file.name}
+                      </p>
 
-                    <p className="mt-1 text-xs text-gray-400">
-                      JPG หรือ PNG ไม่เกิน 5MB
-                    </p>
-                  </>
+                      <p className="text-xs text-gray-400">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFile(null)
+                        setPreviewUrl('')
+                        setUploadError('')
+                      }}
+                      className="grid size-9 place-items-center rounded-full bg-red-50 text-red-500"
+                    >
+                      <i className="fa-solid fa-xmark" />
+                    </button>
+
+                  </div>
                 )}
 
-                <input
-                  id="payment-slip"
-                  type="file"
-                  accept="image/jpeg,image/png"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-
-              </label>
-
-              {/* Selected file */}
-              {file && (
-                <div className="mt-3 flex items-center gap-3 rounded-2xl bg-gray-50 p-3">
-
-                  <div className="grid size-10 shrink-0 place-items-center rounded-full bg-green-50 text-green-500">
-                    <i className="fa-solid fa-check" />
+                {/* Error */}
+                {uploadError && (
+                  <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-xs text-red-600">
+                    <i className="fa-solid fa-circle-exclamation mr-2" />
+                    {uploadError}
                   </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-gray-700">
-                      {file.name}
-                    </p>
-
-                    <p className="text-xs text-gray-400">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFile(null)
-                      setPreviewUrl('')
-                      setUploadError('')
-                    }}
-                    className="grid size-9 place-items-center rounded-full bg-red-50 text-red-500"
-                  >
-                    <i className="fa-solid fa-xmark" />
-                  </button>
-
-                </div>
-              )}
-
-              {/* Error */}
-              {uploadError && (
-                <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-xs text-red-600">
-                  <i className="fa-solid fa-circle-exclamation mr-2" />
-                  {uploadError}
-                </div>
-              )}
-
-              {/* Submit */}
-              <button
-                type="button"
-                disabled={!file || uploading}
-                onClick={handleUploadSlip}
-                className="mt-4 w-full rounded-full bg-orange-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
-              >
-                {uploading ? (
-                  <>
-                    <i className="fa-solid fa-spinner fa-spin mr-2" />
-                    กำลังส่งสลิป...
-                  </>
-                ) : (
-                  <>
-                    <i className="fa-solid fa-upload mr-2" />
-                    ส่งหลักฐานการชำระเงิน
-                  </>
                 )}
-              </button>
 
-            </div>
+                {/* Bottom spacing */}
+                <div className="h-4" />
+
+              </div>
+
+              {/* FOOTER - FIXED */}
+              <div className="shrink-0 border-t border-gray-100 bg-white px-5 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+
+                <button
+                  type="button"
+                  disabled={!file || uploading}
+                  onClick={handleUploadSlip}
+                  className="w-full rounded-full bg-orange-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+                >
+                  {uploading ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin mr-2" />
+                      กำลังส่งสลิป...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-upload mr-2" />
+                      ส่งหลักฐานการชำระเงิน
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={uploading || cancelling}
+                  onClick={() => {
+                    setCancelError('')
+                    setCancelConfirmOpen(true)
+                  }}
+                  className="mt-3 w-full rounded-full border border-red-200 bg-white py-3 text-sm font-bold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <i className="fa-solid fa-xmark mr-2" />
+                  ยกเลิกการชำระเงิน
+                </button>
+
+                {cancelError && (
+                  <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-xs text-red-600">
+                     <i className="fa-solid fa-circle-exclamation mr-2" />
+                    <span>{cancelError}</span>
+                  </div>
+                )}
+
+              </div>
+            </>
           )}
 
         </section>
@@ -680,13 +742,10 @@ export default function Payment() {
 
           <button
             type="button"
-            onClick={() =>
-              navigate(`/payment/${orderId}/slip`)
-            }
-            className="w-full rounded-full bg-orange-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/20"
+            onClick={() => navigate('/shop')}
+            className="w-full rounded-full bg-orange-500 py-3.5 text-sm font-bold text-white"
           >
-            <i className="fa-solid fa-upload mr-2" />
-            แนบสลิปใหม่
+            เลือกสินค้าใหม่
           </button>
 
         </div>)}
@@ -734,6 +793,78 @@ export default function Payment() {
             ดูรายละเอียดคำสั่งซื้อ
           </button>
 
+        </div>
+      )}
+
+      {cancelConfirmOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 px-5">
+
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+
+            {/* Icon */}
+            <div className="mx-auto grid size-16 place-items-center rounded-full bg-red-50 text-red-500">
+              <i className="fa-solid fa-triangle-exclamation text-2xl" />
+            </div>
+
+            {/* Title */}
+            <h2 className="mt-4 text-center text-lg font-bold text-gray-900">
+              ยกเลิกการชำระเงิน?
+            </h2>
+
+            {/* Detail */}
+            <p className="mt-2 text-center text-sm leading-6 text-gray-500">
+              คุณต้องการยกเลิกการชำระเงินสำหรับ
+              <br />
+              คำสั่งซื้อ #{order.order_id} หรือไม่?
+            </p>
+
+            <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3">
+              <p className="text-center text-xs leading-5 text-red-600">
+                หากยกเลิก ระบบจะยกเลิกคำสั่งซื้อ
+                <br />
+                และคืนสินค้าเข้าสต็อก
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="mt-5 flex gap-3">
+
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={() => setCancelConfirmOpen(false)}
+                className="flex-1 rounded-full border border-gray-200 bg-white py-3.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+              >
+                ไม่ยกเลิก
+              </button>
+
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={handleCancelPayment}
+                className="flex-1 rounded-full bg-red-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {cancelling ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin mr-2" />
+                    กำลังยกเลิก...
+                  </>
+                ) : (
+                  'ยืนยันยกเลิก'
+                )}
+              </button>
+
+            </div>
+
+            {/* Error */}
+            {cancelError && (
+              <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-xs text-red-600">
+                <i className="fa-solid fa-circle-exclamation mr-2" />
+                {cancelError}
+              </div>
+            )}
+
+          </div>
         </div>
       )}
 

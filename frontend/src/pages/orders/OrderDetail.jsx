@@ -5,6 +5,7 @@ import { addToCart } from '../../api/cart.js'
 import { getStoreProfile } from '../../lib/store.js'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
 import CartBadge from '../../components/cart/CartBadge.jsx'
+import OrderReceipt from '../../components/orders/OrderReceipt.jsx'
 
 const statusMap = {
   pending: { label: 'รอดำเนินการ', className: 'bg-orange-50 text-orange-600' },
@@ -58,7 +59,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [reordering, setReordering] = useState(false)
-  const [isPrinting, setIsPrinting] = useState(false)
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -74,6 +75,7 @@ export default function OrderDetail() {
         setLoading(true)
         setErrorMessage('')
         const data = await getOrder(decodeURIComponent(orderId))
+        console.log('CUSTOMER ORDER DATA:', data)
         if (active) setOrder(data)
       } catch (error) {
         console.error('Load order detail error:', error)
@@ -144,14 +146,6 @@ export default function OrderDetail() {
     address.postal_code,
   ].filter(Boolean).join(' • ')
 
-  const handlePrintReceipt = () => {
-    setIsPrinting(true)
-    window.setTimeout(() => {
-      window.print()
-      window.setTimeout(() => setIsPrinting(false), 300)
-    }, 50)
-  }
-
   const handleReorder = async () => {
     if (!items.length || reordering) return
 
@@ -176,25 +170,27 @@ export default function OrderDetail() {
 
   return (
     <>
-      <style>{`
-        @page { size: 80mm auto; margin: 0; }
-        @media print {
-          html, body { width: 80mm !important; min-width: 80mm !important; margin: 0 !important; padding: 0 !important; }
-          body * { visibility: hidden !important; }
-          .order-detail-print, .order-detail-print * { visibility: visible !important; }
-          .order-detail-print { position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; max-width: none !important; min-width: 80mm !important; margin: 0 !important; padding: 6mm 5mm !important; border: 0 !important; box-shadow: none !important; background: white !important; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
-
       <div className="mx-auto flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
         <header className="no-print shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-4 pt-3 shadow-md">
           <div className="flex items-center justify-between">
-            <button type="button" onClick={() => navigate(-1)} aria-label="กลับ" className="grid size-10 place-items-center rounded-full bg-gray-100 text-gray-600 active:scale-95">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              aria-label="กลับ"
+              className="grid size-10 place-items-center rounded-full bg-gray-100 text-gray-600 active:scale-95"
+            >
               <i className="fa-solid fa-arrow-left" />
             </button>
-            <h1 className="text-xl font-bold text-gray-900">รายละเอียดคำสั่งซื้อ</h1>
-            <Link to="/cart" aria-label="ตะกร้าสินค้า" className="relative grid size-10 place-items-center rounded-full bg-gray-100 text-gray-500">
+
+            <h1 className="text-xl font-bold text-gray-900">
+              รายละเอียดคำสั่งซื้อ
+            </h1>
+
+            <Link
+              to="/cart"
+              aria-label="ตะกร้าสินค้า"
+              className="relative grid size-10 place-items-center rounded-full bg-gray-100 text-gray-500"
+            >
               <CartBadge>
                 <i className="fa-solid fa-cart-shopping" />
               </CartBadge>
@@ -203,68 +199,38 @@ export default function OrderDetail() {
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-28 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {isPrinting && (
-            <section className="order-detail-print rounded-xl bg-white text-gray-900">
-              <div className="text-center">
-                {store.image ? <img src={store.image} alt={store.name} className="mx-auto mb-2 h-14 w-14 rounded-xl object-cover" /> : null}
-                <h1 className="text-lg font-bold">{store.name}</h1>
-                <p className="mt-1 text-[10px] leading-4 text-gray-500">{store.address}</p>
-                <p className="text-[10px] text-gray-500">โทร. {store.phone}</p>
-              </div>
-
-              <div className="my-3 border-t border-dashed border-gray-400" />
-
-              <div className="space-y-1 text-[11px]">
-                <div className="flex justify-between gap-3"><span>เลขที่คำสั่งซื้อ</span><strong>{order.order_id}</strong></div>
-                <div className="flex justify-between gap-3"><span>วันที่</span><span>{formatDate(order.created_at)}</span></div>
-                <div className="flex justify-between gap-3"><span>ชำระเงิน</span><span>{getPaymentLabel(order.payment_method)}</span></div>
-              </div>
-
-              <div className="my-3 border-t border-dashed border-gray-400" />
-
-              <div className="space-y-2">
-                {items.map((item) => {
-                  const quantity = Math.max(1, Number(item.order_quantity) || 1)
-                  const unitPrice = parsePrice(item.order_price)
-                  const itemTotal = unitPrice * quantity
-                  return (
-                    <div key={item.order_item_id} className="text-[11px]">
-                      <div className="font-semibold">{item.product_name || `สินค้า #${item.product_id}`}</div>
-                      <div className="flex justify-between gap-3 text-gray-600">
-                        <span>{quantity} x ฿{unitPrice.toLocaleString()}</span>
-                        <span>฿{itemTotal.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <div className="my-3 border-t border-dashed border-gray-400" />
-
-              <div className="space-y-1 text-[11px]">
-                <div className="flex justify-between"><span>จำนวนสินค้า</span><span>{totalQuantity} ชิ้น</span></div>
-                <div className="flex justify-between text-base font-bold"><span>ยอดสุทธิ</span><span>฿{Number(order.total_amount || 0).toLocaleString()}</span></div>
-              </div>
-
-              <div className="my-3 border-t border-dashed border-gray-400" />
-              <p className="text-center text-[10px] text-gray-500">ขอบคุณที่ใช้บริการ</p>
-            </section>
-          )}
 
           <section className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-gray-400">หมายเลขคำสั่งซื้อ</p>
-                <p className="mt-1 text-base font-bold text-gray-900">{order.order_id}</p>
-                <p className="mt-1 text-xs text-gray-400">{formatDate(order.created_at)}</p>
+                <p className="mt-1 text-base font-bold text-gray-900">
+                  {order.order_id}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {formatDate(order.created_at)}
+                </p>
               </div>
-              <span className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${status.className}`}>{status.label}</span>
+
+              <span
+                className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${status.className}`}
+              >
+                {status.label}
+              </span>
             </div>
+
             <div className="mt-5 flex items-center gap-3 rounded-2xl bg-gray-50 p-4">
-              <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-orange-50 text-orange-500"><i className="fa-solid fa-receipt" /></div>
+              <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-orange-50 text-orange-500">
+                <i className="fa-solid fa-receipt" />
+              </div>
+
               <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-800">คำสั่งซื้อ #{order.order_id}</p>
-                <p className="mt-1 text-xs text-gray-400">รวม {totalQuantity} ชิ้น</p>
+                <p className="text-sm font-bold text-gray-800">
+                  คำสั่งซื้อ #{order.order_id}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  รวม {totalQuantity} ชิ้น
+                </p>
               </div>
             </div>
           </section>
@@ -272,31 +238,61 @@ export default function OrderDetail() {
           <section className="mt-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold">รายการสินค้า</h2>
-              <span className="text-xs text-gray-400">{items.length} รายการ</span>
+              <span className="text-xs text-gray-400">
+                {items.length} รายการ
+              </span>
             </div>
 
             {items.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-400">ไม่พบรายการสินค้า</div>
+              <div className="py-8 text-center text-sm text-gray-400">
+                ไม่พบรายการสินค้า
+              </div>
             ) : (
               <div className="mt-4 space-y-3">
                 {items.map((item) => {
-                  const quantity = Math.max(1, Number(item.order_quantity) || 1)
+                  const quantity = Math.max(
+                    1,
+                    Number(item.order_quantity) || 1
+                  )
                   const unitPrice = parsePrice(item.order_price)
                   const itemTotal = unitPrice * quantity
+
                   return (
-                    <div key={item.order_item_id} className="flex gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                    <div
+                      key={item.order_item_id}
+                      className="flex gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+                    >
                       <div className="size-14 shrink-0 overflow-hidden rounded-2xl bg-gray-100">
                         {item.product_image ? (
-                          <img src={item.product_image} alt={item.product_name || `สินค้า #${item.product_id}`} className="size-full object-cover" />
+                          <img
+                            src={item.product_image}
+                            alt={
+                              item.product_name ||
+                              `สินค้า #${item.product_id}`
+                            }
+                            className="size-full object-cover"
+                          />
                         ) : (
-                          <div className="grid size-full place-items-center text-xl text-gray-400"><i className="fa-solid fa-box" /></div>
+                          <div className="grid size-full place-items-center text-xl text-gray-400">
+                            <i className="fa-solid fa-box" />
+                          </div>
                         )}
                       </div>
+
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-gray-800">{item.product_name || `สินค้า #${item.product_id}`}</p>
-                        <p className="mt-1 text-xs text-gray-400">{quantity} ชิ้น × ฿{unitPrice.toLocaleString()}</p>
+                        <p className="text-sm font-bold text-gray-800">
+                          {item.product_name ||
+                            `สินค้า #${item.product_id}`}
+                        </p>
+
+                        <p className="mt-1 text-xs text-gray-400">
+                          {quantity} ชิ้น × ฿{unitPrice.toLocaleString()}
+                        </p>
                       </div>
-                      <strong className="shrink-0 text-sm text-orange-500">฿{itemTotal.toLocaleString()}</strong>
+
+                      <strong className="shrink-0 text-sm text-orange-500">
+                        ฿{itemTotal.toLocaleString()}
+                      </strong>
                     </div>
                   )
                 })}
@@ -306,35 +302,79 @@ export default function OrderDetail() {
 
           <section className="mt-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
             <h2 className="text-base font-bold">สรุปการชำระเงิน</h2>
+
             <div className="mt-4 space-y-3 text-sm">
-              <div className="flex justify-between text-gray-500"><span>ค่าสินค้า</span><span>฿{subtotal.toLocaleString()}</span></div>
-              <div className="flex justify-between text-gray-500"><span>ค่าจัดส่ง</span><span>รวมอยู่ในยอดคำสั่งซื้อ</span></div>
+              <div className="flex justify-between text-gray-500">
+                <span>ค่าสินค้า</span>
+                <span>฿{subtotal.toLocaleString()}</span>
+              </div>
+
+              <div className="flex justify-between text-gray-500">
+                <span>ค่าจัดส่ง</span>
+                <span>รวมอยู่ในยอดคำสั่งซื้อ</span>
+              </div>
+
               <div className="border-t border-dashed border-gray-200 pt-3" />
-              <div className="flex justify-between"><span className="font-bold">ยอดสุทธิ</span><strong className="text-xl text-orange-500">฿{Number(order.total_amount || 0).toLocaleString()}</strong></div>
+
+              <div className="flex justify-between">
+                <span className="font-bold">ยอดสุทธิ</span>
+                <strong className="text-xl text-orange-500">
+                  ฿{Number(order.total_amount || 0).toLocaleString()}
+                </strong>
+              </div>
             </div>
           </section>
 
           <section className="mt-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
             <h2 className="text-base font-bold">ที่อยู่จัดส่ง</h2>
-            <p className="mt-3 text-sm leading-6 text-gray-500">{addressText || 'ไม่ได้ระบุที่อยู่จัดส่ง'}</p>
+
+            <p className="mt-3 text-sm leading-6 text-gray-500">
+              {addressText || 'ไม่ได้ระบุที่อยู่จัดส่ง'}
+            </p>
+
             <div className="mt-5 border-t border-dashed border-gray-200 pt-5">
               <h2 className="text-base font-bold">วิธีชำระเงิน</h2>
-              <p className="mt-3 text-sm text-gray-500">{getPaymentLabel(order.payment_method)}</p>
-              <p className="mt-2 text-xs text-gray-400">สถานะการชำระเงิน: {order.payment_status || 'unpaid'}</p>
+
+              <p className="mt-3 text-sm text-gray-500">
+                {getPaymentLabel(order.payment_method)}
+              </p>
+
+              <p className="mt-2 text-xs text-gray-400">
+                สถานะการชำระเงิน: {order.payment_status || 'unpaid'}
+              </p>
             </div>
           </section>
 
-          {errorMessage ? <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{errorMessage}</div> : null}
+          {errorMessage ? (
+            <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {errorMessage}
+            </div>
+          ) : null}
 
-          <button type="button" onClick={handlePrintReceipt} disabled={isPrinting} className="no-print mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gray-900 text-sm font-bold text-white shadow-lg shadow-gray-900/15 transition hover:-translate-y-0.5 hover:bg-gray-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60">
-            <i className="fa-solid fa-print" />
-            พิมพ์ใบเสร็จ
+          {/* เปิดใบเสร็จ */}
+          <button
+            type="button"
+            onClick={() => setShowReceiptPreview(true)}
+            className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gray-900 text-sm font-bold text-white shadow-lg shadow-gray-900/15 transition hover:-translate-y-0.5 hover:bg-gray-800 active:scale-[0.99]"
+          >
+            <i className="fa-solid fa-receipt" />
+            ดูใบเสร็จ
           </button>
 
-          {items.length > 0 && rawStatus === 'completed' ? (
-            <button type="button" onClick={handleReorder} disabled={reordering} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-orange-500 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition hover:-translate-y-0.5 hover:bg-orange-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60">
-              <i className={`fa-solid ${reordering ? 'fa-spinner fa-spin' : 'fa-cart-plus'}`} />
-              {reordering ? 'กำลังเพิ่มลงตะกร้า...' : 'ซื้อรายการนี้อีกครั้ง'}
+          {items.length > 0 && rawStatus === 'delivered' ? (
+            <button
+              type="button"
+              onClick={handleReorder}
+              disabled={reordering}
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-orange-500 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition hover:-translate-y-0.5 hover:bg-orange-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <i
+                className={`fa-solid ${reordering ? 'fa-spinner fa-spin' : 'fa-cart-plus'
+                  }`}
+              />
+              {reordering
+                ? 'กำลังเพิ่มลงตะกร้า...'
+                : 'ซื้อรายการนี้อีกครั้ง'}
             </button>
           ) : null}
 
@@ -343,6 +383,14 @@ export default function OrderDetail() {
 
         <BottomNavigation />
       </div>
+
+      {/* ใบเสร็จใช้ component เดียวกับ Admin */}
+      <OrderReceipt
+        open={showReceiptPreview}
+        onClose={() => setShowReceiptPreview(false)}
+        order={order}
+        store={store}
+      />
     </>
   )
 }

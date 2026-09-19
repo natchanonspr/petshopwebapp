@@ -430,14 +430,9 @@ export default function Checkout() {
         couponCode: discountInfo.code || '',
       })
 
-      console.log(
-        'Create order successful:',
-        order,
-      )
+      console.log('Create order successful:', order,)
 
-      window.dispatchEvent(
-        new Event('petshop-cart-updated'),
-      )
+      window.dispatchEvent(new Event('petshop-cart-updated'),)
 
       navigate(`/payment/${order.order_id}`)
 
