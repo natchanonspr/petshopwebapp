@@ -39,15 +39,15 @@ export default function ProfileHero() {
   }, [])
 
   return (
-    <section className="px-5 pb-5 pt-3 text-center text-slate-800">
+    <section className="px-4 pb-3 pt-2 text-center text-slate-800">
 
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-1.5 flex items-center justify-between">
         <span className="size-11" aria-hidden="true" />
 
         <Link
           to="/notifications"
           aria-label="การแจ้งเตือน"
-          className="relative grid size-11 place-items-center rounded-full bg-white/80 text-slate-600 shadow-sm backdrop-blur transition hover:bg-white active:scale-90"
+          className="relative grid size-10 place-items-center rounded-full bg-white/80 text-slate-600 shadow-sm backdrop-blur transition hover:bg-white active:scale-90"
         >
           <NotificationBadge>
             <i className="fa-solid fa-bell text-[18px]" />
@@ -57,7 +57,7 @@ export default function ProfileHero() {
 
       <button
         type="button"
-        className="group relative mx-auto block size-[132px] overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-yellow-200 to-orange-300 text-6xl shadow-lg"
+        className="group relative mx-auto block size-[112px] overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-yellow-200 to-orange-300 text-5xl shadow-lg"
         aria-label="รูปโปรไฟล์"
       >
         {loading ? (
@@ -79,7 +79,7 @@ export default function ProfileHero() {
         </p>
       )}
 
-      <h1 className="mt-3 text-[24px] font-bold tracking-tight text-slate-800">
+      <h1 className="mt-2 text-[22px] font-bold tracking-tight text-slate-800">
         {loading
           ? 'กำลังโหลด...'
           : profile?.username || profile?.display_name || 'ยังไม่มีชื่อ'}

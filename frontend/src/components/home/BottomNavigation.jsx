@@ -12,7 +12,7 @@ export default function BottomNavigation() {
   return (
     <nav
       aria-label="เมนูหลัก"
-      className="petshop-mobile-bottom-safe relative z-30 mx-3 mb-3 shrink-0 rounded-[28px] border border-slate-100 bg-white/95 px-2 pt-2 shadow-[0_8px_30px_rgba(15,23,42,0.12)] backdrop-blur-md"
+      className="relative z-30 mx-3 mb-2 h-[76px] min-h-[76px] max-h-[76px] shrink-0 rounded-[28px] border border-slate-100 bg-white/95 px-2 pt-2 shadow-[0_8px_30px_rgba(15,23,42,0.12)] backdrop-blur-md"
     >
       <div className="flex h-[66px] items-center justify-around gap-1">
         {items.map(([to, icon, label]) => (

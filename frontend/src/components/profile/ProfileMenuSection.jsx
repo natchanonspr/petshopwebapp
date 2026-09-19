@@ -96,7 +96,7 @@ export default function ProfileMenuSection() {
   }
 
   return (
-    <div className="relative z-10 mt-1 space-y-6 px-5 pb-5">
+    <div className="relative z-10 mt-1 space-y-5 px-4 pb-4">
       {sections.map((section) => (
         <section key={section.title}>
           <h2 className="mb-3 text-base font-bold text-slate-800">{section.title}</h2>
@@ -107,7 +107,7 @@ export default function ProfileMenuSection() {
                 : subtitle
               const content = (
                 <>
-                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-orange-50 text-orange-500">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-orange-50 text-orange-500">
                     {icon === 'fa-bell' ? (
                       <NotificationBadge>
                         <i className={`fa-solid ${icon} text-[17px]`} />

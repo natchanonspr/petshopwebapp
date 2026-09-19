@@ -106,17 +106,17 @@ export default function ProductsHeader({
   }
 
   return (
-    <header className="z-10 min-w-0 shrink-0 overflow-hidden rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-3 pt-3 shadow-md">
+    <header className="z-10 min-w-0 shrink-0 overflow-hidden rounded-b-[24px] border-b border-gray-100 bg-white px-4 pb-2.5 pt-2.5 shadow-md">
 
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
 
         {/* Back + Title */}
         <div className="flex items-center gap-3">
           <Link
             to="/home"
             aria-label="กลับหน้าหลัก"
-            className="grid size-12 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 transition active:scale-95"
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 transition active:scale-95"
           >
             <i className="fa-solid fa-arrow-left" />
           </Link>
@@ -167,7 +167,7 @@ export default function ProductsHeader({
           }
           placeholder="ค้นหาสินค้า, แบรนด์, หรืออื่นๆ..."
           aria-label="ค้นหาสินค้า"
-          className="block h-[46px] w-full rounded-2xl border-0 bg-gray-100 pl-10 pr-10 text-sm text-gray-700 outline-none placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-orange-200"
+          className="block h-[42px] w-full rounded-2xl border-0 bg-gray-100 pl-10 pr-10 text-sm text-gray-700 outline-none placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-orange-200"
         />
 
         {search && (
@@ -236,7 +236,7 @@ export default function ProductsHeader({
         onMouseMove={handleTabsMouseMove}
         onMouseUp={stopTabsDragging}
         onMouseLeave={stopTabsDragging}
-        className="mt-4 flex cursor-grab gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mt-3 flex cursor-grab gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
 
         {/* All */}

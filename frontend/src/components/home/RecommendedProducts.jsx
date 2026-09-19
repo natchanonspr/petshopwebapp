@@ -70,11 +70,11 @@ export default function RecommendedProducts() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-4 max-[360px]:gap-3">
+        <div className="grid min-w-0 grid-cols-2 gap-4 max-[360px]:gap-3">
           {[1, 2, 3, 4].map((item) => (
             <div
               key={item}
-              className="h-56 animate-pulse rounded-2xl bg-gray-100"
+              className="aspect-square w-full animate-pulse rounded-2xl bg-gray-100"
             />
           ))}
         </div>
@@ -83,7 +83,7 @@ export default function RecommendedProducts() {
           ไม่พบสินค้า
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 max-[360px]:gap-3">
+        <div className="grid min-w-0 grid-cols-2 gap-4 max-[360px]:gap-3">
           {products.map((product) => (
             <ProductCard
               key={product.id}

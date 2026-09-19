@@ -44,7 +44,7 @@ export default function ProductCard({ product }) {
   }
 
   return (
-    <article className="relative min-h-[280px] min-w-0 rounded-3xl border border-gray-100 bg-white p-3 shadow-sm">
+    <article className="relative min-h-0 min-w-0 rounded-3xl border border-gray-100 bg-white p-3 shadow-sm">
 
       <div className="absolute right-3 top-3 z-10">
         <FavoriteButton product={product} />
@@ -64,7 +64,7 @@ export default function ProductCard({ product }) {
 
       <Link
         to={`/products/${product.id}`}
-        className="flex h-full flex-col"
+        className="flex min-h-full flex-col"
       >
         <div className="mb-3 grid aspect-square w-full place-items-center overflow-hidden rounded-2xl bg-gray-100 text-[40px] text-gray-300">
           {product.image ? (

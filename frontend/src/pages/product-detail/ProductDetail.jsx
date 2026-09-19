@@ -6,7 +6,6 @@ import FavoriteButton from '../../components/products/FavoriteButton.jsx'
 import { getProduct } from '../../api/products.js'
 import { addToCart } from '../../api/cart.js'
 import { addNotification } from '../../lib/notifications.js'
-import { logActivity } from '../../admin/activity.js'
 import ProductInfoCard from '../../components/product-detail/ProductInfoCard.jsx'
 
 export default function ProductDetail() {
@@ -34,10 +33,6 @@ export default function ProductDetail() {
         setProduct(data)
         setQuantity(1)
         setAdded(false)
-        logActivity('view_product', `ดูสินค้า ${data.name}`, {
-          productId: data.id,
-          productName: data.name,
-        })
       })
       .catch((err) => {
         if (active) setLoadError(err?.message || 'โหลดข้อมูลสินค้าไม่สำเร็จ')
@@ -64,11 +59,6 @@ export default function ProductDetail() {
 
 
       setAdded(true)
-      logActivity('cart', `เพิ่ม ${product.name} ลงตะกร้า`, {
-        productId: product.id,
-        productName: product.name,
-        qty: quantity,
-      })
       window.setTimeout(() => setAdded(false), 1800)
     } catch (err) {
       setAddError(err?.message || 'เพิ่มลงตะกร้าไม่สำเร็จ')

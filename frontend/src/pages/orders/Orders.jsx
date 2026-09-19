@@ -307,13 +307,13 @@ export default function Orders() {
     <div className="mx-auto flex h-[100dvh] w-full min-w-0 max-w-[430px] flex-col overflow-hidden bg-gray-50 font-sans text-gray-800 min-[431px]:shadow-[0_0_40px_rgba(17,24,39,0.10)]">
 
       {/* ================= HEADER ================= */}
-      <header className="z-10 min-w-0 shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-3 pt-3 shadow-md">
-        <div className="mb-4 flex items-center justify-between">
+      <header className="z-10 min-w-0 shrink-0 rounded-b-[24px] border-b border-gray-100 bg-white px-4 pb-2.5 pt-2.5 shadow-md">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               to="/home"
               aria-label="กลับหน้าหลัก"
-              className="grid size-12 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"
+              className="grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-500 active:scale-95"
             >
               <i className="fa-solid fa-arrow-left" />
             </Link>
@@ -358,7 +358,7 @@ export default function Orders() {
             type="text"
             placeholder="ค้นหาเลขออเดอร์ หรือสินค้า..."
             aria-label="ค้นหาประวัติการสั่งซื้อ"
-            className="block h-[46px] w-full rounded-2xl border-0 bg-gray-100 pl-10 pr-10 text-sm text-gray-700 outline-none placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-orange-200"
+            className="block h-[42px] w-full rounded-2xl border-0 bg-gray-100 pl-10 pr-10 text-sm text-gray-700 outline-none placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-orange-200"
           />
 
           {search && (
@@ -374,14 +374,14 @@ export default function Orders() {
         </label>
 
         {/* TABS */}
-        <div className="relative -mx-5 mt-4 min-w-0">
+        <div className="relative -mx-4 mt-3 min-w-0">
           <div
             ref={tabsRef}
             onMouseDown={handleTabsMouseDown}
             onMouseMove={handleTabsMouseMove}
             onMouseUp={stopTabsDragging}
             onMouseLeave={stopTabsDragging}
-            className="cursor-grab overflow-x-auto overflow-y-hidden px-5 pb-1 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="cursor-grab overflow-x-auto overflow-y-hidden px-4 pb-1 select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <div className="flex w-max min-w-max flex-nowrap gap-2">
               {tabs.map((tab) => (
