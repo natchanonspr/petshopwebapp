@@ -21,7 +21,6 @@ const menus = [
       { to: '/home/admin/coupons', icon: 'fa-ticket', label: 'โปรโมชั่น' },
       { to: '/home/admin/notifications', icon: 'fa-bell', label: 'การแจ้งเตือน' },
       { to: '/home/admin/reports', icon: 'fa-chart-line', label: 'รายงานและสถิติ' },
-      { to: '/home/admin/settings', icon: 'fa-wand-magic-sparkles', label: 'จัดการ AI' },
       { to: '/home/admin/store', icon: 'fa-store', label: 'ข้อมูลร้านค้า' },
     ]
   },

@@ -42,9 +42,9 @@ export default function ShopProductCard({ product, onAddToCart }) {
   }
 
   return (
-    <article className="relative min-h-[280px] min-w-0 rounded-3xl border border-gray-100 bg-white p-3 shadow-sm">
+    <article className="relative min-h-[260px] min-w-0 rounded-3xl border border-gray-100 bg-white p-2.5 shadow-sm max-[360px]:min-h-[240px] max-[360px]:p-2">
 
-      <div className="absolute right-3 top-3 z-10">
+      <div className="absolute right-2.5 top-2.5 z-10 max-[360px]:right-2 max-[360px]:top-2">
         <FavoriteButton product={product} />
       </div>
 
@@ -52,7 +52,7 @@ export default function ShopProductCard({ product, onAddToCart }) {
         to={`/products/${product.id}`}
         className="flex h-full flex-col"
       >
-        <div className="mb-3 grid aspect-square w-full place-items-center overflow-hidden rounded-2xl bg-gray-100 text-[40px] text-gray-300">
+        <div className="mb-2.5 grid aspect-square w-full min-w-0 place-items-center overflow-hidden rounded-2xl bg-gray-100 text-[34px] text-gray-300 max-[360px]:mb-2 max-[360px]:text-[30px]">
           {product.image ? (
             <img
               src={product.image}
@@ -82,7 +82,7 @@ export default function ShopProductCard({ product, onAddToCart }) {
         onClick={handleAddToCart}
         disabled={isAdding}
         aria-label={`เพิ่ม ${product.name} ลงตะกร้า`}
-        className="absolute bottom-3 right-3 z-20 grid size-8 place-items-center rounded-full border-0 bg-black text-white shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+        className="absolute bottom-2.5 right-2.5 z-20 grid size-9 place-items-center max-[360px]:bottom-2 max-[360px]:right-2 max-[360px]:size-8 rounded-full border-0 bg-black text-white shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <i
           className={`fa-solid ${

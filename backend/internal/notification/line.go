@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 )
 
 const linePushMessageURL = "https://api.line.me/v2/bot/message/push"
+const lineProfileURL = "https://api.line.me/v2/profile"
 
 type linePushRequest struct {
 	To       string             `json:"to"`
@@ -42,6 +44,10 @@ func SendNotificationToLINEUsers(lineUserIDs []string, notification *Notificatio
 		lineUserID = strings.TrimSpace(lineUserID)
 		if lineUserID == "" {
 			continue
+		}
+
+		if err := verifyLINEUser(client, token, lineUserID); err != nil {
+			return err
 		}
 
 		payload := linePushRequest{
@@ -76,11 +82,43 @@ func SendNotificationToLINEUsers(lineUserIDs []string, notification *Notificatio
 			return fmt.Errorf("LINE push request failed: %w", err)
 		}
 
+		responseBody, readErr := io.ReadAll(resp.Body)
 		resp.Body.Close()
+		if readErr != nil {
+			return fmt.Errorf("LINE push response read failed: %w", readErr)
+		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return fmt.Errorf("LINE push returned HTTP %d", resp.StatusCode)
+			return fmt.Errorf("LINE push returned HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(responseBody)))
 		}
+	}
+
+	return nil
+}
+
+func verifyLINEUser(client *http.Client, token string, lineUserID string) error {
+	url := lineProfileURL + "?userId=" + lineUserID
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("LINE profile request failed: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("LINE profile request failed: %w", err)
+	}
+
+	responseBody, readErr := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if readErr != nil {
+		return fmt.Errorf("LINE profile response read failed: %w", readErr)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("LINE user %s is not available in this Messaging API channel: HTTP %d: %s", lineUserID, resp.StatusCode, strings.TrimSpace(string(responseBody)))
 	}
 
 	return nil

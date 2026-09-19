@@ -39,17 +39,17 @@ export default function PetCard({ pet, variant = 'compact', onEdit, onDelete, is
 
   if (variant === 'full') {
     return (
-      <article className="relative overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-[0_4px_16px_rgba(15,23,42,0.07)]">
-        <div className="p-3">
+      <article className="relative min-w-0 overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-[0_4px_16px_rgba(15,23,42,0.07)]">
+        <div className="p-3 max-[360px]:p-2.5">
           <div className="flex gap-3">
-            <div className="relative flex h-[142px] w-[128px] shrink-0 items-center justify-center overflow-hidden rounded-[19px] bg-orange-50">
+            <div className="relative flex h-[128px] w-[112px] shrink-0 max-[360px]:h-[112px] max-[360px]:w-[96px] items-center justify-center overflow-hidden rounded-[19px] bg-orange-50">
               {pet.image ? image : null}
                 <div className={pet.image ? 'hidden h-full w-full items-center justify-center text-[82px]' : 'flex h-full w-full items-center justify-center text-[82px]'}>{fallbackIcon}</div>
               </div>
 
             <div className="min-w-0 flex-1 py-2 pl-3 pr-10">
               <div className="min-w-0">
-                <h3 className="m-0 truncate text-xl font-bold text-gray-900">
+                <h3 className="m-0 truncate text-lg font-bold text-gray-900 max-[360px]:text-base">
                   {pet.pet_name}{' '}
                   <span className={pet.pet_gender === 'ตัวเมีย' ? 'text-pink-500' : 'text-green-500'}>
                     {pet.pet_gender === 'ตัวเมีย' ? '♀' : '♂'}
@@ -58,7 +58,7 @@ export default function PetCard({ pet, variant = 'compact', onEdit, onDelete, is
                 <p className="m-0 mt-0.5 truncate text-xs text-gray-600">{pet.pet_breed || 'ไม่ระบุสายพันธุ์'}</p>
               </div>
 
-              <div className="mt-3 space-y-2 text-xs text-gray-700">
+              <div className="mt-2.5 space-y-1.5 text-xs text-gray-700 max-[360px]:mt-2">
                 <div className="flex items-center gap-2"><i className="fa-solid fa-paw w-4 text-gray-400" /><span>{pet.pet_species}</span></div>
                 <div className="flex items-center gap-2"><i className="fa-regular fa-calendar w-4 text-gray-400" /><span>{ageFromBirthdate(pet.pet_birthdate)}</span></div>
                 <div className="flex items-center gap-2"><i className="fa-solid fa-weight-scale w-4 text-gray-400" /><span>{pet.pet_weight ? `${pet.pet_weight} กก.` : '-'}</span></div>

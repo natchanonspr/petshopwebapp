@@ -269,7 +269,7 @@ export default function Payment() {
       </header>
 
       {/* CONTENT */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-28 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="petshop-mobile-scroll min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:pb-28 sm:pt-5">
 
         {/* ERROR */}
         {errorMessage && (
@@ -528,13 +528,13 @@ export default function Payment() {
 
       {/* BOTTOM ACTION */}
       {isUnpaid && (
-        <section className="mt-4 overflow-hidden rounded-3xl bg-white shadow-sm">
+        <section className="relative z-20 shrink-0 overflow-hidden rounded-t-3xl border-t border-gray-100 bg-white shadow-[0_-10px_28px_rgba(0,0,0,0.12)]">
 
           {/* Header */}
           <button
             type="button"
             onClick={() => setUploadOpen((prev) => !prev)}
-            className="flex w-full items-center justify-between px-5 py-4 text-left"
+            className="flex min-h-16 w-full items-center justify-between gap-3 px-4 py-4 text-left sm:px-5"
           >
             <div className="flex items-center gap-3">
 

@@ -69,18 +69,18 @@ export default function HomeHeader({ products = [] }) {
   }
 
   return (
-    <header className="z-10 shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-5 pb-4 pt-3 shadow-md">
+    <header className="z-10 min-w-0 shrink-0 rounded-b-[28px] border-b border-gray-100 bg-white px-4 pb-4 pt-3 shadow-md sm:px-5">
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex min-w-0 items-center justify-between gap-2">
 
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
 
           {/* Profile Avatar */}
           <Link
             to="/profile"
             aria-label="ไปหน้าบัญชี"
             title="บัญชีของฉัน"
-            className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-gray-200 text-lg text-gray-400 transition active:scale-90"
+            className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full bg-gray-200 text-lg text-gray-400 transition active:scale-90"
           >
             {profileLoading ? (
               <i className="fa-solid fa-spinner fa-spin text-sm" />
@@ -101,7 +101,7 @@ export default function HomeHeader({ products = [] }) {
               สวัสดี
             </p>
 
-            <h1 className="m-0 mt-1 text-xl font-bold leading-tight text-gray-900">
+            <h1 className="m-0 mt-1 max-w-[150px] truncate text-lg font-bold leading-tight text-gray-900 sm:max-w-none sm:text-xl">
               {profileLoading
                 ? 'กำลังโหลด...'
                 : profile?.username || 'ผู้ใช้งาน'}
