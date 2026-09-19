@@ -2,6 +2,7 @@ package notification
 
 import (
 	"errors"
+	"log"
 	"strings"
 )
 
@@ -65,7 +66,21 @@ func CreateNotificationService(adminUserID int64, req *CreateNotificationRequest
 		recipients = append(recipients, NotificationRecipient{UserID: userID, IsRead: false})
 	}
 
-	return CreateNotification(notification, recipients)
+	if err := CreateNotification(notification, recipients); err != nil {
+		return err
+	}
+
+	lineUserIDs, err := GetLineUserIDs(userIDs)
+	if err != nil {
+		log.Printf("LINE notification recipient lookup failed: %v", err)
+		return nil
+	}
+
+	if err := SendNotificationToLINEUsers(lineUserIDs, notification); err != nil {
+		log.Printf("LINE notification send failed: %v", err)
+	}
+
+	return nil
 }
 
 func GetCustomerNotificationsService(userID int64) ([]NotificationResponse, error) {
@@ -156,8 +171,22 @@ func CreateUserNotification(
 		},
 	}
 
-	return CreateNotification(
+	if err := CreateNotification(
 		notification,
 		recipients,
-	)
+	); err != nil {
+		return err
+	}
+
+	lineUserIDs, err := GetLineUserIDs([]int64{userID})
+	if err != nil {
+		log.Printf("LINE notification recipient lookup failed: %v", err)
+		return nil
+	}
+
+	if err := SendNotificationToLINEUsers(lineUserIDs, notification); err != nil {
+		log.Printf("LINE notification send failed: %v", err)
+	}
+
+	return nil
 }

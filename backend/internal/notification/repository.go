@@ -61,6 +61,19 @@ func GetAllUsers() ([]int64, error) {
 	return userIDs, err
 }
 
+func GetLineUserIDs(userIDs []int64) ([]string, error) {
+	if len(userIDs) == 0 {
+		return []string{}, nil
+	}
+
+	var lineUserIDs []string
+	err := db.Table("users").
+		Where("user_id IN ? AND user_line_id IS NOT NULL AND user_line_id <> ''", userIDs).
+		Pluck("user_line_id", &lineUserIDs).Error
+
+	return lineUserIDs, err
+}
+
 func GetAdminNotifications(adminUserID int64) ([]Notification, error) {
 	var notifications []Notification
 	err := db.Preload("Recipients").Where("created_by_user_id = ?", adminUserID).Order("created_at DESC").Find(&notifications).Error
