@@ -11,8 +11,6 @@ import { createOrder } from '../../api/orders.js'
 import { applyCoupon } from '../../api/coupons.js'
 import { calculateOrderPricing, VAT_RATE, } from '../../lib/orderPricing.js'
 
-const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
-
 const parsePrice = (value) => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : 0
@@ -21,28 +19,6 @@ const parsePrice = (value) => {
   return Number(
     String(value ?? '').replace(/[฿,\s]/g, ''),
   ) || 0
-}
-
-const readDiscount = () => {
-  try {
-    const saved = JSON.parse(
-      localStorage.getItem(CHECKOUT_DISCOUNT_KEY) || 'null',
-    )
-
-    return saved && typeof saved === 'object'
-      ? saved
-      : {
-        code: '',
-        amount: 0,
-        freeShipping: false,
-      }
-  } catch {
-    return {
-      code: '',
-      amount: 0,
-      freeShipping: false,
-    }
-  }
 }
 
 const getAddressId = (item) => {
@@ -86,10 +62,14 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const [discountInfo, setDiscountInfo] = useState(readDiscount)
-  const [promoCode, setPromoCode] = useState(
-    discountInfo.code || '',
-  )
+  const [discountInfo, setDiscountInfo] = useState({
+    code: '',
+    amount: 0,
+    min: 0,
+    freeShipping: false,
+  })
+
+  const [promoCode, setPromoCode] = useState('')
   const [promoError, setPromoError] = useState('')
   const [selectedAddressId, setSelectedAddressId] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('promptpay')
