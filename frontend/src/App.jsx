@@ -39,14 +39,12 @@ import AdminCustomers from './pages/admin/AdminCustomers.jsx'
 import AdminCustomerDetail from './pages/admin/AdminCustomerDetail.jsx'
 import AdminCoupons from './pages/admin/AdminCoupons.jsx'
 import AdminNotifications from './pages/admin/AdminNotifications.jsx'
-import AdminSettings from './pages/admin/AdminSettings.jsx'
 import AdminReports from './pages/admin/AdminReports.jsx'
 import AdminStore from './pages/admin/AdminStore.jsx'
 
 import Login from './pages/auth/Login.jsx'
 import AuthMock from './pages/auth/AuthMock.jsx'
 import ForgotPassword from './pages/auth/ForgotPassword.jsx'
-import PasswordLoginMock from './pages/auth/PasswordLoginMock.jsx'
 
 function ProtectedRoute({ children }) {
     const token = localStorage.getItem('petshop_token')
@@ -70,7 +68,6 @@ export default function App() {
         ========================= */}
                 <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/login/password" element={<PasswordLoginMock />} />
                 <Route path="/register" element={<AuthMock mode="register" />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
@@ -274,7 +271,6 @@ export default function App() {
                     <Route path="notifications" element={<AdminNotifications />} />
                     <Route path="reports" element={<AdminReports />} />
                     <Route path="store" element={<AdminStore />} />
-                    <Route path="settings" element={<AdminSettings />} />
                 </Route>
 
 
