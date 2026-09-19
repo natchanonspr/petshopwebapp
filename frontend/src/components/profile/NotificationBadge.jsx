@@ -29,17 +29,39 @@ export default function NotificationBadge({
           'Load unread notification count error:',
           error
         )
-
-        if (active) {
-          setUnreadCount(0)
-        }
       }
     }
 
+    // โหลดครั้งแรกทันที
     loadUnreadCount()
+
+    // เช็กทุก 10 วินาที
+    const intervalId = window.setInterval(
+      loadUnreadCount,
+      10000
+    )
+
+    // กลับมาเปิด tab แล้วเช็กทันที
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadCount()
+      }
+    }
+
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange
+    )
 
     return () => {
       active = false
+
+      window.clearInterval(intervalId)
+
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange
+      )
     }
   }, [count])
 

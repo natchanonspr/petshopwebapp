@@ -3,6 +3,7 @@ package coupon
 import (
 	"errors"
 	"fmt"
+	"petshop-backend/internal/notification"
 	"strings"
 	"time"
 
@@ -23,6 +24,9 @@ func validCouponType(t string) bool {
 }
 
 func validdateAndBuild(req *CouponRequest) (*Coupon, error) {
+	if req == nil {
+		return nil, ErrRequiredFields
+	}
 	code := strings.ToUpper(strings.TrimSpace(req.CouponCode))
 	title := strings.TrimSpace(req.CouponTitle)
 	if code == "" || title == "" || req.StartAt.IsZero() || req.ExpireAt.IsZero() {
@@ -33,11 +37,15 @@ func validdateAndBuild(req *CouponRequest) (*Coupon, error) {
 		return nil, ErrInvalidType
 	}
 
-	if req.CouponType == TypePercentage && (req.CouponValue < 0 || req.CouponValue > 100) {
+	if req.CouponType == TypeFreeShipping {
+		req.CouponValue = 0
+	}
+
+	if req.CouponType == TypePercentage && (req.CouponValue <= 0 || req.CouponValue > 100) {
 		return nil, ErrInvalidValue
 	}
 
-	if req.CouponType != TypeFreeShipping && req.CouponValue < 0 {
+	if req.CouponType != TypeFreeShipping && req.CouponValue <= 0 {
 		return nil, ErrInvalidValue
 	}
 
@@ -48,24 +56,20 @@ func validdateAndBuild(req *CouponRequest) (*Coupon, error) {
 		return nil, ErrExpireBeforeStart
 	}
 
-	usageLimit := req.UsageLimit
-	if usageLimit < 0 {
-		usageLimit = 0
+	if req.UsageLimit < 0 {
+		return nil, ErrInvalidValue
 	}
 
-	perUserLimit := req.PerUserLimit
-	if perUserLimit < 0 {
-		perUserLimit = 0
+	if req.PerUserLimit < 0 {
+		return nil, ErrInvalidValue
 	}
 
-	minOrder := req.MinOrder
-	if minOrder < 0 {
-		minOrder = 0
+	if req.MinOrder < 0 {
+		return nil, ErrInvalidValue
 	}
 
-	maxDiscount := req.MaxDiscount
-	if maxDiscount < 0 {
-		maxDiscount = 0
+	if req.MaxDiscount < 0 {
+		return nil, ErrInvalidValue
 	}
 
 	return &Coupon{
@@ -73,17 +77,17 @@ func validdateAndBuild(req *CouponRequest) (*Coupon, error) {
 		CouponTitle:  title,
 		CouponType:   req.CouponType,
 		CouponValue:  req.CouponValue,
-		MinOrder:     minOrder,
-		MaxDiscount:  maxDiscount,
-		UsageLimit:   usageLimit,
-		PerUserLimit: perUserLimit,
+		MinOrder:     req.MinOrder,
+		MaxDiscount:  req.MaxDiscount,
+		UsageLimit:   req.UsageLimit,
+		PerUserLimit: req.PerUserLimit,
 		StartAt:      startAt,
 		ExpireAt:     expireAt,
 		Active:       req.Active,
 	}, nil
 }
 
-func CreateCouponService(req *CouponRequest) (*Coupon, error) {
+func CreateCouponService(req *CouponRequest, adminUserID int64) (*Coupon, error) {
 	coupon, err := validdateAndBuild(req)
 	if err != nil {
 		return nil, err
@@ -98,6 +102,22 @@ func CreateCouponService(req *CouponRequest) (*Coupon, error) {
 	coupon.UsedCount = 0
 	if err := CreateCoupon(coupon); err != nil {
 		return nil, err
+	}
+
+	// สร้าง noti ให้ user ทกคนถ้ามีคูปองใหม่
+	notificationReq := &notification.CreateNotificationRequest{
+		Audience: "all",
+		Type:     "promo",
+		Title:    "คูปองใหม่มาแล้ว!",
+		Detail: fmt.Sprintf("มีโปรโมชั่นใหม่ %s ใช้โค้ด %s",
+			coupon.CouponTitle,
+			coupon.CouponCode,
+		),
+		Icon: "fa-ticket",
+	}
+
+	if err := notification.CreateNotificationService(adminUserID, notificationReq); err != nil {
+		fmt.Printf("Create coupon notificaiton error: %v\n", err)
 	}
 
 	return coupon, nil
@@ -187,7 +207,7 @@ func ApplyCouponService(userID int64, code string, subtotal float64) *ApplyResul
 		return &ApplyResult{OK: false, Reason: "โปรโมชั่นนี้หมดอายุแล้ว"}
 	}
 	if c.UsageLimit > 0 && c.UsedCount >= c.UsageLimit {
-		return &ApplyResult{OK: false, Reason: "สิทธิ์โปรโมชั่นถูกใช้ครบแล้ว"}
+		return &ApplyResult{OK: false, Reason: "คุณเคยใช้โค้ดส่วนลดนี้แล้ว"}
 	}
 	if c.PerUserLimit > 0 {
 		usedCount, err := CountUserCouponUsage(userID, c.CouponID)

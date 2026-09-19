@@ -876,7 +876,7 @@ export default function Checkout() {
             </div>
 
             <div className="flex justify-between">
-              <span>VAT {VAT_RATE * 100}%</span>
+              <span>VAT {(VAT_RATE * 100).toFixed(0)}%</span>
 
               <span>
                 ฿{taxAmount.toLocaleString()}

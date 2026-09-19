@@ -49,7 +49,19 @@ func GetCouponByCode(code string) (*Coupon, error) {
 }
 
 func UpdateCoupon(coupon *Coupon) error {
-	return db.Model(coupon).Updates(*coupon).Error
+	return db.Model(coupon).Updates(map[string]interface{}{
+		"coupon_code":    coupon.CouponCode,
+		"coupon_title":   coupon.CouponTitle,
+		"coupon_type":    coupon.CouponType,
+		"coupon_value":   coupon.CouponValue,
+		"min_order":      coupon.MinOrder,
+		"max_discount":   coupon.MaxDiscount,
+		"usage_limit":    coupon.UsageLimit,
+		"per_user_limit": coupon.PerUserLimit,
+		"start_at":       coupon.StartAt,
+		"expire_at":      coupon.ExpireAt,
+		"active":         coupon.Active,
+	}).Error
 }
 
 func DeleteCoupon(couponID int64) error {
