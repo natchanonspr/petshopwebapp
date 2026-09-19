@@ -55,9 +55,7 @@ export default function NotificationBadge({
 
     return () => {
       active = false
-
       window.clearInterval(intervalId)
-
       document.removeEventListener(
         'visibilitychange',
         handleVisibilityChange

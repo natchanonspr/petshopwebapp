@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import FavoriteButton from '../products/FavoriteButton.jsx'
 import { addToCart } from '../../api/cart.js'
-import { addNotification } from '../../lib/notifications.js'
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate()

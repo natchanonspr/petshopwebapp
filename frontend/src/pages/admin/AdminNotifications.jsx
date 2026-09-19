@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  getAdminNotifications,
-  createAdminNotification,
-  deleteAdminNotifications,
-} from '../../api/notifications.js'
+import { getAdminNotifications, createAdminNotification, deleteAdminNotifications, } from '../../api/notifications.js'
 
 const templates = [
   {
@@ -25,7 +21,7 @@ const templates = [
     title: 'ลดราคาพิเศษ',
     detail: 'สินค้าสุดคุ้ม ลดพิเศษในช่วงเวลาจำกัด',
   },
-  
+
 ]
 
 function unwrapData(response) {
@@ -214,7 +210,7 @@ export default function AdminNotifications() {
             จัดการการแจ้งเตือน
           </h1>
 
-        
+
         </div>
 
         <button

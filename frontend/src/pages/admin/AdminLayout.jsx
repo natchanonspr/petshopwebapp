@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { getUnreadCount, subscribeNotifications } from '../../lib/notifications.js'
+import { subscribeNotifications } from '../../lib/notifications.js'
 import { getAdminOrders } from '../../api/orders.js'
 import { getAdminUsers } from '../../api/users.js'
 import { getProducts } from '../../api/products.js'
@@ -67,7 +67,7 @@ export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false); const [hovered, setHovered] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false); const [profileOpen, setProfileOpen] = useState(false)
   const [profile, setProfile] = useState(() => readProfile())
-  const [unreadCount, setUnreadCount] = useState(() => getUnreadCount('admin'))
+  const [unreadCount, setUnreadCount] = useState(0)
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchProducts, setSearchProducts] = useState([])
@@ -228,12 +228,31 @@ export default function AdminLayout() {
   }
   useEffect(() => setMobileOpen(false), [location.pathname])
   useEffect(() => {
-    const refreshUnread = () => setUnreadCount(getUnreadCount('admin'))
-    const unsubscribe = subscribeNotifications(() => refreshUnread(), 'admin')
-    window.addEventListener('storage', refreshUnread)
+    let mounted = true
+
+    const loadUnreadCount = async () => {
+      try {
+        const count = await getUnreadNotificationCount()
+
+        if (mounted) {
+          setUnreadCount(count)
+        }
+      } catch (error) {
+        console.error('Load notification count error:', error)
+
+        if (mounted) {
+          setUnreadCount(0)
+        }
+      }
+    }
+
+    loadUnreadCount()
+
+    const interval = window.setInterval(loadUnreadCount, 30000)
+
     return () => {
-      unsubscribe()
-      window.removeEventListener('storage', refreshUnread)
+      mounted = false
+      window.clearInterval(interval)
     }
   }, [])
   useEffect(() => {
