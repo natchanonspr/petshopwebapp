@@ -418,7 +418,8 @@ export default function AdminDashboard() {
           <i className="fa-solid fa-chart-column text-[#6d3df5]" />
         </div>
 
-        <div className="mt-6 flex h-56 items-end gap-2 sm:gap-4">
+        <div className="mt-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max h-56 items-end gap-4 px-1 sm:gap-5">
 
           {sales7Days.map((item) => {
             const height =
@@ -432,9 +433,9 @@ export default function AdminDashboard() {
             return (
               <div
                 key={item.dateKey}
-                className="flex min-w-0 flex-1 flex-col items-center justify-end"
+                className="flex w-[72px] shrink-0 flex-col items-center justify-end"
               >
-                <div className="mb-2 text-[10px] font-bold text-gray-500">
+                <div className="mb-2 whitespace-nowrap text-[10px] font-bold text-gray-500">
                   {item.total > 0
                     ? formatMoney(item.total)
                     : '฿0'}
@@ -457,6 +458,7 @@ export default function AdminDashboard() {
             )
           })}
 
+          </div>
         </div>
       </section>
 
