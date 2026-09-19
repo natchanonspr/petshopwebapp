@@ -384,3 +384,76 @@ func AdminUpdateUserRole(userID int64, role string) (*User, error) {
 
 	return user, nil
 }
+
+func ForgotPassword(phone string) (string, error) {
+	phone = strings.TrimSpace(phone)
+
+	// ตรวจสอบรูปแบบเบอร์โทร
+	if !regexp.MustCompile(`^0[0-9]{9}$`).MatchString(phone) {
+		return "", ErrInvalidPhone
+	}
+
+	var u User
+	result := db.Where("user_phone = ?", phone).First(&u)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return "", errors.New("ไม่พบบัญชีจากเบอร์โทรนี้")
+		}
+		return "", result.Error
+	}
+
+	otp, err := generateOTP()
+	if err != nil {
+		return "", err
+	}
+	saveOTP(phone, u.UserID, otp)
+	return otp, nil
+}
+
+func VerifyPasswordResetOTP(phone string, otp string) error {
+	phone = strings.TrimSpace(phone)
+	otp = strings.TrimSpace(otp)
+
+	if phone == "" || otp == "" {
+		return errors.New("กรุณากรอกเบอร์โทรและ OTP")
+	}
+
+	userID, err := verifyOTP(phone, otp)
+	if err != nil {
+		return err
+	}
+
+	saveVerifiedOTP(phone, userID)
+
+	return nil
+}
+
+func ResetPasswordService(phone string, newPassword string) error {
+	phone = strings.TrimSpace(phone)
+
+	userID, err := getVerifiedOTP(phone)
+	if err != nil {
+		return err
+	}
+
+	if err := validatePassword(newPassword); err != nil {
+		return err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(newPassword),
+		bcrypt.DefaultCost,
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := UpdatePassword(userID, string(hashedPassword)); err != nil {
+		return err
+	}
+
+	// ใช้สิทธิ์ยืนยัน OTP ไปแล้ว
+	deleteVerifiedOTP(phone)
+
+	return nil
+}

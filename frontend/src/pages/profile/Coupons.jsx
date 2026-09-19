@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getCoupons } from '../../api/coupons.js'
 import { Link, useNavigate } from 'react-router-dom'
 import BottomNavigation from '../../components/home/BottomNavigation.jsx'
+import { getCart } from '../../api/cart.js'
 
 const CHECKOUT_DISCOUNT_KEY = 'petshop_checkout_discount'
 
@@ -173,7 +174,7 @@ export default function Coupons() {
   const useCoupon = (coupon) => {
     let cart = []
     try {
-      const savedCart = JSON.parse(localStorage.getItem('petshop_cart') || '[]')
+      const savedCart = JSON.parse(getCart() || '[]')
       cart = Array.isArray(savedCart) ? savedCart : []
     } catch {
       cart = []

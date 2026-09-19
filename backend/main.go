@@ -112,6 +112,9 @@ func main() {
 	app.Post("/register", user.Register)
 	app.Post("/login", user.Login)
 	app.Post("/auth/line", user.LineLogin)
+	app.Post("/auth/forgot-password/request", user.PasswordReset)
+	app.Post("/auth/forgot-password/verify", user.VerifyPasswordReset)
+	app.Post("/auth/forgot-password/reset", user.ResetPassword)
 
 	profile := app.Group("/profile", middleware.JWTProtected(jwtSecret))
 	profile.Get("/", user.GetProfile)

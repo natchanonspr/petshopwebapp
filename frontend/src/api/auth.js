@@ -117,3 +117,80 @@ export async function login({
 
   return body.token
 }
+
+export async function requestPasswordResetOTP(phone) {
+  const response = await fetch(
+    `${API_BASE}/auth/forgot-password/request`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone,
+      }),
+    },
+  )
+
+  const body = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      body?.error || 'ไม่สามารถขอ OTP ได้',
+    )
+  }
+
+  return body
+}
+
+export async function verifyPasswordResetOTP(phone, otp) {
+  const response = await fetch(
+    `${API_BASE}/auth/forgot-password/verify`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone,
+        otp,
+      }),
+    },
+  )
+
+  const body = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      body?.error || 'OTP ไม่ถูกต้อง',
+    )
+  }
+
+  return body
+}
+
+export async function resetPassword(phone, newPassword) {
+  const response = await fetch(
+    `${API_BASE}/auth/forgot-password/reset`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone,
+        new_password: newPassword,
+      }),
+    },
+  )
+
+  const body = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      body?.error || 'ไม่สามารถเปลี่ยนรหัสผ่านได้',
+    )
+  }
+
+  return body
+}

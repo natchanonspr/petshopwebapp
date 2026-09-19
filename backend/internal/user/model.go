@@ -48,3 +48,17 @@ type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
 }
+
+type ForgotPasswordRequest struct {
+	UserPhone string `json:"phone"`
+}
+
+type VerifyPasswordResetOTPRequest struct {
+	UserPhone string `json:"phone"`
+	OTP       string `json:"otp"`
+}
+
+type ResetPasswordRequest struct {
+	UserPhone   string `json:"phone"`
+	NewPassword string `json:"new_password"`
+}

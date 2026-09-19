@@ -210,3 +210,79 @@ func AdminUpdateRole(c *fiber.Ctx) error {
 		"data":    user,
 	})
 }
+
+func PasswordReset(c *fiber.Ctx) error {
+	var req ForgotPasswordRequest
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "ข้อมูลไม่ถูกต้อง",
+		})
+	}
+
+	otp, err := ForgotPassword(req.UserPhone)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	response := fiber.Map{
+		"message": "ส่ง OTP สำเร็จ",
+	}
+
+	// ส่ง OTP กลับมาให้ Frontend
+	response["otp"] = otp
+
+	return c.JSON(response)
+}
+
+func VerifyPasswordReset(c *fiber.Ctx) error {
+	var req VerifyPasswordResetOTPRequest
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "ข้อมูลไม่ถูกต้อง",
+		})
+	}
+
+	err := VerifyPasswordResetOTP(
+		req.UserPhone,
+		req.OTP,
+	)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "ยืนยัน OTP สำเร็จ",
+	})
+}
+
+func ResetPassword(c *fiber.Ctx) error {
+	var req ResetPasswordRequest
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "ข้อมูลไม่ถูกต้อง",
+		})
+	}
+
+	err := ResetPasswordService(
+		req.UserPhone,
+		req.NewPassword,
+	)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "เปลี่ยนรหัสผ่านสำเร็จ",
+	})
+}
