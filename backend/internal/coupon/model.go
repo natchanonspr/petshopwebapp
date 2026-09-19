@@ -10,8 +10,8 @@ type Coupon struct {
 	CouponValue  float64   `gorm:"not null;default:0" json:"coupon_value"`
 	MinOrder     float64   `gorm:"not null;default:0" json:"min_order"`
 	MaxDiscount  float64   `gorm:"not null;default:0" json:"max_discount"`
-	UsageLimit   int64     `gorm:"not null;default:1" json:"usage_limit"`
-	PerUserLimit int64     `gorm:"not null;default:1" json:"per_user_limit"`
+	UsageLimit   int64     `gorm:"not null;default:0" json:"usage_limit"`
+	PerUserLimit int64     `gorm:"not null;default:0" json:"per_user_limit"`
 	UsedCount    int64     `gorm:"not null;default:0" json:"used_count"`
 	StartAt      time.Time `gorm:"not null" json:"start_at"`
 	ExpireAt     time.Time `gorm:"not null" json:"expire_at"`

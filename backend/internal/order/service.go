@@ -333,10 +333,18 @@ func UpdateOrderStatusService(orderID int64, adminUserID int64, status string) e
 			return errors.New("ออเดอร์ที่รอดำเนินการสามารถเปลี่ยนเป็นยืนยันหรือยกเลิกได้เท่านั้น")
 		}
 
+	case OrderConfirmed:
+		if status != OrderShipped && status != OrderCancelled {
+			return errors.New("ออเดอร์ที่ยืนยันแล้วสามารถเปลี่ยนเป็นกำลังจัดส่งหรือยกเลิกได้เท่านั้น")
+		}
+
 	case OrderShipped:
 		if status != OrderDelivered {
 			return errors.New("ออเดอร์ที่กำลังจัดส่งสามารถเปลี่ยนเป็นจัดส่งสำเร็จได้เท่านั้น")
 		}
+
+	case OrderDelivered:
+		return errors.New("คำสั่งซื้อนี้จัดส่งสำเร็จแล้ว")
 
 	case OrderCancelled:
 		return errors.New("คำสั่งซื้อนี้ถูกยกเลิกแล้ว")

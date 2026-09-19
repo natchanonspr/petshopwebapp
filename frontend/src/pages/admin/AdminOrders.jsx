@@ -23,15 +23,19 @@ const statusMap = {
   pending: 'รอดำเนินการ',
   confirmed: 'ยืนยันออเดอร์แล้ว',
   shipped: 'กำลังจัดส่ง',
-  deliveried: 'จัดส่งสำเร็จ',
+  delivered: 'จัดส่งสำเร็จ',
   cancelled: 'ยกเลิก',
 }
 
 const paymentMap = {
-  unpaid: 'รอตรวจสอบ',
+  unpaid: 'ยังไม่ชำระ',
+  waiting_slip: 'รอส่งสลิป',
+  reviewing: 'กำลังตรวจสอบ',
   paid: 'ชำระแล้ว',
-  cancelled: 'ยกเลิก',
+  rejected: 'ถูกปฏิเสธ',
 }
+
+const ORDERS_PER_PAGE = 20
 
 function normalizeOrder(order) {
   const createdAt = order.created_at
@@ -64,13 +68,6 @@ function normalizeOrder(order) {
 
     payment,
 
-    shipping:
-      order.order_status === 'deliveried'
-        ? 'จัดส่งแล้ว'
-        : order.order_status === 'shipped'
-          ? 'กำลังจัดส่ง'
-          : 'ยังไม่จัดส่ง',
-
     date: createdAt
       ? createdAt.toLocaleDateString('th-TH', {
         day: 'numeric',
@@ -86,7 +83,7 @@ function normalizeOrder(order) {
       }) + ' น.'
       : '—',
 
-    phone: '—',
+    phone: order.user?.phone || '—',
   }
 }
 
@@ -98,6 +95,7 @@ export default function AdminOrders() {
   const [tab, setTab] = useState('ทั้งหมด')
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('ทั้งหมด')
+  const [currentPage, setCurrentPage] = useState(1)
   const [toast, setToast] = useState('')
 
   const navigate = useNavigate()
@@ -179,7 +177,6 @@ export default function AdminOrders() {
         ${order.id}
         ${order.customer}
         ${order.phone || ''}
-        ${order.shipping || ''}
         ${order.status || ''}
       `.toLowerCase()
 
@@ -198,6 +195,34 @@ export default function AdminOrders() {
     search,
     paymentFilter,
   ])
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filtered.length / ORDERS_PER_PAGE)
+  )
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ORDERS_PER_PAGE
+
+    return filtered.slice(
+      start,
+      start + ORDERS_PER_PAGE
+    )
+  }, [filtered, currentPage])
+
+  const pageStart =
+    filtered.length === 0
+      ? 0
+      : (currentPage - 1) * ORDERS_PER_PAGE + 1
+
+  const pageEnd = Math.min(
+    currentPage * ORDERS_PER_PAGE,
+    filtered.length
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [tab, search, paymentFilter])
 
   // =========================
   // Count each status
@@ -251,7 +276,7 @@ export default function AdminOrders() {
       'Order ID,Customer,Total,Status,Payment,Shipping',
       ...orders.map(
         (order) =>
-          `"${order.id}","${order.customer}",${order.total},"${order.status}","${order.payment}","${order.shipping}"`
+          `"${order.id}","${order.customer}",${order.total},"${order.status}","${order.payment}"`
       ),
     ].join('\n')
 
@@ -306,7 +331,7 @@ export default function AdminOrders() {
             จัดการคำสั่งซื้อ
           </h1>
 
-    
+
         </div>
 
         <button
@@ -431,7 +456,7 @@ export default function AdminOrders() {
               onChange={(e) =>
                 setSearch(e.target.value)
               }
-              placeholder="ค้นหาเลขคำสั่งซื้อ ชื่อลูกค้า เบอร์โทร หรือเลขพัสดุ..."
+              placeholder="ค้นหาเลขคำสั่งซื้อ ชื่อลูกค้า หรือเบอร์โทร..."
               className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-xs text-gray-700 outline-none placeholder:text-gray-400 focus:border-violet-300"
             />
 
@@ -451,16 +476,24 @@ export default function AdminOrders() {
               ทั้งหมด
             </option>
 
-            <option value="รอตรวจสอบ">
-              รอตรวจสอบ
+            <option value="ยังไม่ชำระ">
+              ยังไม่ชำระ
+            </option>
+
+            <option value="รอส่งสลิป">
+              รอส่งสลิป
+            </option>
+
+            <option value="กำลังตรวจสอบ">
+              กำลังตรวจสอบ
             </option>
 
             <option value="ชำระแล้ว">
               ชำระแล้ว
             </option>
 
-            <option value="ยกเลิก">
-              ยกเลิก
+            <option value="ถูกปฏิเสธ">
+              ถูกปฏิเสธ
             </option>
           </select>
 
@@ -542,11 +575,11 @@ export default function AdminOrders() {
       {!loading && !error && (
         <div className="overflow-hidden rounded-xl border border-[#ececf2] bg-white shadow-sm">
 
-          <div className="overflow-x-auto">
+          <div className="max-h-[500px] overflow-auto">
 
             <table className="w-full min-w-[1050px] text-left">
 
-              <thead>
+              <thead className="sticky top-0 z-10 bg-gray-50">
                 <tr className="border-b border-[#f0f0f3] bg-gray-50/60">
 
                   <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
@@ -570,10 +603,6 @@ export default function AdminOrders() {
                   </th>
 
                   <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
-                    จัดส่ง
-                  </th>
-
-                  <th className="px-4 py-3 text-[11px] font-semibold text-gray-400">
                     สถานะ
                   </th>
 
@@ -589,7 +618,7 @@ export default function AdminOrders() {
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="8"
+                      colSpan="7"
                       className="px-4 py-14 text-center"
                     >
                       <div className="text-gray-300">
@@ -606,7 +635,7 @@ export default function AdminOrders() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((order) => (
+                  paginatedOrders.map((order) => (
                     <tr
                       key={order.order_id}
                       className="border-b border-[#f0f0f3] last:border-b-0 hover:bg-gray-50/50"
@@ -674,13 +703,6 @@ export default function AdminOrders() {
                         </span>
                       </td>
 
-                      {/* Shipping */}
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-gray-600">
-                          {order.shipping}
-                        </span>
-                      </td>
-
                       {/* Status */}
                       <td className="px-4 py-3">
                         <span
@@ -720,22 +742,58 @@ export default function AdminOrders() {
 
           {/* Footer */}
           <div className="border-t border-[#f0f0f3] px-4 py-3 text-center text-[10px] text-gray-400">
-            แสดง {filtered.length} จาก {orders.length} คำสั่งซื้อ
+            แสดง {pageStart}-{pageEnd} จาก {filtered.length} คำสั่งซื้อ
           </div>
 
+          <div className="flex items-center justify-center gap-1">
+
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage((page) =>
+                  Math.max(page - 1, 1)
+                )
+              }
+              disabled={currentPage === 1}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <i className="fa-solid fa-chevron-left text-[10px]" />
+            </button>
+
+            <span className="min-w-[70px] text-center text-[10px] font-semibold text-gray-500">
+              หน้า {currentPage} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage((page) =>
+                  Math.min(page + 1, totalPages)
+                )
+              }
+              disabled={currentPage === totalPages}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <i className="fa-solid fa-chevron-right text-[10px]" />
+            </button>
+
+          </div>
         </div>
-      )}
+      )
+      }
 
       {/* =========================
           Toast
       ========================= */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-lg">
-          <i className="fa-solid fa-circle-check mr-2" />
-          {toast}
-        </div>
-      )}
+      {
+        toast && (
+          <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-lg">
+            <i className="fa-solid fa-circle-check mr-2" />
+            {toast}
+          </div>
+        )
+      }
 
-    </div>
+    </div >
   )
 }

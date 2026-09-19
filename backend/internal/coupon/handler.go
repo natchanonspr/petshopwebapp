@@ -8,7 +8,14 @@ func Create(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	coupon, err := CreateCouponService(req)
+	adminUserID, ok := c.Locals("user_id").(int64)
+	if !ok || adminUserID <= 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "unauthorized",
+		})
+	}
+
+	coupon, err := CreateCouponService(req, adminUserID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),

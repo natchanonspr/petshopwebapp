@@ -31,7 +31,7 @@ export function getCoupon(code, subtotal = 0, now = new Date()) {
   if (!coupon.active) return { ok: false, reason: 'โปรโมชั่นนี้ปิดใช้งานอยู่' }
   if (coupon.start && now < new Date(coupon.start)) return { ok: false, reason: 'โปรโมชั่นนี้ยังไม่เริ่ม' }
   if (coupon.expire && now > new Date(coupon.expire)) return { ok: false, reason: 'โปรโมชั่นนี้หมดอายุแล้ว' }
-  if (Number(coupon.limit) > 0 && Number(coupon.used || 0) >= Number(coupon.limit)) return { ok: false, reason: 'สิทธิ์โปรโมชั่นถูกใช้ครบแล้ว' }
+  if (Number(coupon.limit) > 0 && Number(coupon.used || 0) >= Number(coupon.limit)) return { ok: false, reason: 'คุณเคยใช้โค้ดส่วนลดนี้แล้ว' }
   const min = Number(coupon.min || 0)
   if (Number(subtotal) < min) return { ok: false, reason: `ยอดสั่งซื้อขั้นต่ำ ฿${min.toLocaleString()} สำหรับโค้ด ${normalized}` }
   let amount = coupon.type === 'เปอร์เซ็นต์' ? Math.min(Number(subtotal) * Number(coupon.value || 0) / 100, Number(subtotal)) : Math.min(Number(coupon.value || 0), Number(subtotal))
