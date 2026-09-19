@@ -696,11 +696,11 @@ export default function Checkout() {
 
               <span className="min-w-0 flex-1">
                 <strong className="block text-sm">
-                  พร้อมเพย์
+                  พร้อมเพย์เบอร์โทร
                 </strong>
 
                 <small className="text-xs text-gray-400">
-                  ชำระเงินผ่านหมายเลขพร้อมเพย์
+                  ชำระเงินผ่านหมายเลขโทรศัพท์พร้อมเพย์
                 </small>
               </span>
 
@@ -736,11 +736,11 @@ export default function Checkout() {
 
               <span className="min-w-0 flex-1">
                 <strong className="block text-sm">
-                  สแกน QR
+                  พร้อมเพย์ QR
                 </strong>
 
                 <small className="text-xs text-gray-400">
-                  สแกน QR Code เพื่อชำระเงิน
+                  ชำระเงินผ่านพร้อมเพย์ QR Code
                 </small>
               </span>
 
