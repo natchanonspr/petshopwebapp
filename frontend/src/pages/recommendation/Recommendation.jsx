@@ -140,6 +140,10 @@ export default function Recommendation() {
         .map((item) => ({
           ...item.product,
           reason: item.reason || 'AI แนะนำสินค้านี้จากข้อมูลของน้อง',
+          daily_kcal: item.daily_kcal,
+          daily_grams: item.daily_grams,
+          grams_per_food: item.grams_per_food,
+          food_per_day: item.food_per_day,
         }))
 
       setResult({

@@ -37,8 +37,8 @@ type Recommendation struct {
 	Product      *ProductData `json:"product"`
 	DailyKcal    float64      `json:"daily_kcal"`
 	DailyGrams   float64      `json:"daily_grams"`
-	GramsPerFood float64      `json:"grams_per_meal"`
-	FoodPerDay   int          `json:"meals_per_day"`
+	GramsPerFood float64      `json:"grams_per_food"`
+	FoodPerDay   int          `json:"food_per_day"`
 }
 
 type RecommendationResponse struct {

@@ -196,7 +196,7 @@ export default function AdminProducts() {
     if (!Number.isInteger(categoryId) || categoryId <= 0) return setError('กรุณาเลือกหมวดหมู่สินค้า')
     if (!Number.isFinite(price) || price < 0) return setError('กรุณากรอกราคาให้ถูกต้อง')
     if (!Number.isInteger(stock) || stock < 0) return setError('สต็อกต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป')
-    if (!Number.isFinite(kcalPer100g) || kcalPer100g <= 0) { return setError('ค่าพลังงานอาหารต้องไม่ติดลบ') }
+    if (!Number.isFinite(kcalPer100g) || kcalPer100g < 0) { return setError('ค่าพลังงานอาหารต้องไม่ติดลบ') }
 
     const payload = {
       category_id: categoryId,
@@ -606,7 +606,7 @@ export default function AdminProducts() {
 function ProductForm({ form, setForm, error, setError, categories }) {
   const field = (key, value) => setForm(current => ({ ...current, [key]: value }))
   const handleCategoryChange = value => {
-    const selected = categories.find(category => category.name === value)
+    const selected = categories.find(category => category.category_name === value)
     setForm(current => ({ ...current, category: value, categoryId: selected?.category_id || '', }))
   }
   const pickImage = event => {

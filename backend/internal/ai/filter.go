@@ -179,27 +179,15 @@ func scoreNutritionMatch(petText string, productText string) int {
 
 // กรองสินค้า
 func filterProductsForPet(petData PetData, products []ProductData) []ProductData {
-	var speciesKeywords []string
 	var stageKeywords []string
-
+	expectedCategory := ""
 	switch petData.PetSpecies {
 	case "สุนัข":
-		speciesKeywords = []string{
-			"สุนัข",
-			"หมา",
-			"dog",
-			"puppy",
-		}
-
+		expectedCategory = "อาหารสุนัข"
 	case "แมว":
-		speciesKeywords = []string{
-			"แมว",
-			"cat",
-			"kitten",
-		}
-
+		expectedCategory = "อาหารแมว"
 	default:
-		return products
+		return []ProductData{}
 	}
 
 	lifeStage := getLifeStage(petData.PetBirthdate)
@@ -306,11 +294,11 @@ func filterProductsForPet(petData PetData, products []ProductData) []ProductData
 		)
 
 		// ต้องเกี่ยวข้องกับชนิดสัตว์ก่อน
-		if containsAny(text, speciesKeywords) {
-			score += 10
-		} else if !containsAny(category, speciesKeywords) {
+		if category != expectedCategory {
 			continue
 		}
+
+		score += 10
 
 		// ช่วงวัยใช้เป็น "คะแนน" ไม่ใช่ hard filter
 		if len(stageKeywords) > 0 &&
@@ -338,7 +326,7 @@ func filterProductsForPet(petData PetData, products []ProductData) []ProductData
 	}
 
 	if len(candidates) == 0 {
-		return products
+		return []ProductData{}
 	}
 
 	sort.SliceStable(candidates, func(i, j int) bool {

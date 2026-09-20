@@ -202,7 +202,7 @@ func callAI(prompt string) ([]Recommendation, error) {
 		}
 
 		if attempt < maxAttempts {
-			wait := time.Duration(1<<uint(attempt-1)) * time.Second
+			wait := time.Duration(2<<uint(attempt-1)) * time.Second
 
 			fmt.Printf(
 				"Gemini request failed (attempt %d/%d), retrying in %s...\n",
