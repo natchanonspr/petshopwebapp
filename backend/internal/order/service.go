@@ -3,6 +3,7 @@ package order
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -492,17 +493,17 @@ func UpdateOrderStatusService(orderID int64, adminUserID int64, status string) e
 
 	case OrderConfirmed:
 		title = "ร้านยืนยันคำสั่งซื้อแล้ว"
-		detail = "คำสั่งซื้อของคุณได้รับการยืนยันและกำลังเตรียมสินค้า"
+		detail = fmt.Sprintf("คำสั่งซื้อ #%d ได้รับการยืนยันและกำลังเตรียมสินค้า", order.OrderID)
 		icon = "fa-circle-check"
 
 	case OrderShipped:
 		title = "คำสั่งซื้อกำลังจัดส่ง"
-		detail = "สินค้าของคุณถูกส่งออกจากร้านและกำลังเดินทางไปหาคุณ"
+		detail = fmt.Sprintf("คำสั่งซื้่อ #%d เตรียมสินค้าเรียบร้อยแล้วและจัดส่งไปหาคุณ", order.OrderID)
 		icon = "fa-truck-fast"
 
 	case OrderDelivered:
 		title = "จัดส่งสำเร็จแล้ว"
-		detail = "คำสั่งซื้อของคุณจัดส่งสำเร็จแล้ว ขอบคุณที่ใช้บริการ"
+		detail = fmt.Sprintf("คำสั่งซื้อ #%d จัดส่งสำเร็จแล้ว ขอบคุณที่ใช้บริการ", order.OrderID)
 		icon = "fa-box-open"
 
 	default:
@@ -571,7 +572,7 @@ func UpdateOrderPaymentStatusService(orderID int64, adminUserID int64, status st
 			UserID:   &order.UserID,
 			Type:     "order",
 			Title:    "ยืนยันการชำระเงินแล้ว",
-			Detail:   "คำสั่งซื้อของคุณได้รับการยืนยันการชำระเงินเรียบร้อยแล้ว",
+			Detail:   fmt.Sprintf("คำสั่งซื้อ #%d ยอดรวม %.2f฿ ได้รับการยืนยันการชำระเงินเรียบร้อยแล้ว", order.OrderID, order.TotalAmount),
 			Icon:     "fa-circle-check",
 			OrderID:  &orderIDValue,
 		}
@@ -616,7 +617,7 @@ func UpdateOrderPaymentStatusService(orderID int64, adminUserID int64, status st
 			UserID:   &order.UserID,
 			Type:     "order",
 			Title:    "ไม่สามารถยืนยันการชำระเงินได้",
-			Detail:   "สลิปการชำระเงินถูกปฏิเสธ และคำสั่งซื้อถูกยกเลิก",
+			Detail:   fmt.Sprintf("คำสั่งซื้อ #%d ไม่สามารถยืนยันการชำระเงินเงินได้", order.OrderID),
 			Icon:     "fa-circle-xmark",
 			OrderID:  &orderIDValue,
 		}
