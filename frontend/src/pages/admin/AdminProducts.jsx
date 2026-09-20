@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fuzzyFilterProducts } from '../../lib/fuzzySearch.js'
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../../api/products.js'
-import { getCategories , createCategory, updateCategory, deleteCategory } from '../../api/categories.js'
+import { getCategories, createCategory, updateCategory, deleteCategory } from '../../api/categories.js'
 
-const emptyForm = { name: '', category: '', categoryId: '', price: '', stock: '', image: '', description: '' }
+const emptyForm = { name: '', category: '', categoryId: '', price: '', stock: '', kcalPer100g: '', image: '', description: '' }
 
 function statusOf(stock) {
   if (stock <= 0) return 'หมดสต็อก'
@@ -176,6 +176,7 @@ export default function AdminProducts() {
       category: product.category || '',
       categoryId: product.categoryId || '',
       price: product.price ?? '',
+      kcalPer100g: product.kcalPer100g ?? '',
       stock: product.stock ?? '',
       image: product.image || '',
       description: product.description || '',
@@ -189,16 +190,19 @@ export default function AdminProducts() {
     const categoryId = Number(form.categoryId)
     const price = Number(form.price)
     const stock = Number(form.stock)
+    const kcalPer100g = Number(form.kcalPer100g)
 
     if (!name) return setError('กรุณากรอกชื่อสินค้า')
     if (!Number.isInteger(categoryId) || categoryId <= 0) return setError('กรุณาเลือกหมวดหมู่สินค้า')
     if (!Number.isFinite(price) || price < 0) return setError('กรุณากรอกราคาให้ถูกต้อง')
     if (!Number.isInteger(stock) || stock < 0) return setError('สต็อกต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป')
+    if (!Number.isFinite(kcalPer100g) || kcalPer100g <= 0) { return setError('กรุณากรอกค่าพลังงานอาหารต่อ 100 กรัม') }
 
     const payload = {
       category_id: categoryId,
       product_name: name,
       product_price: price,
+      product_kcal_per_100g: kcalPer100g,
       product_stock: stock,
       product_image: form.image || '',
       description: form.description.trim(),
@@ -620,6 +624,7 @@ function ProductForm({ form, setForm, error, setError, categories }) {
       <div><label className="mb-1.5 block text-[10px] font-bold text-gray-500">หมวดหมู่ <span className="text-red-400">*</span></label><select value={form.category} onChange={e => handleCategoryChange(e.target.value)} className="h-10 w-full rounded-lg border border-gray-200 px-3 text-xs"><option value="">เลือกหมวดหมู่</option>{categories.map(item => <option key={item.category_id} value={item.category_name}>{item.category_name}</option>)}</select></div>
       <div><label className="mb-1.5 block text-[10px] font-bold text-gray-500">ราคา <span className="text-red-400">*</span></label><input type="number" min="0" value={form.price} onChange={e => field('price', e.target.value)} className="h-10 w-full rounded-lg border border-gray-200 px-3 text-xs" /></div>
       <div><label className="mb-1.5 block text-[10px] font-bold text-gray-500">สต็อก <span className="text-red-400">*</span></label><input type="number" min="0" step="1" value={form.stock} onChange={e => field('stock', e.target.value)} className="h-10 w-full rounded-lg border border-gray-200 px-3 text-xs" /></div>
+      <div><label className="mb-1.5 block text-[10px] font-bold text-gray-500">พลังงานอาหาร (kcal/100g) <span className="text-red-400">*</span></label><input type="number" min="1" step="0.1" value={form.kcalPer100g} onChange={e => field('kcalPer100g', e.target.value)} placeholder="เช่น 350" className="h-10 w-full rounded-lg border border-gray-200 px-3 text-xs" /></div>
     </div>
     <div><label className="mb-1.5 block text-[10px] font-bold text-gray-500">รายละเอียดสินค้า</label><textarea value={form.description} onChange={e => field('description', e.target.value)} rows="3" className="w-full resize-none rounded-lg border border-gray-200 p-3 text-xs outline-none focus:border-violet-400" /></div>
     <div className="rounded-xl border border-dashed border-gray-200 p-3"><div className="flex items-center gap-3"><div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-gray-50 text-gray-300">{form.image ? <img src={form.image} alt="ตัวอย่างสินค้า" className="size-full object-cover" /> : <i className="fa-solid fa-image text-lg" />}</div><div><p className="text-xs font-bold text-gray-700">รูปภาพสินค้า</p><label className="mt-2 inline-flex cursor-pointer items-center rounded-lg bg-violet-50 px-3 py-2 text-[10px] font-bold text-violet-600"><i className="fa-solid fa-upload mr-2" />เลือกจากเครื่อง<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={pickImage} className="hidden" /></label>{form.image && <button type="button" onClick={() => field('image', '')} className="ml-2 text-[10px] font-bold text-red-400">ลบรูป</button>}</div></div></div>

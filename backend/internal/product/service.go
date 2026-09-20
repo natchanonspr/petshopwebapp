@@ -34,6 +34,10 @@ func validateProductRequest(req *ProductRequest) error {
 		return ErrInvalidStock
 	}
 
+	if req.ProductKcalPer100g <= 0 {
+		return errors.New("ค่าพลังงานอาหารต้องมากกว่า 0")
+	}
+
 	//ตรวจหมวดหมู่ว่ามีจริงไหม
 	if _, err := category.GetCategory(req.CategoryID); err != nil {
 		return ErrInvalidCategory
@@ -48,13 +52,14 @@ func CreateProductService(req *ProductRequest) (*Product, error) {
 	}
 
 	product := &Product{
-		CategoryID:    req.CategoryID,
-		ProductName:   strings.TrimSpace(req.ProductName),
-		ProductPrice:  req.ProductPrice,
-		ProductStock:  req.ProductStock,
-		ProductImage:  strings.TrimSpace(req.ProductImage),
-		Description:   strings.TrimSpace(req.Description),
-		ProductStatus: true,
+		CategoryID:         req.CategoryID,
+		ProductName:        strings.TrimSpace(req.ProductName),
+		ProductPrice:       req.ProductPrice,
+		ProductKcalPer100g: req.ProductKcalPer100g,
+		ProductStock:       req.ProductStock,
+		ProductImage:       strings.TrimSpace(req.ProductImage),
+		Description:        strings.TrimSpace(req.Description),
+		ProductStatus:      true,
 	}
 
 	if err := CreateProduct(product); err != nil {

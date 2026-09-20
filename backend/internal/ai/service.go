@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"sort"
@@ -37,15 +38,16 @@ func convertProductData(input []product.Product) []ProductData {
 	result := make([]ProductData, 0, len(input))
 	for _, item := range input {
 		result = append(result, ProductData{
-			ProductID:     item.ProductID,
-			CategoryID:    item.CategoryID,
-			CategoryName:  item.CategoryName,
-			ProductName:   item.ProductName,
-			ProductPrice:  item.ProductPrice,
-			ProductStock:  item.ProductStock,
-			ProductImage:  item.ProductImage,
-			Description:   item.Description,
-			ProductStatus: item.ProductStatus,
+			ProductID:          item.ProductID,
+			CategoryID:         item.CategoryID,
+			CategoryName:       item.CategoryName,
+			ProductName:        item.ProductName,
+			ProductPrice:       item.ProductPrice,
+			ProductKcalPer100g: item.ProductKcalPer100g,
+			ProductStock:       item.ProductStock,
+			ProductImage:       item.ProductImage,
+			Description:        item.Description,
+			ProductStatus:      item.ProductStatus,
 		})
 	}
 
@@ -627,6 +629,39 @@ func callAI(prompt string) ([]Recommendation, error) {
 	)
 }
 
+func calculateFoodAmount(petData PetData, kcalPer100g float64) (float64, float64, float64, int) {
+	if petData.PetWeight <= 0 || kcalPer100g <= 0 {
+		return 0, 0, 0, 0
+	}
+
+	rer := 70 * math.Pow(petData.PetWeight, 0.75)
+
+	factor := 1.4
+
+	switch getLifeStage(petData.PetBirthdate, petData.PetSpecies) {
+	case "young":
+		factor = 2.0
+	case "senior":
+		factor = 1.2
+	case "adult":
+		if petData.PetNeutered {
+			factor = 1.4
+		} else {
+			factor = 1.6
+		}
+	}
+
+	dailyKcal := math.Round(rer * factor)
+
+	kcalPerGram := kcalPer100g / 100
+	dailyGrams := math.Round(dailyKcal / kcalPerGram)
+
+	foodPerDay := 2
+	gramsPerFood := math.Round(dailyGrams / float64(foodPerDay))
+
+	return dailyKcal, dailyGrams, gramsPerFood, foodPerDay
+}
+
 func GetRecommendationsService(userID int64, petID int64) (*RecommendationResponse, error) {
 	selectedPet, err := GetPetForUser(userID, petID)
 	if err != nil {
@@ -698,6 +733,16 @@ func GetRecommendationsService(userID int64, petID int64) (*RecommendationRespon
 		}
 
 		recommendation.Product = &item
+		dailyKcal, dailyGrams, gramsPerFood, foodPerDay :=
+			calculateFoodAmount(
+				petData,
+				item.ProductKcalPer100g,
+			)
+
+		recommendation.DailyKcal = dailyKcal
+		recommendation.DailyGrams = dailyGrams
+		recommendation.GramsPerFood = gramsPerFood
+		recommendation.FoodPerDay = foodPerDay
 
 		seen[recommendation.ProductID] = true
 

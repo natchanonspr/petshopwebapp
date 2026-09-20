@@ -379,6 +379,22 @@ export default function Recommendation() {
                           {product.reason && (
                             <span className="mt-1 block text-[10px] leading-4 text-gray-500">
                               {product.reason}
+                              {product.daily_grams > 0 && (
+                                <div className="mt-2 rounded-xl bg-orange-50 p-2.5">
+                                  <div className="text-[10px] font-bold text-orange-600">
+                                    ปริมาณแนะนำ
+                                  </div>
+
+                                  <div className="mt-1 text-[11px] font-bold text-gray-700">
+                                    {product.daily_grams} กรัม/วัน
+                                  </div>
+
+                                  <div className="text-[10px] text-gray-500">
+                                    แบ่ง {product.food_per_day} มื้อ × {product.grams_per_food} กรัม
+                                    · {product.daily_kcal} kcal/วัน
+                                  </div>
+                                </div>
+                              )}
                             </span>
                           )}
                         </span>

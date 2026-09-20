@@ -6,6 +6,7 @@ function mapProduct(p) {
     categoryId: p.category_id,
     name: p.product_name,
     price: p.product_price,
+    kcalPer100g: p.product_kcal_per_100g ?? 0,
     image: p.product_image || '',
     stock: p.product_stock,
     status: p.product_status,
