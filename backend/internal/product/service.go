@@ -34,8 +34,8 @@ func validateProductRequest(req *ProductRequest) error {
 		return ErrInvalidStock
 	}
 
-	if req.ProductKcalPer100g <= 0 {
-		return errors.New("ค่าพลังงานอาหารต้องมากกว่า 0")
+	if req.ProductKcalPer100g < 0 {
+		return errors.New("ค่าพลังงานอาหารต้องไม่ติดลบ")
 	}
 
 	//ตรวจหมวดหมู่ว่ามีจริงไหม
@@ -81,6 +81,7 @@ func UpdateProductService(productID int64, req *ProductRequest) (*Product, error
 	product.CategoryID = req.CategoryID
 	product.ProductName = strings.TrimSpace(req.ProductName)
 	product.ProductPrice = req.ProductPrice
+	product.ProductKcalPer100g = req.ProductKcalPer100g
 	product.ProductStock = req.ProductStock
 	product.ProductImage = strings.TrimSpace(req.ProductImage)
 	product.Description = strings.TrimSpace(req.Description)
