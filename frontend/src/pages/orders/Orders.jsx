@@ -579,13 +579,9 @@ export default function Orders() {
                   ) && (
                       <button
                         type="button"
-                        onClick={() =>
-                          handleReorder(order)
-                        }
-                        disabled={
-                          reorderingId === order.id
-                        }
-                        className="flex h-9 w-[100px] items-center justify-center rounded-full bg-orange-500 text-xs font-bold leading-none text-white transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => handleReorder(order)}
+                        disabled={reorderingId === order.id}
+                        className="flex h-9 w-[100px] items-center justify-center rounded-full bg-orange-500 !text-xs !font-bold !leading-none !font-sans !text-white transition hover:bg-orange-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {reorderingId === order.id
                           ? 'กำลังเพิ่ม...'

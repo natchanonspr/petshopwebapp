@@ -162,6 +162,7 @@ export default function OrderDetail() {
         })
       }
       window.dispatchEvent(new Event('petshop-cart-updated'))
+      
       navigate('/cart')
     } catch (error) {
       console.error('Reorder error:', error)
