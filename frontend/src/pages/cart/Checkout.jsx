@@ -186,7 +186,7 @@ export default function Checkout() {
   const subtotal = useMemo(() => {
     return normalizedItems.reduce(
       (sum, item) =>
-        sum + item.price * item.qty - (taxAmount),
+        sum + item.price * item.qty,
       0,
     )
   }, [normalizedItems])
@@ -290,7 +290,7 @@ export default function Checkout() {
       : 40
 
   const { vat: taxAmount, total, } = calculateOrderPricing({
-    subtotal,
+    subtotal: subtotal - taxAmount,
     discount,
     delivery,
   })
