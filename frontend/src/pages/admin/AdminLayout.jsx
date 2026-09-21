@@ -4,6 +4,7 @@ import { subscribeNotifications } from '../../lib/notifications.js'
 import { getAdminOrders } from '../../api/orders.js'
 import { getAdminUsers } from '../../api/users.js'
 import { getProducts } from '../../api/products.js'
+import { getUnreadNotificationCount } from '../../api/notifications.js'
 
 const PROFILE_KEY = 'petshop_profile'
 
