@@ -825,7 +825,7 @@ export default function Checkout() {
             <div className="flex justify-between">
               <span>ค่าสินค้า</span>
               <span>
-                ฿{subtotal.toLocaleString() - taxAmount.toLocaleString()}
+                ฿{subtotal - taxAmount}
               </span>
             </div>
 
