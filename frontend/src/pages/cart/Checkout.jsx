@@ -276,7 +276,7 @@ export default function Checkout() {
     : 0
 
   const afterDiscount = subtotal - discount
-  const totalpaid = subtotal - taxAmount
+  const totalpaid = subtotal - taxAmount 
 
 
   const freeShipping =
@@ -827,7 +827,7 @@ export default function Checkout() {
             <div className="flex justify-between">
               <span>ค่าสินค้า</span>
               <span>
-                ฿{totalpaid.toLocaleString()}
+                ฿{subtotal - taxAmount}
               </span>
             </div>
 
