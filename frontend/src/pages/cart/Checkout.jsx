@@ -276,8 +276,6 @@ export default function Checkout() {
     : 0
 
   const afterDiscount = subtotal - discount
-  const totalpaid = subtotal - taxAmount 
-
 
   const freeShipping =
     promoEligible &&
@@ -296,6 +294,9 @@ export default function Checkout() {
     discount,
     delivery,
   })
+
+  const totalpaid = subtotal - taxAmount 
+
 
   // =========================
   // Coupon
