@@ -186,7 +186,7 @@ export default function Checkout() {
   const subtotal = useMemo(() => {
     return normalizedItems.reduce(
       (sum, item) =>
-        sum + item.price * item.qty,
+        sum + item.price * item.qty - (taxAmount),
       0,
     )
   }, [normalizedItems])

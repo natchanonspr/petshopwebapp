@@ -74,7 +74,7 @@ func CreateOrderService(userID int64, req *CreateOrderRequest) (*Order, error) {
 			return nil, ErrOutOfStock
 		}
 
-		subtotalAmount += product.ProductPrice * float64(cartItem.CartQuantity)
+		subtotalAmount += (product.ProductPrice * float64(cartItem.CartQuantity)) - taxamount 
 
 		orderItems = append(orderItems, OrderItem{
 			ProductID:     product.ProductID,

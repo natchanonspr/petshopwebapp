@@ -62,7 +62,7 @@ func buildPrompt(petData PetData, products []ProductData) string {
 	ข้อมูลสัตว์เลี้ยง:%s
 	รายการสินค้า:%s
 	กติกา:
-		1. เลือกสินค้าได้ไม่เกิน 3 รายการ
+		1. เลือกสินค้าได้ไม่เกิน 2 รายการ
 		2. เลือกเฉพาะ product_id ที่มีอยู่ในรายการสินค้าเท่านั้น
 		3. ห้ามสร้าง product_id ใหม่
 		4. พิจารณาประเภทสัตว์ สายพันธุ์ น้ำหนัก อายุ เพศ การทำหมัน โรค สุขภาพ และรายละเอียด
@@ -116,7 +116,7 @@ func callAI(prompt string) ([]Recommendation, error) {
 
 	client := &http.Client{Timeout: 60 * time.Second}
 
-	const maxAttempts = 3
+	const maxAttempts = 2
 
 	var lastErr error
 

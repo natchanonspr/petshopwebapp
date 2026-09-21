@@ -13,7 +13,7 @@ import (
 )
 
 const linePushMessageURL = "https://api.line.me/v2/bot/message/push"
-const lineProfileURL = "https://api.line.me/v2/profile"
+const lineProfileURL = "https://api.line.me/v2/bot/profile"
 
 type linePushRequest struct {
 	To       string             `json:"to"`
@@ -97,7 +97,7 @@ func SendNotificationToLINEUsers(lineUserIDs []string, notification *Notificatio
 }
 
 func verifyLINEUser(client *http.Client, token string, lineUserID string) error {
-	url := lineProfileURL + "?userId=" + lineUserID
+	url := lineProfileURL + "/" + lineUserID
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
