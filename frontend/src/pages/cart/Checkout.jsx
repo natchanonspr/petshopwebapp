@@ -290,7 +290,7 @@ export default function Checkout() {
       : 40
 
   const { vat: taxAmount, total, } = calculateOrderPricing({
-    subtotal: subtotal - taxAmount,
+    subtotal,
     discount,
     delivery,
   })
@@ -825,7 +825,7 @@ export default function Checkout() {
             <div className="flex justify-between">
               <span>ค่าสินค้า</span>
               <span>
-                ฿{subtotal.toLocaleString()}
+                ฿{subtotal.toLocaleString() - taxAmount.toLocaleString()}
               </span>
             </div>
 
